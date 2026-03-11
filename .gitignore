@@ -1,0 +1,64 @@
+# ==========================================
+# 1. 操作系统 & IDE 缓存 (IntelliJ IDEA 重点配置)
+# ==========================================
+.DS_Store
+Thumbs.db
+.idea/
+*.iml
+*.swp
+*.log
+
+# ==========================================
+# 2. 前端依赖与打包产物 (Vue/React)
+# ==========================================
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ==========================================
+# 3. Java / Spring Boot 后端构建产物 (支持多模块)
+# ==========================================
+**/target/
+*.class
+*.jar
+*.war
+backend/logs/
+# 如果用了 Gradle
+.gradle/
+**/build/
+
+# ==========================================
+# 4. Redis & 数据库本地数据 (极其重要)
+# ==========================================
+# 忽略 Redis 本地持久化数据文件
+dump.rdb
+appendonly.aof
+appendonlydir/
+# 如果你后续用 Docker Compose，忽略挂载的本地数据卷目录
+deploy/mysql/data/
+deploy/redis/data/
+
+# ==========================================
+# 5. 敏感配置与密钥 (安全底线)
+# ==========================================
+# 绝不能把包含 MySQL/Redis 真实密码的配置文件传上去
+*.env
+*.env.local
+# 建议在后端放一个 application-dev.yml.example 作为模板传上去
+# 真正的 application-dev.yml 在本地使用，被 git 忽略
+backend/src/main/resources/application-local.yml
+backend/src/main/resources/application-dev.yml
+
+# ==========================================
+# 6. 比赛多媒体大文件 (保持仓库轻量)
+# ==========================================
+# 严格禁止视频文件进入 Git 版本控制
+*.mp4
+*.mov
+*.avi
+*.mkv
+# 注意：不忽略 .jpg/.png/.webp/.pdf，确保你的参赛证明能正常提交到 docs/
