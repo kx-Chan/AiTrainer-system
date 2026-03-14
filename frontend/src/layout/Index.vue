@@ -1,59 +1,67 @@
 <template>
-  <el-container class="app-wrapper">
-    <el-header class="header">
-      <div class="logo-container">
-        <el-icon :size="24" color="#409EFF"><Fitness /></el-icon>
-        <span class="logo-text">AiTrainer 爱健身</span>
+  <div class="app-wrapper">
+    
+    <el-menu 
+      v-if="route.path !== '/onboarding'"
+      mode="horizontal" 
+      :default-active="route.path" 
+      router 
+      class="custom-top-nav"
+      :ellipsis="false"
+    >
+      <div class="brand-logo">
+        <img src="/爱健身.png" alt="AiTrainer Logo" class="logo-img" />
+        <span class="logo-text">AiTrainer</span>
       </div>
-      
-      <el-menu 
-        :default-active="route.path" 
-        class="nav-menu" 
-        mode="horizontal" 
-        router
-        :ellipsis="false"
-      >
-        <el-menu-item index="/community">健身社区</el-menu-item>
-        <el-menu-item index="/workout">项目大厅</el-menu-item>
-        <el-menu-item index="/dashboard">数据看板</el-menu-item>
-        <el-menu-item index="/profile">个人主页</el-menu-item>
-      </el-menu>
 
-      <div class="user-actions">
-        <el-dropdown trigger="click">
-          <span class="el-dropdown-link avatar-wrapper">
-            <el-avatar size="small" src="https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png" />
+      <div class="flex-grow"></div>
+
+      <el-menu-item index="/community">健身社区</el-menu-item>
+      <el-menu-item index="/workout">项目大厅</el-menu-item>
+      <el-menu-item index="/dashboard">数据看板</el-menu-item>
+      <el-menu-item index="/profile">个人主页</el-menu-item>
+      <el-menu-item index="/coach" class="ai-nav-item">
+        <el-icon><Microphone /></el-icon> AI 私教
+      </el-menu-item>
+
+      <div class="flex-grow"></div>
+
+      <div class="nav-user-profile">
+        <el-dropdown placement="bottom-end">
+          <span class="user-dropdown-link">
+            <el-avatar :size="32" src="https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png" />
             <span class="username">陈同学</span>
-            <el-icon class="el-icon--right"><arrow-down /></el-icon>
+            <el-icon><ArrowDown /></el-icon>
           </span>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item @click="$router.push('/profile')">我的主页</el-dropdown-item>
+              <el-dropdown-item @click="router.push('/profile')">进入主页</el-dropdown-item>
               <el-dropdown-item divided @click="handleLogout">退出登录</el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
       </div>
-    </el-header>
+    </el-menu>
 
-    <el-main class="main-content">
+    <div class="main-content">
       <router-view v-slot="{ Component }">
         <transition name="fade" mode="out-in">
           <component :is="Component" />
         </transition>
       </router-view>
-    </el-main>
-  </el-container>
+    </div>
+
+  </div>
 </template>
 
 <script setup>
 import { useRoute, useRouter } from 'vue-router'
+import { Microphone, ArrowDown } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
 
 const handleLogout = () => {
-  // 模拟退出逻辑
   localStorage.removeItem('jwt_token')
   router.push('/login')
 }
@@ -65,41 +73,84 @@ const handleLogout = () => {
   background-color: #f5f7fa;
 }
 
-.header {
+.custom-top-nav {
+  height: 60px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  background-color: #ffffff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  padding: 0 40px;
+  border-bottom: none !important; 
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04); 
+  padding: 0 20px;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px); 
 }
 
-.logo-container {
+/* ================= 修改点：Logo 区域样式 ================= */
+.brand-logo {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 20px;
+  padding-left: 10px;
+  /* 已经删除了 cursor: pointer 和悬浮效果 */
+}
+.logo-img {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  margin-right: 10px;
+  object-fit: contain;
+}
+.logo-text {
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  background: linear-gradient(45deg, #409EFF, #8a2be2);
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+/* 占位符弹簧 */
+.flex-grow { flex-grow: 1; }
+
+.custom-top-nav .el-menu-item {
+  font-size: 15px;
+  font-weight: 500;
+  color: #606266;
+  border-bottom: 2px solid transparent;
+  transition: all 0.3s;
+}
+.custom-top-nav .el-menu-item.is-active {
   font-weight: bold;
-  color: #303133;
+  color: #409EFF !important;
+  border-bottom: 2px solid #409EFF !important;
+  background-color: transparent !important;
 }
 
-.nav-menu {
-  flex: 1;
-  justify-content: center;
-  border-bottom: none; /* 覆盖默认边框 */
+.ai-nav-item {
+  color: #8a2be2 !important;
+}
+.ai-nav-item.is-active {
+  border-bottom-color: #8a2be2 !important;
 }
 
-.user-actions {
+.nav-user-profile {
   display: flex;
   align-items: center;
+  margin-left: 20px;
+  padding-right: 10px;
 }
-
-.avatar-wrapper {
+.user-dropdown-link {
   display: flex;
   align-items: center;
   gap: 8px;
   cursor: pointer;
   outline: none;
+}
+.username {
+  font-size: 14px;
+  font-weight: 500;
+  color: #303133;
 }
 
 .main-content {
@@ -107,7 +158,6 @@ const handleLogout = () => {
   box-sizing: border-box;
 }
 
-/* 简单的路由切换动画 */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.2s ease;

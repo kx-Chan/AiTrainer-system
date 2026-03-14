@@ -171,20 +171,36 @@ const executeLogin = async () => {
   
   await loginFormRef.value.validate((valid) => {
     if (valid) {
-      isLoading.value = true // 开启按钮 Loading 锁
+      isLoading.value = true 
       
-      // TODO: 这里未来会替换为真实的 Axios 请求对接你的 Java 后端
       // 模拟网络请求延时
       setTimeout(() => {
         isLoading.value = false
-        if (loginForm.username === 'admin' && loginForm.password === '123456') {
-          ElMessage.success('登录成功，欢迎回来！')
-          // 模拟存储 Token
-          localStorage.setItem('jwt_token', 'mock_token_ai_trainer_123')
-          // 跳转到社区首页
-          router.push('/community')
+        
+        // 模拟后端返回的数据结构
+        // 假设：admin 是老用户，newbie 是新用户
+        const mockResponse = {
+          token: 'mock_token_ai_trainer_123',
+          isFirstLogin: loginForm.username === 'newbie' // 如果用户名是 newbie，判定为首次登录
+        }
+
+        if ((loginForm.username === 'admin' || loginForm.username === 'newbie') && loginForm.password === '123456') {
+          ElMessage.success('登录成功！')
+          
+          // 1. 存储 Token
+          localStorage.setItem('jwt_token', mockResponse.token)
+          
+          // 2. 存储首次登录标记 (字符串形式存入 localStorage)
+          localStorage.setItem('is_first_login', mockResponse.isFirstLogin.toString())
+
+          // 3. 核心跳转逻辑：如果是新用户去引导页，老用户去社区或看板
+          if (mockResponse.isFirstLogin) {
+            router.push('/onboarding')
+          } else {
+            router.push('/community')
+          }
         } else {
-          ElMessage.error('用户名或密码错误 (测试账号: admin / 123456)')
+          ElMessage.error('用户名或密码错误 (测试: admin 或 newbie / 123456)')
         }
       }, 1000)
     }
@@ -202,14 +218,16 @@ const handleRegister = async () => {
     if (valid) {
       isLoading.value = true
       
-      // 模拟注册请求
       setTimeout(() => {
         isLoading.value = false
-        ElMessage.success('注册成功！即将为您跳转登录...')
-        // 注册成功后，自动清空表单并切换到登录 Tab
-        registerFormRef.value.resetFields()
+        ElMessage.success('注册成功！请使用刚才的账号登录完成资料补全')
+        
+        // 注册成功后，切换到登录 Tab
         activeTab.value = 'login'
         loginForm.username = registerForm.username
+        
+        // 💡 提示：在真实后端中，这个新用户在 DB 里的 height/weight 为空
+        // 所以下次他登录时，后端接口自然会返回 isFirstLogin: true
       }, 1000)
     }
   })

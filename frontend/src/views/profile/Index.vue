@@ -124,6 +124,15 @@
             <el-radio-button label="塑形">塑形</el-radio-button>
           </el-radio-group>
         </el-form-item>
+        <el-form-item label="身高 (cm)">
+          <el-input-number v-model="userInfo.height" :min="100" :max="250" />
+        </el-form-item>
+        <el-form-item label="体重 (kg)">
+          <el-input-number v-model="userInfo.weight" :min="30" :max="200" :precision="1" :step="0.5" />
+        </el-form-item>
+        <el-form-item label="体脂率 (%)">
+          <el-input-number v-model="userInfo.bodyFat" :min="1" :max="50" :precision="1" :step="0.5" />
+        </el-form-item>
         <el-form-item label="个性签名">
           <el-input 
             v-model="userInfo.bio" 
@@ -200,7 +209,11 @@ const userInfo = reactive({
   bio: '生命在于折腾，代码与铁块齐飞。目标：本月体脂率降至 15%！',
   following: 24,
   followers: 128,
-  totalDays: 45
+  totalDays: 45,
+  // ====== 新增基础体征字段 ======
+  height: 165,
+  weight: 65.5,
+  bodyFat: 18.5
 })
 
 const isEditVisible = ref(false)
