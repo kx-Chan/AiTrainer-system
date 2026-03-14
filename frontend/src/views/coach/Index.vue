@@ -8,22 +8,36 @@
             <div class="chat-header">
               <div class="agent-title">
                 <div class="ai-avatar-wrapper">
-                  <el-avatar :size="36" src="https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png" />
+                  <el-avatar 
+                    :size="36" 
+                    :src="currentRole === 'coach' ? 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png' : 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'" 
+                  />
                   <div class="online-dot"></div>
                 </div>
                 <div class="title-text">
-                  <span class="gradient-text">AiTrainer Copilot</span>
-                  <span class="sub-text">你的全天候智能私教</span>
+                  <span class="gradient-text">{{ currentRole === 'coach' ? '铁面硬核私教' : '贴心营养管家' }}</span>
+                  <span class="sub-text">AiTrainer Multi-Agent 系统</span>
                 </div>
               </div>
               <el-button plain round size="small" @click="resetChat"><el-icon><Refresh /></el-icon> 新对话</el-button>
             </div>
           </template>
 
+          <div class="role-selector-bar">
+            <el-radio-group v-model="currentRole" size="default" @change="handleRoleChange">
+              <el-radio-button label="coach">
+                <el-icon><User /></el-icon> 运动课表模式
+              </el-radio-button>
+              <el-radio-button label="nutritionist">
+                <el-icon><IceTea /></el-icon> 营养膳食模式
+              </el-radio-button>
+            </el-radio-group>
+          </div>
+
           <div class="chat-window" ref="chatWindowRef">
             <div v-for="(msg, index) in messageList" :key="index" :class="['message-item', msg.role]">
               <div class="message-avatar" v-if="msg.role === 'ai'">
-                <el-avatar :size="40" src="https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png" />
+                <el-avatar :size="40" :src="currentRole === 'coach' ? 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png' : 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'" />
               </div>
               <div class="message-bubble-wrapper">
                 <div v-if="msg.type === 'thinking'" class="thinking-box">
@@ -50,13 +64,13 @@
               v-model="inputText" 
               type="textarea"
               :autosize="{ minRows: 2, maxRows: 4 }"
-              placeholder="向 AiTrainer 提问，或让它为你生成专属计划..." 
+              :placeholder="currentRole === 'coach' ? '问问动作要领...' : '这个能吃吗？怎么配餐？'" 
               @keydown.enter.prevent="handleSend"
               :disabled="isAiThinking"
               class="mac-input"
             />
             <div class="input-actions">
-              <span class="tip-text">按 Enter 发送，Shift + Enter 换行</span>
+              <span class="tip-text">当前模式：{{ currentRole === 'coach' ? '训练增强' : '营养管理' }}</span>
               <el-button type="primary" round size="large" :disabled="!inputText || isAiThinking" @click="handleSend" class="send-btn">
                 发送 <el-icon class="el-icon--right"><Position /></el-icon>
               </el-button>
@@ -82,8 +96,7 @@
 
             <el-tabs v-model="activePlanTab" class="custom-tabs">
               <el-tab-pane label="🏋️ 智能训练课表" name="workout">
-                <el-alert title="AI 洞察：您的深蹲下蹲深度普遍偏高，核心稳定性良好。本计划已加强下肢爆发力训练。" type="success" :closable="false" style="margin-bottom: 24px;" />
-                
+                <el-alert title="AI 洞察：您的数据反馈显示近期下肢力量处于增长期，已为您调整容量。" type="success" :closable="false" style="margin-bottom: 24px;" />
                 <el-timeline>
                   <el-timeline-item v-for="(day, index) in generatedPlan.workouts" :key="index" :timestamp="day.date" placement="top" :type="day.type">
                     <el-card shadow="hover" class="plan-card">
@@ -114,10 +127,8 @@
               </el-tab-pane>
             </el-tabs>
           </div>
-
         </el-card>
       </el-col>
-
     </el-row>
   </div>
 </template>
@@ -125,7 +136,11 @@
 <script setup>
 import { ref, reactive, nextTick, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { Position, Refresh, Loading, TrendCharts, Download, Warning, Food, DocumentChecked } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import { 
+  Position, Refresh, Loading, TrendCharts, Download, 
+  Warning, Food, DocumentChecked, User, IceTea 
+} from '@element-plus/icons-vue'
 
 const route = useRoute()
 const chatWindowRef = ref(null)
@@ -133,12 +148,24 @@ const chatWindowRef = ref(null)
 const inputText = ref('')
 const isAiThinking = ref(false)
 const activePlanTab = ref('workout')
+const currentRole = ref('coach') // 🏆 新增：默认角色为教练
 
 const messageList = reactive([
   { role: 'ai', type: 'text', content: '你好！我是你的专属 AI 教练。我已经接入了你最近 30 天的体征数据和战报。今天想让我帮你分析什么？' }
 ])
 
 const generatedPlan = ref(null)
+
+// 🏆 新增：切换角色时的交互
+const handleRoleChange = (role) => {
+  if (role === 'coach') {
+    ElMessage({ message: '已切换至【铁面私教】模式：专注于动作规范与训练强度。', type: 'primary', plain: true })
+    activePlanTab.value = 'workout' // 自动切换右侧面板
+  } else {
+    ElMessage({ message: '已切换至【营养管家】模式：专注于每日热量与精准配餐。', type: 'success', plain: true })
+    activePlanTab.value = 'diet' // 自动切换右侧面板
+  }
+}
 
 const scrollToBottom = async () => {
   await nextTick()
@@ -162,21 +189,22 @@ const handleSend = () => {
   scrollToBottom()
 
   setTimeout(() => {
-    messageList.push({ role: 'ai', type: 'thinking', content: 'Agent 正在调取数据看板近 7 天的体征和战报流水...' })
+    messageList.push({ role: 'ai', type: 'thinking', content: `Agent 正在调取您的${currentRole.value === 'coach' ? '动作训练' : '饮食补剂'}数据流水...` })
     scrollToBottom()
     
     setTimeout(() => {
       messageList.pop() 
-      messageList.push({ role: 'ai', type: 'thinking', content: '正在调用大模型进行多模态瓶颈分析并生成定制课表...' })
+      messageList.push({ role: 'ai', type: 'thinking', content: `正在调用 ${currentRole.value === 'coach' ? 'Vision-Coach' : 'Diet-Master'} 模型生成深度解析方案...` })
       scrollToBottom()
       
       setTimeout(() => {
         messageList.pop()
-        // 修复了加粗文本的渲染问题，使用了 <strong> 标签
         messageList.push({ 
           role: 'ai', 
           type: 'text', 
-          content: '分析完毕！结合你近期体重下降停滞（进入平台期），以及深蹲战报中呈现的下蹲深度不足问题，我为你定制了<strong>突破瓶颈期的专项训练与饮食计划</strong>。<br/><br/><strong>请在右侧专属面板查看详细方案。</strong>' 
+          content: currentRole.value === 'coach' 
+            ? '分析完毕！我已经针对你的下蹲深度问题定制了<strong>突破性训练方案</strong>，请查看右侧面板。' 
+            : '膳食解析完毕！由于你目前处于减脂平台期，我为你优化了<strong>碳水循环食谱</strong>，已在右侧同步更新。' 
         })
         isAiThinking.value = false
         scrollToBottom()
@@ -194,14 +222,12 @@ const resetChat = () => {
 const renderRightPanel = () => {
   generatedPlan.value = {
     workouts: [
-      { date: '明天 (突破日)', type: 'warning', title: '下肢爆发力与深度强行突破', actions: ['AI 杠铃深蹲 (轻重量深蹲) 5x10', '保加利亚分腿蹲 4x12'], tip: '首要目标：通过 AI 纠错确保每次下蹲达到水平面以下。' },
-      { date: '后天 (消耗日)', type: 'primary', title: '高强度间歇心肺循环 (HIIT)', actions: ['波比跳 4x20次', '登山跑 4x30秒', '战绳 4x30秒'], tip: '打破平台期的关键，心率需冲刺到 160 bpm 以上。' },
-      { date: '大后天 (拉伸日)', type: 'info', title: '有氧与筋膜放松', actions: ['椭圆机 40min', '下肢泡沫轴滚压 15min'], tip: '加速乳酸代谢，为下一轮循环做准备。' }
+      { date: '明天 (突破日)', type: 'warning', title: '下肢爆发力与深度强行突破', actions: ['AI 杠铃深蹲 5x10', '保加利亚分腿蹲 4x12'], tip: '核心目标：增加下蹲行程。' },
+      { date: '后天 (消耗日)', type: 'primary', title: '高强度 HIIT', actions: ['波比跳 20x4', '登山跑 30s x4'], tip: '打破代谢停滞的关键。' }
     ],
     diets: [
-      { name: '早餐 (欺骗餐后清肠)', theme: 'bg-blue', calo: 350, items: ['无糖脱脂牛奶 250ml', '全麦吐司 1 片', '圣女果 10 颗'] },
-      { name: '午餐 (控制碳水)', theme: 'bg-green', calo: 550, items: ['蒸紫薯 100g (主食减半)', '清炒菠菜 200g', '水煮虾仁 150g'] },
-      { name: '晚餐 (宿舍简易版)', theme: 'bg-orange', calo: 300, items: ['无糖脱脂酸奶 1 杯', '黄瓜 1 根', '水煮蛋 1 个 (去蛋黄)'] }
+      { name: '早餐 (高蛋白)', theme: 'bg-blue', calo: 350, items: ['无糖脱脂牛奶 250ml', '全麦吐司 1 片', '水煮蛋 2 个'] },
+      { name: '午餐 (控制碳水)', theme: 'bg-green', calo: 550, items: ['鸡胸肉 150g', '西兰花 200g', '紫薯 100g'] }
     ]
   }
 }
@@ -209,7 +235,7 @@ const renderRightPanel = () => {
 onMounted(() => {
   if (route.query.auto === 'bottleneck') {
     setTimeout(() => {
-      sendQuickPrompt('我点选了数据看板的魔法棒，请帮我分析近期的体征和训练瓶颈，并生成突破计划！')
+      sendQuickPrompt('分析我最近的训练瓶颈，并生成突破计划！')
     }, 500)
   }
 })
@@ -217,8 +243,6 @@ onMounted(() => {
 
 <style scoped>
 .agent-container { max-width: 1400px; margin: 0 auto; height: calc(100vh - 100px); padding-bottom: 20px; }
-
-/* 关键修复：利用 Flexbox 强制横向排列且不换行 */
 .layout-row { height: 100%; display: flex; flex-wrap: nowrap; margin-left: -12px; margin-right: -12px; }
 .col-panel { height: 100%; display: flex; flex-direction: column; padding-left: 12px; padding-right: 12px; }
 
@@ -229,16 +253,63 @@ onMounted(() => {
   box-shadow: 0 8px 32px rgba(31, 38, 135, 0.05);
 }
 
-.chat-card { flex: 1; display: flex; flex-direction: column; border-radius: 16px; }
+.chat-card { flex: 1; display: flex; flex-direction: column; border-radius: 16px; overflow: hidden; }
 .chat-card :deep(.el-card__body) { flex: 1; display: flex; flex-direction: column; padding: 0; overflow: hidden; }
 
 .chat-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #f0f2f5; }
+
+/* ================= 角色切换栏：文字显形修复 ================= */
+.role-selector-bar {
+  background-color: #fcfdfe;
+  padding: 12px;
+  display: flex;
+  justify-content: center;
+  border-bottom: 1px solid #f0f2f5;
+  z-index: 10;
+}
+
+/* 1. 基础样式：未选中时的样子 */
+:deep(.el-radio-button__inner) {
+  border: 1px solid #dcdfe6 !important;
+  background: #ffffff !important;
+  color: #606266 !important; /* 默认灰色文字 */
+  border-radius: 8px !important;
+  margin: 0 6px;
+  padding: 8px 20px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  box-shadow: none !important;
+}
+
+/* 2. 移除按钮之间的粘连感 */
+:deep(.el-radio-button:first-child .el-radio-button__inner) {
+  border-left: 1px solid #dcdfe6 !important;
+  border-radius: 8px !important;
+}
+
+/* 3. 核心修复：无论选中哪个模式，都呈现“绿色选中 + 绿色文字” */
+/* .is-active 是选中的状态，我们强制让它的文字颜色变为深绿色 */
+:deep(.el-radio-button.is-active .el-radio-button__inner) {
+  background-color: #f0f9eb !important; /* 浅绿色背景 */
+  border-color: #67C23A !important;     /* 绿色边框 */
+  color: #67C23A !important;            /* 🚨 关键：强制显示绿色字体，解决消失问题 */
+}
+
+/* 4. 鼠标浮动上去的微光效果（可选） */
+:deep(.el-radio-button__inner:hover) {
+  color: #67C23A;
+  background-color: #f9fdf8 !important;
+}
+
 .ai-avatar-wrapper { position: relative; }
 .online-dot { position: absolute; bottom: 0; right: 0; width: 10px; height: 10px; background-color: #67C23A; border-radius: 50%; border: 2px solid #fff; }
 .agent-title { display: flex; align-items: center; gap: 12px; }
 .title-text { display: flex; flex-direction: column; }
-.gradient-text { font-size: 16px; font-weight: 900; background: linear-gradient(45deg, #409EFF, #8a2be2); -webkit-background-clip: text; color: transparent; }
-.sub-text { font-size: 12px; color: #909399; }
+.gradient-text { font-size: 16px; font-weight: 900; background: linear-gradient(45deg, #409EFF, #8a2be2); -webkit-background-clip: text; color: transparent; transition: all 0.3s; }
+.sub-text { font-size: 11px; color: #909399; text-transform: uppercase; letter-spacing: 1px; }
 
 .chat-window { flex: 1; overflow-y: auto; padding: 24px; background-color: #fafbfc; }
 .message-item { display: flex; gap: 16px; margin-bottom: 30px; }
@@ -247,52 +318,48 @@ onMounted(() => {
 .message-bubble-wrapper { max-width: 80%; display: flex; flex-direction: column; align-items: flex-start; }
 .message-item.user .message-bubble-wrapper { align-items: flex-end; }
 
-.message-bubble { padding: 14px 20px; border-radius: 16px; font-size: 16px; line-height: 1.6; letter-spacing: 0.5px; }
-.message-item.ai .message-bubble { background-color: #ffffff; border: 1px solid #ebeef5; border-top-left-radius: 4px; color: #303133; box-shadow: 0 2px 12px rgba(0,0,0,0.02); }
+.message-bubble { padding: 14px 20px; border-radius: 16px; font-size: 15px; line-height: 1.6; }
+.message-item.ai .message-bubble { 
+  background-color: #ffffff; 
+  border: 1px solid #ebeef5; 
+  border-top-left-radius: 4px; 
+  color: #303133; 
+  box-shadow: 0 2px 12px rgba(0,0,0,0.02);
+  /* 🏆 核心：通过 v-bind 实现动态边框颜色 */
+  border-left: 4px solid v-bind("currentRole === 'coach' ? '#409EFF' : '#67C23A'");
+  transition: border-left-color 0.5s ease;
+}
 .message-item.user .message-bubble { background-color: #409EFF; color: #ffffff; border-top-right-radius: 4px; box-shadow: 0 4px 12px rgba(64, 158, 255, 0.2); }
 
-.thinking-box { padding: 12px 16px; background-color: #fffaf0; border-radius: 8px; border-left: 4px solid #E6A23C; color: #E6A23C; font-style: italic; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+.thinking-box { padding: 12px 16px; background-color: #fffaf0; border-radius: 8px; border-left: 4px solid #E6A23C; color: #E6A23C; font-size: 13px; display: flex; align-items: center; gap: 8px; }
 
 .quick-prompts { display: flex; gap: 12px; padding: 0 24px 20px; background-color: #fafbfc; }
 .prompt-card { flex: 1; background: #fff; border: 1px solid #ebeef5; border-radius: 12px; padding: 16px; cursor: pointer; transition: all 0.3s; display: flex; flex-direction: column; gap: 8px; }
 .prompt-card:hover { border-color: #409EFF; box-shadow: 0 4px 12px rgba(64,158,255,0.1); transform: translateY(-2px); }
-.prompt-card span { font-size: 14px; color: #606266; font-weight: 500; }
+.prompt-card span { font-size: 13px; color: #606266; font-weight: 500; }
 
 .chat-input-area { padding: 20px 24px; background-color: #ffffff; border-top: 1px solid #ebeef5; }
-.mac-input :deep(.el-textarea__inner) { background-color: #f5f7fa; border: none; border-radius: 12px; padding: 16px; font-size: 15px; box-shadow: none; resize: none; }
-.mac-input :deep(.el-textarea__inner:focus) { background-color: #fff; box-shadow: 0 0 0 1px #409EFF inset; }
+.mac-input :deep(.el-textarea__inner) { background-color: #f5f7fa; border: none; border-radius: 12px; padding: 16px; font-size: 15px; resize: none; }
 .input-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
 .tip-text { font-size: 12px; color: #c0c4cc; }
-.send-btn { padding: 0 24px; font-weight: bold; letter-spacing: 1px; }
 
 .result-card { flex: 1; border-radius: 16px; overflow-y: auto; }
-
 .empty-state { height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #909399; }
 .artifact-icon { font-size: 48px; margin-bottom: 20px; animation: float 3s ease-in-out infinite; }
 @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
-.empty-state h3 { font-size: 24px; color: #303133; margin: 0 0 10px 0; }
 
 .generated-content { padding: 30px; }
 .slide-in { animation: slideInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
 @keyframes slideInUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
 
 .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-.result-header h2 { margin: 0; font-size: 22px; }
-
-.custom-tabs :deep(.el-tabs__item) { font-size: 16px; height: 50px; line-height: 50px; }
-
 .plan-card { border-radius: 12px; margin-bottom: 16px; border-left: 4px solid #409EFF; }
-.plan-card h4 { margin: 0 0 16px 0; font-size: 18px; color: #303133; }
-.plan-details { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
-.action-tag { font-size: 14px; padding: 6px 12px; height: auto; border-radius: 6px; }
-.plan-tip { margin: 0; font-size: 14px; color: #606266; display: flex; align-items: center; gap: 6px; background: #fff8e6; padding: 8px 12px; border-radius: 6px; }
+.plan-details { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.plan-tip { font-size: 13px; color: #606266; display: flex; align-items: center; gap: 6px; background: #fff8e6; padding: 8px 12px; border-radius: 6px; }
 
-.meal-card { border-radius: 12px; color: #fff; border: none; padding: 20px; }
+.meal-card { border-radius: 12px; color: #fff; border: none; padding: 18px; }
 .bg-blue { background: linear-gradient(135deg, #7ec0ee 0%, #409EFF 100%); }
 .bg-green { background: linear-gradient(135deg, #a8e063 0%, #56ab2f 100%); }
-.bg-orange { background: linear-gradient(135deg, #ffc371 0%, #ff5f6d 100%); }
-.meal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 12px; }
-.meal-name { font-size: 20px; font-weight: bold; }
-.meal-calo { font-size: 16px; font-weight: bold; background: rgba(0,0,0,0.2); padding: 4px 12px; border-radius: 20px; }
-.meal-items { padding-left: 20px; margin: 0; font-size: 15px; line-height: 2; font-weight: 500; }
+.meal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; }
+.meal-items { padding-left: 20px; margin: 0; font-size: 14px; line-height: 1.8; }
 </style>

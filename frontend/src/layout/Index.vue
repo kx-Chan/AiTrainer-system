@@ -16,13 +16,14 @@
 
       <div class="flex-grow"></div>
 
-      <el-menu-item index="/community">健身社区</el-menu-item>
       <el-menu-item index="/workout">项目大厅</el-menu-item>
+      <el-menu-item index="/community">健身社区</el-menu-item>
+      <el-menu-item index="/diet">营养膳食</el-menu-item>
       <el-menu-item index="/dashboard">数据看板</el-menu-item>
-      <el-menu-item index="/profile">个人主页</el-menu-item>
       <el-menu-item index="/coach" class="ai-nav-item">
         <el-icon><Microphone /></el-icon> AI 私教
       </el-menu-item>
+      <el-menu-item index="/profile">个人主页</el-menu-item>
 
       <div class="flex-grow"></div>
 

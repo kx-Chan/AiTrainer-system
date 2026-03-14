@@ -42,6 +42,11 @@ const routes = [
         name: 'Profile',
         component: () => import('../views/profile/Index.vue'),
         meta: { requiresAuth: true, title: '个人主页' }
+      },
+      {
+        path: '/diet',
+        name: 'Diet',
+        component: () => import('../views/diet/Index.vue')
       }
     ]
   },
