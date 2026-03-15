@@ -92,6 +92,8 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { User, Lock, Phone } from '@element-plus/icons-vue'
 
+import request from '@/utils/request'
+
 const router = useRouter()
 
 // 状态控制
@@ -169,42 +171,38 @@ const debounce = (fn, delay = 500) => {
 const executeLogin = async () => {
   if (!loginFormRef.value) return
   
-  await loginFormRef.value.validate((valid) => {
-    if (valid) {
-      isLoading.value = true 
-      
-      // 模拟网络请求延时
-      setTimeout(() => {
-        isLoading.value = false
-        
-        // 模拟后端返回的数据结构
-        // 假设：admin 是老用户，newbie 是新用户
-        const mockResponse = {
-          token: 'mock_token_ai_trainer_123',
-          isFirstLogin: loginForm.username === 'newbie' // 如果用户名是 newbie，判定为首次登录
-        }
+  try {
+    // 开启表单校验
+    await loginFormRef.value.validate()
+    
+    isLoading.value = true 
+    
+    const response = await request.post('/auth/login', {
+      username: loginForm.username,
+      password: loginForm.password
+    })
 
-        if ((loginForm.username === 'admin' || loginForm.username === 'newbie') && loginForm.password === '123456') {
-          ElMessage.success('登录成功！')
-          
-          // 1. 存储 Token
-          localStorage.setItem('jwt_token', mockResponse.token)
-          
-          // 2. 存储首次登录标记 (字符串形式存入 localStorage)
-          localStorage.setItem('is_first_login', mockResponse.isFirstLogin.toString())
+    ElMessage.success('登录成功！')
+    
+    // 1. 存储 Token
+    localStorage.setItem('jwt_token', response.token)
+    
+    // 2. 存储首次登录标记 (后端字段名为 firstLogin)
+    const isFirst = !!response.firstLogin
+    localStorage.setItem('is_first_login', isFirst.toString())
 
-          // 3. 核心跳转逻辑：如果是新用户去引导页，老用户去社区或看板
-          if (mockResponse.isFirstLogin) {
-            router.push('/onboarding')
-          } else {
-            router.push('/community')
-          }
-        } else {
-          ElMessage.error('用户名或密码错误 (测试: admin 或 newbie / 123456)')
-        }
-      }, 1000)
+    // 3. 核心跳转逻辑
+    if (isFirst) {
+      router.push('/onboarding')
+    } else {
+      router.push('/community')
     }
-  })
+  } catch (error) {
+    // 校验失败或请求失败
+    console.error('Login error:', error)
+  } finally {
+    isLoading.value = false
+  }
 }
 
 // 使用防抖包装登录提交，防止狂点回车或鼠标
