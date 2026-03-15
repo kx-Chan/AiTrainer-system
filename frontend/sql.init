@@ -1,0 +1,207 @@
+-- AiTrainer Database Initialization Script (v3.0)
+-- Matches DB_DESIGN.md v3.0
+
+SET NAMES utf8mb4;
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- ----------------------------
+-- 1. Users & Profiles
+-- ----------------------------
+
+-- Table: users
+CREATE TABLE IF NOT EXISTS `users` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `username` VARCHAR(50) NOT NULL UNIQUE COMMENT '登录用户名',
+    `email` VARCHAR(100) NOT NULL UNIQUE COMMENT '邮箱地址',
+    `password_hash` VARCHAR(255) NOT NULL COMMENT '加密密码哈希',
+    `avatar` VARCHAR(255) COMMENT '头像URL',
+    `is_pro` BOOLEAN DEFAULT FALSE COMMENT '是否PRO会员',
+    `is_first_login` BOOLEAN DEFAULT TRUE COMMENT '首次登录标记',
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `deleted_at` TIMESTAMP NULL DEFAULT NULL,
+    INDEX `idx_username` (`username`),
+    INDEX `idx_email` (`email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Table: user_profiles
+CREATE TABLE IF NOT EXISTS `user_profiles` (
+    `user_id` INT PRIMARY KEY COMMENT '关联用户ID',
+    `gender` ENUM('male', 'female', 'other') NOT NULL COMMENT '性别',
+    `height` DECIMAL(5, 2) NOT NULL COMMENT '身高(cm)',
+    `weight` DECIMAL(5, 2) NOT NULL COMMENT '体重(kg)',
+    `body_fat` DECIMAL(4, 2) COMMENT '体脂率(%)',
+    `goal` ENUM('lose', 'gain', 'maintain') NOT NULL COMMENT '健身目标',
+    `bio` TEXT COMMENT '个人简介',
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ----------------------------
+-- 2. Social & Tracking
+-- ----------------------------
+
+-- Table: user_follows
+CREATE TABLE IF NOT EXISTS `user_follows` (
+    `follower_id` INT NOT NULL COMMENT '关注者ID',
+    `followed_id` INT NOT NULL COMMENT '被关注者ID',
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`follower_id`, `followed_id`),
+    FOREIGN KEY (`follower_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`followed_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    INDEX `idx_follower` (`follower_id`),
+    INDEX `idx_followed` (`followed_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Table: user_footprints
+CREATE TABLE IF NOT EXISTS `user_footprints` (
+    `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT NOT NULL COMMENT '用户ID',
+    `target_type` ENUM('POST', 'WORKOUT', 'COACH', 'DIET') NOT NULL COMMENT '对象类型',
+    `target_id` VARCHAR(50) NOT NULL COMMENT '对象ID',
+    `viewed_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    INDEX `idx_user_viewed` (`user_id`, `viewed_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ----------------------------
+-- 3. Collections
+-- ----------------------------
+
+-- Table: collection_folders
+CREATE TABLE IF NOT EXISTS `collection_folders` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT NOT NULL COMMENT '创建者ID',
+    `name` VARCHAR(100) NOT NULL COMMENT '收藏夹名称',
+    `description` TEXT COMMENT '描述',
+    `is_public` BOOLEAN DEFAULT FALSE COMMENT '是否公开',
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `deleted_at` TIMESTAMP NULL DEFAULT NULL,
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    INDEX `idx_user_folders` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Table: user_collections
+CREATE TABLE IF NOT EXISTS `user_collections` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `folder_id` INT NOT NULL COMMENT '文件夹ID',
+    `user_id` INT NOT NULL COMMENT '用户ID',
+    `target_type` ENUM('POST', 'WORKOUT', 'ARTICLE') NOT NULL COMMENT '对象类型',
+    `target_id` VARCHAR(50) NOT NULL COMMENT '对象ID',
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`folder_id`) REFERENCES `collection_folders`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    UNIQUE KEY `uk_folder_target` (`folder_id`, `target_type`, `target_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ----------------------------
+-- 4. Workouts & Sessions
+-- ----------------------------
+
+-- Table: workouts
+CREATE TABLE IF NOT EXISTS `workouts` (
+    `id` VARCHAR(50) PRIMARY KEY COMMENT '项目标识',
+    `name` VARCHAR(100) NOT NULL COMMENT '中文名称',
+    `en_name` VARCHAR(100) NOT NULL COMMENT '英文名称',
+    `difficulty` INT DEFAULT 1 COMMENT '推荐难度',
+    `tags` JSON COMMENT '项目标签',
+    `description` TEXT COMMENT '描述',
+    `theme_color` VARCHAR(20) DEFAULT '#409EFF' COMMENT '主题色',
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `deleted_at` TIMESTAMP NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Table: workout_sessions
+CREATE TABLE IF NOT EXISTS `workout_sessions` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT NOT NULL COMMENT '用户ID',
+    `workout_id` VARCHAR(50) NOT NULL COMMENT '项目ID',
+    `score` INT NOT NULL COMMENT '综合评分',
+    `grade` VARCHAR(5) NOT NULL COMMENT '评级',
+    `grade_level` VARCHAR(20) COMMENT '评级样式类',
+    `comment` TEXT COMMENT 'AI点评',
+    `valid_reps` INT DEFAULT 0 COMMENT '有效次数',
+    `invalid_reps` INT DEFAULT 0 COMMENT '异常次数',
+    `duration_minutes` INT DEFAULT 0 COMMENT '训练时长',
+    `calories_burned` INT DEFAULT 0 COMMENT '消耗热量',
+    `radar_scores` JSON COMMENT '五维评分',
+    `snapshots` JSON COMMENT '纠错抓拍',
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`workout_id`) REFERENCES `workouts`(`id`),
+    INDEX `idx_user_workouts` (`user_id`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ----------------------------
+-- 5. Community Interactions
+-- ----------------------------
+
+-- Table: community_posts
+CREATE TABLE IF NOT EXISTS `community_posts` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT NOT NULL COMMENT '发布者ID',
+    `content` TEXT NOT NULL COMMENT '内容',
+    `topic` VARCHAR(50) COMMENT '话题',
+    `device` VARCHAR(50) DEFAULT 'AiTrainer App' COMMENT '发布设备',
+    `ai_report_id` INT NULL COMMENT '关联战报ID',
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `deleted_at` TIMESTAMP NULL DEFAULT NULL,
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`ai_report_id`) REFERENCES `workout_sessions`(`id`) ON DELETE SET NULL,
+    INDEX `idx_user_posts` (`user_id`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Table: post_likes
+CREATE TABLE IF NOT EXISTS `post_likes` (
+    `post_id` INT NOT NULL COMMENT '动态ID',
+    `user_id` INT NOT NULL COMMENT '用户ID',
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`post_id`, `user_id`),
+    FOREIGN KEY (`post_id`) REFERENCES `community_posts`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Table: post_comments
+CREATE TABLE IF NOT EXISTS `post_comments` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `post_id` INT NOT NULL COMMENT '动态ID',
+    `user_id` INT NOT NULL COMMENT '用户ID',
+    `parent_id` INT DEFAULT NULL COMMENT '父级评论ID',
+    `content` TEXT NOT NULL COMMENT '内容',
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `deleted_at` TIMESTAMP NULL DEFAULT NULL,
+    FOREIGN KEY (`post_id`) REFERENCES `community_posts`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`parent_id`) REFERENCES `post_comments`(`id`) ON DELETE CASCADE,
+    INDEX `idx_post_comments` (`post_id`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ----------------------------
+-- 6. Diet Management
+-- ----------------------------
+
+-- Table: meals
+CREATE TABLE IF NOT EXISTS `meals` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT NOT NULL COMMENT '用户ID',
+    `meal_time` DATETIME NOT NULL COMMENT '进餐时间',
+    `meal_type` ENUM('breakfast', 'lunch', 'dinner', 'snack') NOT NULL COMMENT '餐次类型',
+    `food_name` TEXT NOT NULL COMMENT '食物名称',
+    `calories` INT DEFAULT 0 COMMENT '热量',
+    `tag_type` VARCHAR(20) DEFAULT 'info' COMMENT '标签样式',
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `deleted_at` TIMESTAMP NULL DEFAULT NULL,
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    INDEX `idx_user_meals` (`user_id`, `meal_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ----------------------------
+-- Sample Data
+-- ----------------------------
+INSERT INTO `workouts` (`id`, `name`, `en_name`, `difficulty`, `tags`, `description`, `theme_color`) VALUES
+('squat', 'AI 杠铃深蹲', 'Barbell Squat', 3, '["臀腿", "力量"]', '全面激活下肢力量，AI 实时监测膝盖轨迹、髋部深度与背部角度。', '#409EFF'),
+('lunge', 'AI 箭步蹲', 'Lunge', 2, '["单边控制", "塑形"]', '改善左右发力不均，精准打击臀大肌下沿，AI 严控前膝过伸问题。', '#67C23A'),
+('good_morning', '早安式体前屈', 'Good Morning', 4, '["核心", "腘绳肌"]', '强化下背部与核心稳定，极度依赖动作标准度，AI 严苛监测脊柱中立位。', '#E6A23C');
+
+SET FOREIGN_KEY_CHECKS = 1;

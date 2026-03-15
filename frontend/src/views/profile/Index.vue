@@ -121,7 +121,7 @@
           <el-radio-group v-model="userInfo.goal">
             <el-radio-button label="减脂">减脂</el-radio-button>
             <el-radio-button label="增肌">增肌</el-radio-button>
-            <el-radio-button label="塑形">塑形</el-radio-button>
+            <el-radio-button label="保持">保持</el-radio-button>
           </el-radio-group>
         </el-form-item>
         <el-form-item label="身高 (cm)">

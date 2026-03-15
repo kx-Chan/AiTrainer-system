@@ -29,6 +29,10 @@
               <span class="label">体重 (kg)</span>
               <el-input-number v-model="form.weight" :min="30" :max="200" :precision="1" />
             </div>
+            <div class="input-item">
+              <span class="label">体脂率 (%)</span>
+              <el-input-number v-model="form.bodyFat" :min="5" :max="50" :precision="1" />
+            </div>
           </div>
         </div>
 
@@ -51,6 +55,14 @@
               <div class="goal-icon">💪</div>
               <div class="goal-name">增肌塑形</div>
               <div class="goal-desc">增加肌肉维度、提升力量水平</div>
+            </div>
+            <div 
+              :class="['goal-box', form.goal === 'maintain' ? 'active' : '']" 
+              @click="form.goal = 'maintain'"
+            >
+              <div class="goal-icon">⚖️</div>
+              <div class="goal-name">保持身材</div>
+              <div class="goal-desc">维持当前体态，提高身体素质</div>
             </div>
           </div>
         </div>
@@ -86,6 +98,7 @@ const form = reactive({
   gender: 'male',
   height: 170,
   weight: 65,
+  bodyFat: 20,
   goal: 'lose'
 })
 
