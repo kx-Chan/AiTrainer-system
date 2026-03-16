@@ -1,4 +1,4 @@
-package com.aitrainer.config;
+package com.aitrainer.utils;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;

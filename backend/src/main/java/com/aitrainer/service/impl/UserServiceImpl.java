@@ -1,10 +1,10 @@
 package com.aitrainer.service.impl;
 
-import com.aitrainer.config.JwtUtils;
+import com.aitrainer.utils.JwtUtils;
 import com.aitrainer.dto.LoginRequest;
 import com.aitrainer.exception.BusinessException;
 import com.aitrainer.mapper.UserMapper;
-import com.aitrainer.model.entity.User;
+import com.aitrainer.entity.User;
 import com.aitrainer.service.UserService;
 import com.aitrainer.vo.LoginVo;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;

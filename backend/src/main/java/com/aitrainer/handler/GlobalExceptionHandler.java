@@ -1,6 +1,7 @@
-package com.aitrainer.exception;
+package com.aitrainer.handler;
 
-import com.aitrainer.vo.Result;
+import com.aitrainer.exception.BusinessException;
+import com.aitrainer.result.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;

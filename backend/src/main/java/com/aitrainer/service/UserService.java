@@ -1,7 +1,7 @@
 package com.aitrainer.service;
 
 import com.aitrainer.dto.LoginRequest;
-import com.aitrainer.model.entity.User;
+import com.aitrainer.entity.User;
 import com.aitrainer.vo.LoginVo;
 
 /**

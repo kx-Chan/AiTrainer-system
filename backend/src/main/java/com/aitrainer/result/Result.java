@@ -1,5 +1,6 @@
-package com.aitrainer.vo;
+package com.aitrainer.result;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,21 +15,25 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Schema(description = "通用返回结果")
 public final class Result<T> {
 
     /**
      * 状态码。
      */
+    @Schema(description = "业务状态码", example = "200")
     private int code;
 
     /**
      * 消息。
      */
+    @Schema(description = "提示信息", example = "操作成功")
     private String message;
 
     /**
      * 数据。
      */
+    @Schema(description = "返回数据")
     private T data;
 
     /**

@@ -1,6 +1,6 @@
 package com.aitrainer.service;
 
-import com.aitrainer.config.JwtUtils;
+import com.aitrainer.utils.JwtUtils;
 import com.aitrainer.dto.LoginRequest;
 import com.aitrainer.exception.BusinessException;
 import com.aitrainer.mapper.UserMapper;

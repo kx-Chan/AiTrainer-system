@@ -3,7 +3,9 @@ package com.aitrainer.controller;
 import com.aitrainer.dto.LoginRequest;
 import com.aitrainer.service.UserService;
 import com.aitrainer.vo.LoginVo;
-import com.aitrainer.vo.Result;
+import com.aitrainer.result.Result;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * 处理身份验证相关端点的控制器。
  */
+@Tag(name = "认证管理", description = "用户登录与授权接口")
 @Slf4j
 @RestController
 @RequestMapping("/api/auth")
@@ -29,6 +32,7 @@ public final class AuthController {
      * @param request 登录请求。
      * @return 统一响应载体，包含 LoginVo。
      */
+    @Operation(summary = "用户登录", description = "通过用户名和密码进行身份验证，并返回访问令牌")
     @PostMapping("/login")
     public Result<LoginVo> login(@Validated @RequestBody final LoginRequest request) {
         log.info("控制器收到登录请求：{}", request.username());
