@@ -1,8 +1,8 @@
 package com.aitrainer.service;
 
-import com.aitrainer.dto.LoginRequest;
+import com.aitrainer.dto.LoginRequestDTO;
 import com.aitrainer.entity.User;
-import com.aitrainer.vo.LoginVo;
+import com.aitrainer.vo.LoginVO;
 
 /**
  * 处理用户相关操作的服务接口。
@@ -15,7 +15,7 @@ public interface UserService {
      * @param request 包含用户名和密码的登录请求。
      * @return 包含 JWT 令牌和首次登录标志的视图对象。
      */
-    LoginVo login(final LoginRequest request);
+    LoginVO login(final LoginRequestDTO request);
 
     /**
      * 创建新用户。

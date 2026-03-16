@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(description = "登录成功返回结果")
-public final class LoginVo {
+public final class LoginVO {
 
     /**
      * JWT 令牌。

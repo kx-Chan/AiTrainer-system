@@ -1,12 +1,12 @@
 package com.aitrainer.service.impl;
 
 import com.aitrainer.utils.JwtUtils;
-import com.aitrainer.dto.LoginRequest;
+import com.aitrainer.dto.LoginRequestDTO;
 import com.aitrainer.exception.BusinessException;
 import com.aitrainer.mapper.UserMapper;
 import com.aitrainer.entity.User;
 import com.aitrainer.service.UserService;
-import com.aitrainer.vo.LoginVo;
+import com.aitrainer.vo.LoginVO;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,7 +36,7 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     @Transactional(readOnly = true)
-    public LoginVo login(final LoginRequest request) {
+    public LoginVO login(final LoginRequestDTO request) {
         log.info("开始处理用户登录请求: {}", request.username());
 
         final User user = userMapper.selectOne(new LambdaQueryWrapper<User>()
@@ -57,7 +57,7 @@ public class UserServiceImpl implements UserService {
         final String token = jwtUtils.generateToken(user.getUsername());
         
         log.info("用户 {} 登录成功", request.username());
-        return LoginVo.builder()
+        return LoginVO.builder()
                 .token(token)
                 .firstLogin(user.isFirstLogin())
                 .build();

@@ -10,7 +10,7 @@ import jakarta.validation.constraints.NotBlank;
  * @param password 密码。
  */
 @Schema(description = "登录请求参数")
-public record LoginRequest(
+public record LoginRequestDTO(
         @Schema(description = "用户名", example = "admin")
         @NotBlank(message = "用户名不能为空")
         String username,

@@ -1,12 +1,12 @@
 package com.aitrainer.service;
 
 import com.aitrainer.utils.JwtUtils;
-import com.aitrainer.dto.LoginRequest;
+import com.aitrainer.dto.LoginRequestDTO;
 import com.aitrainer.exception.BusinessException;
 import com.aitrainer.mapper.UserMapper;
-import com.aitrainer.model.entity.User;
+import com.aitrainer.entity.User;
 import com.aitrainer.service.impl.UserServiceImpl;
-import com.aitrainer.vo.LoginVo;
+import com.aitrainer.vo.LoginVO;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -69,10 +69,10 @@ public final class UserServiceTest {
         given(passwordEncoder.matches(password, hashedPassword)).willReturn(true);
         given(jwtUtils.generateToken(username)).willReturn(token);
 
-        final LoginRequest request = new LoginRequest(username, password);
+        final LoginRequestDTO request = new LoginRequestDTO(username, password);
 
         // when
-        final LoginVo response = userService.login(request);
+        final LoginVO response = userService.login(request);
 
         // then
         assertNotNull(response);
@@ -93,7 +93,7 @@ public final class UserServiceTest {
         final String username = "nonexistent";
         given(userMapper.selectOne(any())).willReturn(null);
 
-        final LoginRequest request = new LoginRequest(username, "password");
+        final LoginRequestDTO request = new LoginRequestDTO(username, "password");
 
         // when & then
         final BusinessException exception = assertThrows(BusinessException.class, () -> userService.login(request));
@@ -122,7 +122,7 @@ public final class UserServiceTest {
         given(userMapper.selectOne(any())).willReturn(user);
         given(passwordEncoder.matches(password, hashedPassword)).willReturn(false);
 
-        final LoginRequest request = new LoginRequest(username, password);
+        final LoginRequestDTO request = new LoginRequestDTO(username, password);
 
         // when & then
         final BusinessException exception = assertThrows(BusinessException.class, () -> userService.login(request));

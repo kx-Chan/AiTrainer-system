@@ -1,8 +1,8 @@
 package com.aitrainer.controller;
 
-import com.aitrainer.dto.LoginRequest;
+import com.aitrainer.dto.LoginRequestDTO;
 import com.aitrainer.service.UserService;
-import com.aitrainer.vo.LoginVo;
+import com.aitrainer.vo.LoginVO;
 import com.aitrainer.result.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -34,9 +34,9 @@ public final class AuthController {
      */
     @Operation(summary = "用户登录", description = "通过用户名和密码进行身份验证，并返回访问令牌")
     @PostMapping("/login")
-    public Result<LoginVo> login(@Validated @RequestBody final LoginRequest request) {
+    public Result<LoginVO> login(@Validated @RequestBody final LoginRequestDTO request) {
         log.info("控制器收到登录请求：{}", request.username());
-        final LoginVo loginVo = userService.login(request);
+        final LoginVO loginVo = userService.login(request);
         return Result.success(loginVo);
     }
 }
