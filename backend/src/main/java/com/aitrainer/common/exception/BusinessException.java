@@ -1,4 +1,4 @@
-package com.aitrainer.exception;
+package com.aitrainer.common.exception;
 
 import lombok.Getter;
 

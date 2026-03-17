@@ -3,7 +3,7 @@ package com.aitrainer.controller;
 import com.aitrainer.dto.LoginRequestDTO;
 import com.aitrainer.service.UserService;
 import com.aitrainer.vo.LoginVO;
-import com.aitrainer.result.Result;
+import com.aitrainer.common.result.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;

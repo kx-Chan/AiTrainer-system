@@ -1,7 +1,8 @@
 package com.aitrainer.handler;
 
-import com.aitrainer.exception.BusinessException;
-import com.aitrainer.result.Result;
+import com.aitrainer.common.constant.ResultCode;
+import com.aitrainer.common.exception.BusinessException;
+import com.aitrainer.common.result.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -34,6 +35,6 @@ public final class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public Result<Void> handleGeneralException(final Exception ex) {
         log.error("发生未捕获的系统异常", ex);
-        return Result.error(500, "发生意外错误");
+        return Result.error(ResultCode.ERROR, "发生意外错误");
     }
 }

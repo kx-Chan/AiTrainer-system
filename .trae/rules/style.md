@@ -10,6 +10,10 @@
 - **`dto`**: 请求数据传输对象。接收前端参数，推荐使用 Java 17 `record`。
 - **`vo`**: 视图展示对象。接口唯一返回载体，实现 Entity 与 API 的解耦。
 - **`config`**: 存放 MyBatis-Plus 分页、Security、Jackson 等全局配置。
+- **`common`**: 存放公共组件，如枚举、异常、结果类等。
+  - **`constant`**: 存放常量，如状态码、错误消息等。
+  - **`exception`**: 自定义异常类，如 `BusinessException`。
+  - **`result`**: 统一响应类 `Result<T>`。
 
 ## 2. 持久层规范 (MyBatis-Plus)
 - **实体注解**：必须标注 `@TableName`。主键使用 `@TableId(type = IdType.ASSIGN_ID)`。

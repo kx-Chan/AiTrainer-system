@@ -1,8 +1,9 @@
 package com.aitrainer.service;
 
+import com.aitrainer.common.constant.MessageConstant;
+import com.aitrainer.common.exception.LoginFailedException;
 import com.aitrainer.utils.JwtUtils;
 import com.aitrainer.dto.LoginRequestDTO;
-import com.aitrainer.exception.BusinessException;
 import com.aitrainer.mapper.UserMapper;
 import com.aitrainer.entity.User;
 import com.aitrainer.service.impl.UserServiceImpl;
@@ -87,7 +88,7 @@ public final class UserServiceTest {
      * 测试用户名无效导致的登录失败。
      */
     @Test
-    @DisplayName("登录失败 - 用户名不存在时应抛出业务异常")
+    @DisplayName("登录失败 - 用户名不存在时应抛出登录失败异常")
     void login_InvalidUsername_ThrowsException() {
         // given
         final String username = "nonexistent";
@@ -96,9 +97,9 @@ public final class UserServiceTest {
         final LoginRequestDTO request = new LoginRequestDTO(username, "password");
 
         // when & then
-        final BusinessException exception = assertThrows(BusinessException.class, () -> userService.login(request));
+        final LoginFailedException exception = assertThrows(LoginFailedException.class, () -> userService.login(request));
         assertEquals(401, exception.getCode());
-        assertEquals("用户名或密码错误", exception.getMessage());
+        assertEquals(MessageConstant.LOGIN_FAILED, exception.getMessage());
         then(userMapper).should().selectOne(any(LambdaQueryWrapper.class));
         then(passwordEncoder).should(never()).matches(any(), any());
     }
@@ -107,7 +108,7 @@ public final class UserServiceTest {
      * 测试密码无效导致的登录失败。
      */
     @Test
-    @DisplayName("登录失败 - 密码错误时应抛出业务异常")
+    @DisplayName("登录失败 - 密码错误时应抛出登录失败异常")
     void login_InvalidPassword_ThrowsException() {
         // given
         final String username = "admin";
@@ -125,9 +126,9 @@ public final class UserServiceTest {
         final LoginRequestDTO request = new LoginRequestDTO(username, password);
 
         // when & then
-        final BusinessException exception = assertThrows(BusinessException.class, () -> userService.login(request));
+        final LoginFailedException exception = assertThrows(LoginFailedException.class, () -> userService.login(request));
         assertEquals(401, exception.getCode());
-        assertEquals("用户名或密码错误", exception.getMessage());
+        assertEquals(MessageConstant.LOGIN_FAILED, exception.getMessage());
         then(userMapper).should().selectOne(any(LambdaQueryWrapper.class));
         then(passwordEncoder).should().matches(password, hashedPassword);
         then(jwtUtils).should(never()).generateToken(any());

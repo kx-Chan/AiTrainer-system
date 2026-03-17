@@ -1,5 +1,6 @@
-package com.aitrainer.result;
+package com.aitrainer.common.result;
 
+import com.aitrainer.common.constant.ResultCode;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -45,7 +46,7 @@ public final class Result<T> {
      */
     public static <T> Result<T> success(final T data) {
         return Result.<T>builder()
-                .code(200)
+                .code(ResultCode.SUCCESS)
                 .message("操作成功")
                 .data(data)
                 .build();

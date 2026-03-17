@@ -1,8 +1,10 @@
 package com.aitrainer.service.impl;
 
+import com.aitrainer.common.constant.MessageConstant;
+import com.aitrainer.common.exception.AccountAlreadyExistsException;
+import com.aitrainer.common.exception.LoginFailedException;
 import com.aitrainer.utils.JwtUtils;
 import com.aitrainer.dto.LoginRequestDTO;
-import com.aitrainer.exception.BusinessException;
 import com.aitrainer.mapper.UserMapper;
 import com.aitrainer.entity.User;
 import com.aitrainer.service.UserService;
@@ -45,13 +47,13 @@ public class UserServiceImpl implements UserService {
         // 使用卫语句处理用户不存在的情况
         if (user == null) {
             log.warn("登录失败：用户 {} 不存在", request.username());
-            throw new BusinessException(401, "用户名或密码错误");
+            throw new LoginFailedException(MessageConstant.LOGIN_FAILED);
         }
 
         // 使用卫语句处理密码不匹配的情况
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             log.warn("登录失败：用户 {} 密码错误", request.username());
-            throw new BusinessException(401, "用户名或密码错误");
+            throw new LoginFailedException(MessageConstant.LOGIN_FAILED);
         }
 
         final String token = jwtUtils.generateToken(user.getUsername());
@@ -82,7 +84,7 @@ public class UserServiceImpl implements UserService {
                 .eq(User::getUsername, username));
         if (countUsername > 0) {
             log.warn("创建用户失败：用户名 {} 已存在", username);
-            throw new BusinessException("用户名已存在");
+            throw new AccountAlreadyExistsException(MessageConstant.USERNAME_ALREADY_EXISTS);
         }
 
         // 检查电子邮件是否已存在
@@ -90,7 +92,7 @@ public class UserServiceImpl implements UserService {
                 .eq(User::getEmail, email));
         if (countEmail > 0) {
             log.warn("创建用户失败：电子邮件 {} 已存在", email);
-            throw new BusinessException("电子邮件已存在");
+            throw new AccountAlreadyExistsException(MessageConstant.EMAIL_ALREADY_EXISTS);
         }
 
         final User user = User.builder()
