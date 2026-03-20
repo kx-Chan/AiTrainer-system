@@ -22,6 +22,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
@@ -64,11 +65,13 @@ public final class UserServiceTest {
     void login_Success() {
         // given
         final String username = "admin";
+        final Long userId = 1L;
         final String password = "password";
         final String hashedPassword = "hashedPassword";
         final String token = "mockToken";
         
         final User user = User.builder()
+                .id(userId)
                 .username(username)
                 .passwordHash(hashedPassword)
                 .isFirstLogin(false)
@@ -76,7 +79,7 @@ public final class UserServiceTest {
 
         given(userMapper.selectOne(any())).willReturn(user);
         given(passwordEncoder.matches(password, hashedPassword)).willReturn(true);
-        given(jwtUtils.generateToken(username)).willReturn(token);
+        given(jwtUtils.generateToken(userId, username)).willReturn(token);
 
         final LoginRequestDTO request = new LoginRequestDTO(username, password);
 
@@ -89,7 +92,7 @@ public final class UserServiceTest {
         assertFalse(response.isFirstLogin());
         then(userMapper).should().selectOne(any(LambdaQueryWrapper.class));
         then(passwordEncoder).should().matches(password, hashedPassword);
-        then(jwtUtils).should().generateToken(username);
+        then(jwtUtils).should().generateToken(userId, username);
     }
 
     /**
@@ -139,7 +142,7 @@ public final class UserServiceTest {
         assertEquals(MessageConstant.LOGIN_FAILED, exception.getMessage());
         then(userMapper).should().selectOne(any(LambdaQueryWrapper.class));
         then(passwordEncoder).should().matches(password, hashedPassword);
-        then(jwtUtils).should(never()).generateToken(any());
+        then(jwtUtils).should(never()).generateToken(anyLong(), anyString());
     }
 
     /**

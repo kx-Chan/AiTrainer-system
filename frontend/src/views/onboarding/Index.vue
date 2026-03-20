@@ -10,7 +10,13 @@
       <div class="form-content">
         <div v-if="activeStep === 0" class="step-fade">
           <h3>告诉 AI 你的基础情况</h3>
-          <p class="subtitle">性别将影响 AI 对你基础代谢的计算公式</p>
+          <p class="subtitle">设置一个响亮的昵称，并选择你的性别</p>
+          <div class="input-group" style="margin-bottom: 20px;">
+            <div class="input-item" style="justify-content: center;">
+              <span class="label" style="margin-right: 10px;">昵称</span>
+              <el-input v-model="form.nickname" placeholder="请输入昵称" style="width: 200px;" />
+            </div>
+          </div>
           <el-radio-group v-model="form.gender" size="large">
             <el-radio-button label="male">男生 (Male)</el-radio-button>
             <el-radio-button label="female">女生 (Female)</el-radio-button>
@@ -88,6 +94,7 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import request from '@/utils/request'
 
 const router = useRouter()
 const activeStep = ref(0)
@@ -95,6 +102,7 @@ const isSubmitting = ref(false)
 
 // 响应式表单对象
 const form = reactive({
+  nickname: '',
   gender: 'male',
   height: 170,
   weight: 65,
@@ -104,6 +112,10 @@ const form = reactive({
 
 // 步骤跳转逻辑
 const nextStep = () => {
+  if (activeStep.value === 0 && !form.nickname.trim()) {
+    ElMessage.warning('请先输入昵称')
+    return
+  }
   if (activeStep.value < 2) {
     activeStep.value++
   } else {
@@ -115,12 +127,15 @@ const nextStep = () => {
 const finishOnboarding = async () => {
   isSubmitting.value = true
   try {
-    // 1. 调用后端接口（此处为模拟）
-    // await api.updateUserInfo(form)
-    console.log('提交的数据：', form)
-    
-    // 模拟网络延迟
-    await new Promise(resolve => setTimeout(resolve, 1500))
+    // 1. 调用后端接口
+    await request.post('/profile/onboarding', {
+      nickname: form.nickname,
+      gender: form.gender,
+      goal: form.goal,
+      height: form.height,
+      weight: form.weight,
+      bodyFat: form.bodyFat
+    })
 
     // 2. 更新本地标记，通知路由守卫“资料已补全”
     localStorage.setItem('is_first_login', 'false')
@@ -129,7 +144,8 @@ const finishOnboarding = async () => {
     ElMessage.success('配置完成，AI 已为你生成专属健身方案！')
     router.push('/dashboard')
   } catch (error) {
-    ElMessage.error('保存失败，请重试')
+    console.error('Onboarding error:', error)
+    // 错误提示由 request 拦截器统一处理
   } finally {
     isSubmitting.value = false
   }

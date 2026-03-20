@@ -63,7 +63,7 @@ public class UserServiceImpl implements UserService {
             throw new LoginFailedException(MessageConstant.LOGIN_FAILED);
         }
 
-        final String token = jwtUtils.generateToken(user.getUsername());
+        final String token = jwtUtils.generateToken(user.getId(), user.getUsername());
         
         log.info("用户 {} 登录成功", user.getUsername());
         return LoginVO.builder()

@@ -31,15 +31,17 @@ public final class JwtUtils {
     }
 
     /**
-     * 为指定用户名生成 JWT 令牌。
+     * 为指定用户生成 JWT 令牌。
      *
+     * @param userId   用户 ID。
      * @param username 用户名。
      * @return JWT 令牌。
      */
-    public String generateToken(final String username) {
-        log.info("正在为用户生成令牌: {}", username);
+    public String generateToken(final Long userId, final String username) {
+        log.info("正在为用户 {} (ID: {}) 生成令牌", username, userId);
         return Jwts.builder()
                 .setSubject(username)
+                .claim("userId", userId)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(key, SignatureAlgorithm.HS256)
@@ -70,5 +72,15 @@ public final class JwtUtils {
      */
     public String getUsernameFromToken(final String token) {
         return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody().getSubject();
+    }
+
+    /**
+     * 从 JWT 令牌中提取用户 ID。
+     *
+     * @param token JWT 令牌。
+     * @return 用户 ID。
+     */
+    public Long getUserIdFromToken(final String token) {
+        return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody().get("userId", Long.class);
     }
 }
