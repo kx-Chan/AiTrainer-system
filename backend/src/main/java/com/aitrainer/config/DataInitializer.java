@@ -1,11 +1,13 @@
 package com.aitrainer.config;
 
+import com.aitrainer.entity.User;
 import com.aitrainer.mapper.UserMapper;
 import com.aitrainer.service.UserService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 /**
@@ -16,8 +18,8 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public final class DataInitializer implements CommandLineRunner {
 
-    private final UserService userService;
     private final UserMapper userMapper;
+    private final PasswordEncoder passwordEncoder;
 
     /**
      * 在应用程序启动时运行以播种用户。
@@ -36,10 +38,22 @@ public final class DataInitializer implements CommandLineRunner {
 
         try {
             // 播种 'admin' 用户（老用户）
-            userService.createUser("admin", "admin@aitrainer.com", "123456", false);
+            User admin = User.builder()
+                    .username("admin")
+                    .email("admin@aitrainer.com")
+                    .passwordHash(passwordEncoder.encode("123456"))
+                    .isFirstLogin(false)
+                    .build();
+            userMapper.insert(admin);
 
             // 播种 'newbie' 用户（新用户）
-            userService.createUser("newbie", "newbie@aitrainer.com", "123456", true);
+            User newbie = User.builder()
+                    .username("newbie")
+                    .email("newbie@aitrainer.com")
+                    .passwordHash(passwordEncoder.encode("123456"))
+                    .isFirstLogin(true)
+                    .build();
+            userMapper.insert(newbie);
 
             log.info("测试数据初始化成功：已创建测试账号 admin 和 newbie (密码均为 123456)");
         } catch (final Exception e) {

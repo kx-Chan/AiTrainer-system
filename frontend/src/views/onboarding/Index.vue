@@ -77,7 +77,7 @@
           :loading="isSubmitting"
           @click="nextStep"
         >
-          {{ activeStep === 2 ? '完成配置，进入 AI 世界' : '下一步' }}
+          {{ activeStep === 2 ? '完成配置，进入 AiTrainer' : '下一步' }}
         </el-button>
       </div>
     </el-card>

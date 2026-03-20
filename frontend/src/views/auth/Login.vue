@@ -20,7 +20,7 @@
             @keyup.enter="handleDebounceLogin"
           >
             <el-form-item prop="username">
-              <el-input v-model="loginForm.username" placeholder="请输入用户名/手机号" :prefix-icon="User" clearable />
+              <el-input v-model="loginForm.username" placeholder="请输入用户名/邮箱" :prefix-icon="User" clearable />
             </el-form-item>
             
             <el-form-item prop="password">
@@ -52,8 +52,23 @@
             :rules="registerRules" 
             size="large"
           >
-            <el-form-item prop="phone">
-              <el-input v-model="registerForm.phone" placeholder="请输入11位手机号" :prefix-icon="Phone" clearable />
+            <el-form-item prop="email">
+              <div class="email-input-wrapper">
+                <el-input v-model="registerForm.email" placeholder="请输入邮箱地址" :prefix-icon="Message" clearable />
+                <el-button 
+                  type="primary" 
+                  plain 
+                  class="code-btn" 
+                  :disabled="isSendingCode || countdown > 0"
+                  @click="handleSendCode"
+                >
+                  {{ countdown > 0 ? `${countdown}s 后重发` : '获取验证码' }}
+                </el-button>
+              </div>
+            </el-form-item>
+
+            <el-form-item prop="code">
+              <el-input v-model="registerForm.code" placeholder="请输入 6 位验证码" :prefix-icon="Lock" maxlength="6" />
             </el-form-item>
 
             <el-form-item prop="username">
@@ -90,7 +105,7 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { User, Lock, Phone } from '@element-plus/icons-vue'
+import { User, Lock, Message } from '@element-plus/icons-vue'
 
 import request from '@/utils/request'
 
@@ -108,16 +123,52 @@ const loginForm = reactive({
 })
 
 const registerForm = reactive({
-  phone: '',
+  email: '',
   username: '',
   password: '',
-  confirmPassword: ''
+  confirmPassword: '',
+  code: ''
 })
 
 const loginFormRef = ref(null)
 const registerFormRef = ref(null)
 
 // ================= 自定义校验逻辑 =================
+// 校验用户名唯一性
+const validateUsernameUnique = async (rule, value, callback) => {
+  if (!value) return callback()
+  if (value.length < 3) return callback()
+  
+  try {
+    const isExists = await request.get(`/auth/check-username?username=${value}`)
+    if (isExists) {
+      callback(new Error('该用户名已被占用'))
+    } else {
+      callback()
+    }
+  } catch (error) {
+    callback() // 接口异常时不阻塞注册
+  }
+}
+
+// 校验邮箱唯一性
+const validateEmailUnique = async (rule, value, callback) => {
+  if (!value) return callback()
+  const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+  if (!emailPattern.test(value)) return callback()
+
+  try {
+    const isExists = await request.get(`/auth/check-email?email=${value}`)
+    if (isExists) {
+      callback(new Error('该邮箱已被注册'))
+    } else {
+      callback()
+    }
+  } catch (error) {
+    callback()
+  }
+}
+
 // 校验两次密码是否一致
 const validatePass2 = (rule, value, callback) => {
   if (value === '') {
@@ -129,32 +180,74 @@ const validatePass2 = (rule, value, callback) => {
   }
 }
 
-// 校验手机号格式 (简单的正则)
-const validatePhone = (rule, value, callback) => {
-  const phoneRegex = /^1[3-9]\d{9}$/
-  if (value === '') {
-    callback(new Error('请输入手机号'))
-  } else if (!phoneRegex.test(value)) {
-    callback(new Error('手机号格式不正确'))
-  } else {
-    callback()
-  }
-}
-
 // 规则绑定
 const loginRules = reactive({
-  username: [{ required: true, message: '请输入用户名或手机号', trigger: 'blur' }],
+  username: [{ required: true, message: '请输入用户名或邮箱', trigger: 'blur' }],
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
 })
 
 const registerRules = reactive({
-  phone: [{ required: true, validator: validatePhone, trigger: 'blur' }],
-  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }, { min: 3, max: 15, message: '长度在 3 到 15 个字符', trigger: 'blur' }],
-  password: [{ required: true, message: '请输入密码', trigger: 'blur' }, { min: 6, message: '密码长度不能小于6位', trigger: 'blur' }],
-  confirmPassword: [{ required: true, validator: validatePass2, trigger: 'blur' }]
+  email: [
+    { required: true, message: '请输入邮箱地址', trigger: 'blur' },
+    { type: 'email', message: '请输入正确的邮箱格式', trigger: 'blur' },
+    { validator: validateEmailUnique, trigger: 'blur' }
+  ],
+  username: [
+    { required: true, message: '请输入用户名', trigger: 'blur' },
+    { min: 3, max: 15, message: '长度在 3 到 15 个字符', trigger: 'blur' },
+    { validator: validateUsernameUnique, trigger: 'blur' }
+  ],
+  password: [
+    { required: true, message: '请输入密码', trigger: 'blur' },
+    { min: 6, message: '密码长度不能小于6位', trigger: 'blur' }
+  ],
+  confirmPassword: [{ required: true, validator: validatePass2, trigger: 'blur' }],
+  code: [
+    { required: true, message: '请输入验证码', trigger: 'blur' },
+    { len: 6, message: '验证码必须为6位数字', trigger: 'blur' }
+  ]
 })
 
 // ================= 核心业务逻辑 (含防抖机制) =================
+
+// 验证码倒计时逻辑
+const countdown = ref(0)
+const isSendingCode = ref(false)
+let timer = null
+
+const startCountdown = () => {
+  countdown.value = 60
+  timer = setInterval(() => {
+    countdown.value--
+    if (countdown.value <= 0) {
+      clearInterval(timer)
+    }
+  }, 1000)
+}
+
+const handleSendCode = async () => {
+  if (!registerForm.email) {
+    ElMessage.warning('请先输入邮箱地址')
+    return
+  }
+  // 校验邮箱格式
+  const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+  if (!emailPattern.test(registerForm.email)) {
+    ElMessage.warning('请输入正确的邮箱格式')
+    return
+  }
+
+  try {
+    isSendingCode.value = true
+    await request.post(`/auth/code?email=${registerForm.email}`)
+    ElMessage.success('验证码已发送，请查收邮箱')
+    startCountdown()
+  } catch (error) {
+    console.error('Send code error:', error)
+  } finally {
+    isSendingCode.value = false
+  }
+}
 
 // 手写一个防抖函数 (Debounce)
 const debounce = (fn, delay = 500) => {
@@ -212,23 +305,42 @@ const handleDebounceLogin = debounce(executeLogin, 300)
 const handleRegister = async () => {
   if (!registerFormRef.value) return
   
-  await registerFormRef.value.validate((valid) => {
-    if (valid) {
-      isLoading.value = true
-      
-      setTimeout(() => {
-        isLoading.value = false
-        ElMessage.success('注册成功！请使用刚才的账号登录完成资料补全')
-        
-        // 注册成功后，切换到登录 Tab
-        activeTab.value = 'login'
-        loginForm.username = registerForm.username
-        
-        // 💡 提示：在真实后端中，这个新用户在 DB 里的 height/weight 为空
-        // 所以下次他登录时，后端接口自然会返回 isFirstLogin: true
-      }, 1000)
-    }
-  })
+  try {
+    // 1. 开启表单校验
+    await registerFormRef.value.validate()
+    
+    isLoading.value = true
+    
+    // 2. 调用注册接口
+    await request.post('/auth/register', {
+      email: registerForm.email,
+      username: registerForm.username,
+      password: registerForm.password,
+      code: registerForm.code
+    })
+
+    ElMessage.success('注册成功！请登录')
+    
+    // 3. 注册成功后的 UI 处理
+    activeTab.value = 'login'
+    loginForm.username = registerForm.username
+    
+    // 清空注册表单
+    registerForm.email = ''
+    registerForm.username = ''
+    registerForm.password = ''
+    registerForm.confirmPassword = ''
+    registerForm.code = ''
+    
+    // 重置倒计时
+    if (timer) clearInterval(timer)
+    countdown.value = 0
+    
+  } catch (error) {
+    console.error('Register error:', error)
+  } finally {
+    isLoading.value = false
+  }
 }
 </script>
 
@@ -268,10 +380,22 @@ const handleRegister = async () => {
 
 .auth-card {
   width: 420px;
-  z-index: 1;
-  border-radius: 12px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.05);
-  border: none;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 20px;
+}
+
+.email-input-wrapper {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+.code-btn {
+  white-space: nowrap;
+  min-width: 100px;
 }
 
 .auth-header {

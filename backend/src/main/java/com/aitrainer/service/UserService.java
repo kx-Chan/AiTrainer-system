@@ -1,7 +1,7 @@
 package com.aitrainer.service;
 
 import com.aitrainer.dto.LoginRequestDTO;
-import com.aitrainer.entity.User;
+import com.aitrainer.dto.RegisterRequestDTO;
 import com.aitrainer.vo.LoginVO;
 
 /**
@@ -12,19 +12,31 @@ public interface UserService {
     /**
      * 验证用户身份并返回登录视图对象。
      *
-     * @param request 包含用户名和密码的登录请求。
+     * @param request 包含用户名或邮箱和密码的登录请求。
      * @return 包含 JWT 令牌和首次登录标志的视图对象。
      */
     LoginVO login(final LoginRequestDTO request);
 
     /**
-     * 创建新用户。
+     * 用户注册。
+     *
+     * @param request 包含用户名、邮箱和密码的注册请求。
+     */
+    void register(final RegisterRequestDTO request);
+
+    /**
+     * 检查用户名是否已存在。
      *
      * @param username 用户名。
-     * @param email    电子邮件。
-     * @param password 原始密码。
-     * @param isFirstLogin 是否为首次登录。
-     * @return 创建的用户实体。
+     * @return 如果存在返回 true。
      */
-    User createUser(final String username, final String email, final String password, final boolean isFirstLogin);
+    boolean checkUsernameExists(String username);
+
+    /**
+     * 检查邮箱是否已存在。
+     *
+     * @param email 邮箱。
+     * @return 如果存在返回 true。
+     */
+    boolean checkEmailExists(String email);
 }
