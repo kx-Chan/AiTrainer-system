@@ -2,28 +2,28 @@ server:
   port: 3000
 
 spring:
+  profiles:
+    active: dev
   application:
     name: aitrainer-backend
   datasource:
     url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DB:ai_trainer}?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
     driver-class-name: com.mysql.cj.jdbc.Driver
-    username: ${MYSQL_USER:root}
-    password: ${MYSQL_PASSWORD:123456}
+    # username 和 password 已移至 application-dev.yml
 
   # Redis 配置
   data:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:123456}
+      # password 已移至 application-dev.yml
       database: 0
 
   # 邮件服务配置 (以 QQ 邮箱为例)
   mail:
     host: smtp.qq.com
     port: 587
-    username: ${MAIL_USERNAME:2845583291@qq.com}
-    password: ${MAIL_PASSWORD:tuacbssrzveadgfg}
+    # username 和 password 已移至 application-dev.yml
     properties:
       mail:
         smtp:
@@ -41,5 +41,5 @@ mybatis-plus:
       id-type: auto
 
 jwt:
-  secret: "base64EncodedSecretKeyForAiTrainerApplicationThatMustBeLongEnough"
+  # secret 已移至 application-dev.yml
   expiration: 604800000 # 7 days
