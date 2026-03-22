@@ -197,45 +197,104 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { Edit, Medal, Lock, FolderOpened, ArrowRight, Calendar, Plus } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus' 
+import request from '@/utils/request'
 
 // ================= 基础数据 =================
 const userInfo = reactive({
   avatar: 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png',
-  nickname: '陈同学_AiTrainer',
-  goal: '减脂',
-  bio: '生命在于折腾，代码与铁块齐飞。目标：本月体脂率降至 15%！',
-  following: 24,
-  followers: 128,
-  totalDays: 45,
-  // ====== 新增基础体征字段 ======
-  height: 165,
-  weight: 65.5,
-  bodyFat: 18.5
+  nickname: '',
+  gender: '',
+  goal: '',
+  bio: '',
+  following: 0,
+  followers: 0,
+  totalDays: 0,
+  height: null,
+  weight: null,
+  bodyFat: null
+})
+
+// 获取个人资料
+const fetchProfile = async () => {
+  try {
+    const data = await request.get('/profile/info')
+    if (data) {
+      Object.assign(userInfo, data)
+    }
+  } catch (error) {
+    console.error('获取个人资料失败:', error)
+  }
+}
+
+onMounted(() => {
+  fetchProfile()
 })
 
 const isEditVisible = ref(false)
 const openEditModal = () => { isEditVisible.value = true }
+
 // ================= 头像上传与本地预览逻辑 =================
-const handleAvatarChange = (uploadFile) => {
-  // 1. 简单的格式校验
-  if (!uploadFile.raw.type.startsWith('image/')) {
+const isAvatarUploading = ref(false)
+
+const handleAvatarChange = async (uploadFile) => {
+  const file = uploadFile?.raw
+  if (!file) {
+    ElMessage.error('未获取到头像文件')
+    return
+  }
+
+  if (!file.type?.startsWith('image/')) {
     ElMessage.error('头像只能是图片格式!')
     return
   }
   
-  // 2. 核心黑科技：利用浏览器原生 API 生成本地临时预览链接，无需经过后端！
-  userInfo.avatar = URL.createObjectURL(uploadFile.raw)
-  
-  // 💡 面试吹点：在这里预留云端上传的钩子
-  // 后期对接 Java 后端时，在这里构造 FormData，调用 axios.post('/api/upload') 传给后端
-  // 拿到 OSS 返回的真实 URL 后，再最终赋给 userInfo.avatar
+  if (file.size > 2 * 1024 * 1024) {
+    ElMessage.error('头像文件不能超过 2MB')
+    return
+  }
+
+  const previousAvatar = userInfo.avatar
+  const previewUrl = URL.createObjectURL(file)
+  userInfo.avatar = previewUrl
+
+  try {
+    isAvatarUploading.value = true
+    const formData = new FormData()
+    formData.append('file', file)
+    const avatarUrl = await request.post('/common/upload/avatar', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    if (avatarUrl) {
+      userInfo.avatar = avatarUrl
+      ElMessage.success('头像上传成功')
+    } else {
+      userInfo.avatar = previousAvatar
+      ElMessage.error('头像上传失败，请稍后重试')
+    }
+  } catch (error) {
+    userInfo.avatar = previousAvatar
+  } finally {
+    isAvatarUploading.value = false
+    URL.revokeObjectURL(previewUrl)
+  }
 }
-const saveProfile = () => {
-  isEditVisible.value = false
-  ElMessage.success('个人资料已保存！')
+
+const saveProfile = async () => {
+  try {
+    if (isAvatarUploading.value) {
+      ElMessage.warning('头像上传中，请稍后再保存')
+      return
+    }
+    await request.post('/profile/update', userInfo)
+    isEditVisible.value = false
+    ElMessage.success('个人资料已保存！')
+    fetchProfile() // 重新拉取最新数据
+  } catch (error) {
+    console.error('保存个人资料失败:', error)
+  }
 }
 
 // ================= 弹窗 2：粉丝与关注逻辑 =================

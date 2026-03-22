@@ -30,8 +30,8 @@
       <div class="nav-user-profile">
         <el-dropdown placement="bottom-end">
           <span class="user-dropdown-link">
-            <el-avatar :size="32" src="https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png" />
-            <span class="username">陈同学</span>
+            <el-avatar :size="32" :src="navUser.avatar" />
+            <span class="username">{{ navUser.nickname }}</span>
             <el-icon><ArrowDown /></el-icon>
           </span>
           <template #dropdown>
@@ -56,11 +56,35 @@
 </template>
 
 <script setup>
+import { onMounted, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Microphone, ArrowDown } from '@element-plus/icons-vue'
+import request from '@/utils/request'
 
 const route = useRoute()
 const router = useRouter()
+
+const DEFAULT_AVATAR_URL = 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'
+
+const navUser = reactive({
+  avatar: DEFAULT_AVATAR_URL,
+  nickname: '用户'
+})
+
+const fetchNavUser = async () => {
+  try {
+    const data = await request.get('/profile/info')
+    navUser.avatar = data?.avatar || DEFAULT_AVATAR_URL
+    navUser.nickname = data?.nickname || '用户'
+  } catch (error) {
+    navUser.avatar = DEFAULT_AVATAR_URL
+    navUser.nickname = '用户'
+  }
+}
+
+onMounted(() => {
+  fetchNavUser()
+})
 
 const handleLogout = () => {
   localStorage.removeItem('jwt_token')

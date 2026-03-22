@@ -43,3 +43,11 @@ mybatis-plus:
 jwt:
   # secret 已移至 application-dev.yml
   expiration: 604800000 # 7 days
+
+aliyun:
+  oss:
+    endpoint: ${ALIYUN_OSS_ENDPOINT:}
+    bucket: ${ALIYUN_OSS_BUCKET:}
+    access-key-id: ${ALIYUN_ACCESS_KEY_ID:}
+    access-key-secret: ${ALIYUN_ACCESS_KEY_SECRET:}
+    avatar-url-expire-seconds: ${ALIYUN_OSS_AVATAR_URL_EXPIRE_SECONDS:3600}
