@@ -29,7 +29,9 @@
 
             <div class="login-options">
               <el-checkbox v-model="loginForm.rememberMe">7天内免登录</el-checkbox>
-              <el-link type="primary" :underline="false">忘记密码？</el-link>
+              <el-link type="primary" :underline="false" @click="forgetPasswordVisible = true">
+                忘记密码？
+              </el-link>
             </div>
 
             <el-form-item>
@@ -98,6 +100,56 @@
 
       </el-tabs>
     </el-card>
+    <el-dialog
+      v-model="forgetPasswordVisible"
+      title="重置密码"
+      width="400px"
+      append-to-body
+      class="forget-password-dialog"
+      @close="resetForgetForm"
+    >
+      <el-form 
+        ref="forgetFormRef" 
+        :model="forgetForm" 
+        :rules="forgetRules" 
+        label-position="top"
+      >
+        <el-form-item label="邮箱地址" prop="email">
+          <div class="email-input-wrapper">
+            <el-input v-model="forgetForm.email" placeholder="请输入绑定的邮箱" />
+            <el-button 
+              type="primary" 
+              plain 
+              :disabled="forgetCountdown > 0 || isSendingForgetCode"
+              @click="handleSendForgetCode"
+            >
+              {{ forgetCountdown > 0 ? `${forgetCountdown}s` : '获取' }}
+            </el-button>
+          </div>
+        </el-form-item>
+
+        <el-form-item label="验证码" prop="code">
+          <el-input v-model="forgetForm.code" placeholder="请输入 6 位验证码" maxlength="6" />
+        </el-form-item>
+
+        <el-form-item label="设置新密码" prop="newPassword">
+          <el-input v-model="forgetForm.newPassword" type="password" show-password placeholder="至少 6 位新密码" />
+        </el-form-item>
+
+        <el-form-item label="确认新密码" prop="confirmPassword">
+          <el-input v-model="forgetForm.confirmPassword" type="password" show-password placeholder="再次输入新密码" />
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="forgetPasswordVisible = false">取 消</el-button>
+          <el-button type="primary" :loading="isResetting" @click="handleResetPassword">
+            确 认 重 置
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -110,6 +162,7 @@ import { User, Lock, Message } from '@element-plus/icons-vue'
 import request from '@/utils/request'
 
 const router = useRouter()
+let forgetTimer = null // 专门给重置密码用的定时器
 
 // 状态控制
 const activeTab = ref('login')
@@ -342,6 +395,87 @@ const handleRegister = async () => {
     isLoading.value = false
   }
 }
+
+// 1. 定义控制状态
+const forgetPasswordVisible = ref(false)
+const isSendingForgetCode = ref(false)
+const isResetting = ref(false)
+const forgetCountdown = ref(0)
+const forgetFormRef = ref(null)
+
+// 2. 数据模型
+const forgetForm = reactive({
+  email: '',
+  code: '',
+  newPassword: '',
+  confirmPassword: ''
+})
+
+// 3. 校验规则 (复用你之前的 validatePass2)
+const forgetRules = reactive({
+  email: [
+    { required: true, message: '请输入邮箱', trigger: 'blur' },
+    { type: 'email', message: '格式不正确', trigger: 'blur' }
+  ],
+  code: [{ required: true, len: 6, message: '请输入6位验证码', trigger: 'blur' }],
+  newPassword: [{ required: true, min: 6, message: '密码至少6位', trigger: 'blur' }],
+  confirmPassword: [
+    { 
+      required: true, 
+      validator: (rule, value, callback) => {
+        if (value !== forgetForm.newPassword) callback(new Error('两次输入不一致'))
+        else callback()
+      }, 
+      trigger: 'blur' 
+    }
+  ]
+})
+
+// 4. 发送验证码逻辑
+const handleSendForgetCode = async () => {
+  if (!forgetForm.email) return ElMessage.warning('请先输入邮箱')
+  try {
+    isSendingForgetCode.value = true
+    await request.post(`/auth/code/reset?email=${forgetForm.email}`)
+    ElMessage.success('验证码已发送')
+    
+    // 防御性编程：如果之前有定时器，先清除
+    if (forgetTimer) clearInterval(forgetTimer) 
+    
+    forgetCountdown.value = 60
+    forgetTimer = setInterval(() => {
+      forgetCountdown.value--
+      if (forgetCountdown.value <= 0) clearInterval(forgetTimer)
+    }, 1000)
+  } catch (error) {
+    console.error(error)
+  } finally {
+    isSendingForgetCode.value = false
+  }
+}
+
+// 5. 提交重置逻辑
+const handleResetPassword = async () => {
+  await forgetFormRef.value.validate()
+  try {
+    isResetting.value = true
+    await request.post('/auth/reset-password', {
+      email: forgetForm.email,
+      code: forgetForm.code,
+      newPassword: forgetForm.newPassword
+    })
+    ElMessage.success('密码重置成功，请登录')
+    forgetPasswordVisible.value = false
+  } catch (error) {
+    console.error(error)
+  } finally {
+    isResetting.value = false
+  }
+}
+
+const resetForgetForm = () => {
+  forgetFormRef.value?.resetFields()
+}
 </script>
 
 <style scoped>
@@ -433,5 +567,23 @@ const handleRegister = async () => {
   font-size: 16px;
   border-radius: 8px;
   letter-spacing: 2px;
+}
+
+/* 适配对话框的毛玻璃感 */
+:deep(.forget-password-dialog) {
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.email-input-wrapper {
+  display: flex;
+  gap: 10px;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
 }
 </style>

@@ -47,7 +47,13 @@ const routes = [
         path: '/diet',
         name: 'Diet',
         component: () => import('../views/diet/Index.vue')
-      }
+      },
+      {
+        path: 'settings', 
+        name: 'Settings',
+        component: () => import('@/views/settings/index.vue'), // 上一步写的新页面
+        meta: { title: '账号设置' }
+      },
     ]
   },
   // 独立全屏显示的 AI 战报页 (也可以选择放在 Layout 下，看你想要全屏还是带导航的沉浸感)
