@@ -21,6 +21,12 @@ public class MailServiceImpl implements MailService {
     @Value("${spring.mail.username}")
     private String from;
 
+    /**
+     * 发送邮件
+     * @param to      收件人邮箱。
+     * @param subject 邮件主题。
+     * @param content 邮件内容。
+     */
     @Override
     public void sendSimpleMail(String to, String subject, String content) {
         log.info("正在发送邮件给: {}, 主题: {}", to, subject);
@@ -33,10 +39,15 @@ public class MailServiceImpl implements MailService {
         log.info("邮件发送成功给: {}", to);
     }
 
+    /**
+     * 发送注册邮件
+     * @param to   收件人邮箱。
+     * @param code 6位验证码。
+     */
     @Override
     public void sendVerificationCode(String to, String code) {
-        String subject = "【AiTrainer】注册验证码";
-        String content = "您的注册验证码为：" + code + "，有效期为 5 分钟。如非本人操作，请忽略此邮件。";
+        String subject = "【AiTrainer】验证码";
+        String content = "您的验证码为：" + code + "，有效期为 5 分钟。如非本人操作，请忽略此邮件。";
         sendSimpleMail(to, subject, content);
     }
 }

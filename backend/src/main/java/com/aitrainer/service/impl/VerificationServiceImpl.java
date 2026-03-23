@@ -24,6 +24,10 @@ public class VerificationServiceImpl implements VerificationService {
     private static final String CODE_PREFIX = "verify_code:";
     private static final long EXPIRE_TIME = 5; // 5 分钟有效期
 
+    /**
+     * 生成验证码并发送
+     * @param email 电子邮箱。
+     */
     @Override
     public void sendCode(String email) {
         // 1. 生成 6 位随机验证码
@@ -37,6 +41,12 @@ public class VerificationServiceImpl implements VerificationService {
         mailService.sendVerificationCode(email, code);
     }
 
+    /**
+     * 校验验证码是否正确
+     * @param email 电子邮箱。
+     * @param code  6位验证码。
+     * @return
+     */
     @Override
     public boolean verifyCode(String email, String code) {
         String storedCode = redisTemplate.opsForValue().get(CODE_PREFIX + email);
@@ -47,6 +57,10 @@ public class VerificationServiceImpl implements VerificationService {
         return storedCode.equals(code);
     }
 
+    /**
+     * 删除已使用的验证码
+     * @param email 电子邮箱。
+     */
     @Override
     public void consumeCode(String email) {
         redisTemplate.delete(CODE_PREFIX + email);

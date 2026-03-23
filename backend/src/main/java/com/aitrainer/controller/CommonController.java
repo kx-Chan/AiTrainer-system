@@ -1,6 +1,7 @@
 package com.aitrainer.controller;
 
 import com.aitrainer.common.exception.BusinessException;
+import com.aitrainer.common.constant.MessageConstant;
 import com.aitrainer.common.result.Result;
 import com.aitrainer.common.security.CustomUser;
 import com.aitrainer.entity.User;
@@ -64,7 +65,7 @@ public class CommonController {
         // 3) 将对象 Key 保存到用户表，避免前端或日志暴露真实存储路径与权限信息
         final User dbUser = userMapper.selectById(userId);
         if (dbUser == null) {
-            throw new BusinessException("无法找到当前登录用户");
+            throw BusinessException.notFound(MessageConstant.USER_NOT_FOUND);
         }
         dbUser.setAvatar(objectKey);
         dbUser.setUpdatedAt(LocalDateTime.now());

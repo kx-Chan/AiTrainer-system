@@ -434,6 +434,8 @@ const forgetRules = reactive({
 // 4. 发送验证码逻辑
 const handleSendForgetCode = async () => {
   if (!forgetForm.email) return ElMessage.warning('请先输入邮箱')
+  const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+  if (!emailPattern.test(forgetForm.email)) return ElMessage.warning('请输入正确的邮箱格式')
   try {
     isSendingForgetCode.value = true
     await request.post(`/auth/code/reset?email=${forgetForm.email}`)
@@ -475,6 +477,11 @@ const handleResetPassword = async () => {
 
 const resetForgetForm = () => {
   forgetFormRef.value?.resetFields()
+  if (forgetTimer) clearInterval(forgetTimer)
+  forgetTimer = null
+  forgetCountdown.value = 0
+  isSendingForgetCode.value = false
+  isResetting.value = false
 }
 </script>
 

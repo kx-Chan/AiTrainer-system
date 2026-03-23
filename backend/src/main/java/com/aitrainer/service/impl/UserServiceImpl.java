@@ -1,9 +1,7 @@
 package com.aitrainer.service.impl;
 
 import com.aitrainer.common.constant.MessageConstant;
-import com.aitrainer.common.exception.AccountAlreadyExistsException;
 import com.aitrainer.common.exception.BusinessException;
-import com.aitrainer.common.exception.LoginFailedException;
 import com.aitrainer.dto.RegisterRequestDTO;
 import com.aitrainer.utils.JwtUtils;
 import com.aitrainer.dto.LoginRequestDTO;
@@ -54,13 +52,13 @@ public class UserServiceImpl implements UserService {
         // 使用卫语句处理用户不存在的情况
         if (user == null) {
             log.warn("登录失败：账号 {} 不存在", request.username());
-            throw new LoginFailedException(MessageConstant.LOGIN_FAILED);
+            throw BusinessException.conflict(MessageConstant.LOGIN_FAILED);
         }
 
         // 使用卫语句处理密码不匹配的情况
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             log.warn("登录失败：账号 {} 密码错误", request.username());
-            throw new LoginFailedException(MessageConstant.LOGIN_FAILED);
+            throw BusinessException.conflict(MessageConstant.LOGIN_FAILED);
         }
 
         final String token = jwtUtils.generateToken(user.getId(), user.getUsername());
@@ -89,12 +87,12 @@ public class UserServiceImpl implements UserService {
 
         // 2. 校验用户名是否已存在
         if (checkUsernameExists(request.username())) {
-            throw new AccountAlreadyExistsException(MessageConstant.USERNAME_ALREADY_EXISTS);
+            throw BusinessException.conflict(MessageConstant.USERNAME_ALREADY_EXISTS);
         }
 
         // 3. 校验邮箱是否已存在
         if (checkEmailExists(request.email())) {
-            throw new AccountAlreadyExistsException(MessageConstant.EMAIL_ALREADY_EXISTS);
+            throw BusinessException.conflict(MessageConstant.EMAIL_ALREADY_EXISTS);
         }
 
         // 4. 创建用户
@@ -114,13 +112,75 @@ public class UserServiceImpl implements UserService {
         verificationService.consumeCode(request.email());
     }
 
+    /**
+     * 检查用户名是否存在
+     * @param username 用户名。
+     * @return
+     */
     @Override
     public boolean checkUsernameExists(String username) {
         return userMapper.selectCount(new LambdaQueryWrapper<User>().eq(User::getUsername, username)) > 0;
     }
 
+    /**
+     * 检查邮箱是否已注册
+     * @param email 邮箱。
+     * @return
+     */
     @Override
     public boolean checkEmailExists(String email) {
         return userMapper.selectCount(new LambdaQueryWrapper<User>().eq(User::getEmail, email)) > 0;
+    }
+
+    /**
+     * 修改密码
+     * @param userId
+     * @param oldPassword
+     * @param newPassword
+     */
+    @Override
+    @Transactional
+    public void changePassword(final Long userId, final String oldPassword, final String newPassword) {
+        if (userId == null) {
+            throw BusinessException.unauthorized(MessageConstant.USER_NOT_LOGGED_IN);
+        }
+        final User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw BusinessException.notFound(MessageConstant.USER_NOT_FOUND);
+        }
+        if (!passwordEncoder.matches(oldPassword, user.getPasswordHash())) {
+            throw BusinessException.badRequest(MessageConstant.PASSWORD_INCORRECT);
+        }
+        if (passwordEncoder.matches(newPassword, user.getPasswordHash())) {
+            throw BusinessException.badRequest(MessageConstant.PASSWORD_SAME_AS_OLD);
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        user.setUpdatedAt(LocalDateTime.now());
+        userMapper.updateById(user);
+    }
+
+    /**
+     * 重置密码
+     * @param email
+     * @param code
+     * @param newPassword
+     */
+    @Override
+    @Transactional
+    public void resetPassword(final String email, final String code, final String newPassword) {
+        if (!verificationService.verifyCode(email, code)) {
+            throw BusinessException.badRequest(MessageConstant.VERIFY_CODE_ERROR);
+        }
+
+        final User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getEmail, email));
+        if (user == null) {
+            throw BusinessException.notFound(MessageConstant.EMAIL_NOT_REGISTERED);
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        user.setUpdatedAt(LocalDateTime.now());
+        userMapper.updateById(user);
+        verificationService.consumeCode(email);
     }
 }

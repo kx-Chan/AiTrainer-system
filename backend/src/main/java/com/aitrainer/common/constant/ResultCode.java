@@ -23,6 +23,21 @@ public final class ResultCode {
     public static final int UNAUTHORIZED = 401;
 
     /**
+     * 请求格式等错误
+     */
+    public static final int BAD_REQUEST = 400;
+
+    /**
+     * 禁止访问
+     */
+    public static final int FORBIDDEN = 403;
+
+    /**
+     * 资源未找到
+     */
+    public static final int NOT_FOUND = 404;
+
+    /**
      * 资源冲突状态码
      */
     public static final int CONFLICT = 409;

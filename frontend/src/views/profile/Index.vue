@@ -99,8 +99,8 @@
       </el-tabs>
     </el-card>
 
-    <el-dialog v-model="isEditVisible" title="编辑个人资料" width="450px" destroy-on-close class="edit-dialog">
-      <el-form label-width="80px" :model="userInfo">
+    <el-dialog v-model="isEditVisible" title="编辑个人资料" width="450px" destroy-on-close class="edit-dialog" @close="cancelEdit">
+      <el-form label-width="80px" :model="editForm">
         <el-form-item label="用户头像">
           <el-upload
             class="avatar-uploader"
@@ -109,33 +109,33 @@
             :auto-upload="false"
             :on-change="handleAvatarChange"
           >
-            <img v-if="userInfo.avatar" :src="userInfo.avatar" class="uploaded-avatar" />
+            <img v-if="editForm.avatar" :src="editForm.avatar" class="uploaded-avatar" />
             <el-icon v-else class="avatar-uploader-icon"><Plus /></el-icon>
           </el-upload>
           <div class="upload-tip">点击头像可重新上传本地图片 (支持 jpg/png)</div>
         </el-form-item>
         <el-form-item label="昵称">
-          <el-input v-model="userInfo.nickname" placeholder="请输入昵称" maxlength="20" show-word-limit />
+          <el-input v-model="editForm.nickname" placeholder="请输入昵称" maxlength="20" show-word-limit />
         </el-form-item>
         <el-form-item label="健身目标">
-          <el-radio-group v-model="userInfo.goal">
+          <el-radio-group v-model="editForm.goal">
             <el-radio-button label="减脂">减脂</el-radio-button>
             <el-radio-button label="增肌">增肌</el-radio-button>
             <el-radio-button label="保持">保持</el-radio-button>
           </el-radio-group>
         </el-form-item>
         <el-form-item label="身高 (cm)">
-          <el-input-number v-model="userInfo.height" :min="100" :max="250" />
+          <el-input-number v-model="editForm.height" :min="100" :max="250" />
         </el-form-item>
         <el-form-item label="体重 (kg)">
-          <el-input-number v-model="userInfo.weight" :min="30" :max="200" :precision="1" :step="0.5" />
+          <el-input-number v-model="editForm.weight" :min="30" :max="200" :precision="1" :step="0.5" />
         </el-form-item>
         <el-form-item label="体脂率 (%)">
-          <el-input-number v-model="userInfo.bodyFat" :min="1" :max="50" :precision="1" :step="0.5" />
+          <el-input-number v-model="editForm.bodyFat" :min="1" :max="50" :precision="1" :step="0.5" />
         </el-form-item>
         <el-form-item label="个性签名">
           <el-input 
-            v-model="userInfo.bio" 
+            v-model="editForm.bio" 
             type="textarea" 
             :rows="3" 
             placeholder="写一句激励自己的话吧..." 
@@ -146,8 +146,8 @@
       </el-form>
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="isEditVisible = false">取消</el-button>
-          <el-button type="primary" @click="saveProfile">保存修改</el-button>
+          <el-button @click="cancelEdit">取消</el-button>
+          <el-button type="primary" :loading="isAvatarUploading" @click="saveProfile">保存修改</el-button>
         </span>
       </template>
     </el-dialog>
@@ -234,12 +234,54 @@ onMounted(() => {
 })
 
 const isEditVisible = ref(false)
-const openEditModal = () => { isEditVisible.value = true }
+const editForm = reactive({
+  avatar: '',
+  nickname: '',
+  gender: '',
+  goal: '',
+  bio: '',
+  height: null,
+  weight: null,
+  bodyFat: null
+})
+
+const pendingAvatarFile = ref(null)
+const pendingAvatarPreviewUrl = ref('')
+
+const openEditModal = async () => {
+  let data = null
+  try {
+    data = await request.get('/profile/info')
+  } catch (error) {
+    data = null
+  }
+
+  const source = data || userInfo
+  editForm.avatar = source.avatar || ''
+  editForm.nickname = source.nickname || ''
+  editForm.gender = source.gender || ''
+  editForm.goal = source.goal || ''
+  editForm.bio = source.bio || ''
+  editForm.height = source.height ?? null
+  editForm.weight = source.weight ?? null
+  editForm.bodyFat = source.bodyFat ?? null
+
+  pendingAvatarFile.value = null
+  if (pendingAvatarPreviewUrl.value) {
+    URL.revokeObjectURL(pendingAvatarPreviewUrl.value)
+    pendingAvatarPreviewUrl.value = ''
+  }
+
+  if (data) {
+    Object.assign(userInfo, data)
+  }
+  isEditVisible.value = true
+}
 
 // ================= 头像上传与本地预览逻辑 =================
 const isAvatarUploading = ref(false)
 
-const handleAvatarChange = async (uploadFile) => {
+const handleAvatarChange = (uploadFile) => {
   const file = uploadFile?.raw
   if (!file) {
     ElMessage.error('未获取到头像文件')
@@ -256,30 +298,15 @@ const handleAvatarChange = async (uploadFile) => {
     return
   }
 
-  const previousAvatar = userInfo.avatar
-  const previewUrl = URL.createObjectURL(file)
-  userInfo.avatar = previewUrl
-
-  try {
-    isAvatarUploading.value = true
-    const formData = new FormData()
-    formData.append('file', file)
-    const avatarUrl = await request.post('/common/upload/avatar', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    })
-    if (avatarUrl) {
-      userInfo.avatar = avatarUrl
-      ElMessage.success('头像上传成功')
-    } else {
-      userInfo.avatar = previousAvatar
-      ElMessage.error('头像上传失败，请稍后重试')
-    }
-  } catch (error) {
-    userInfo.avatar = previousAvatar
-  } finally {
-    isAvatarUploading.value = false
-    URL.revokeObjectURL(previewUrl)
+  if (pendingAvatarPreviewUrl.value) {
+    URL.revokeObjectURL(pendingAvatarPreviewUrl.value)
+    pendingAvatarPreviewUrl.value = ''
   }
+
+  const previewUrl = URL.createObjectURL(file)
+  pendingAvatarPreviewUrl.value = previewUrl
+  pendingAvatarFile.value = file
+  editForm.avatar = previewUrl
 }
 
 const saveProfile = async () => {
@@ -288,12 +315,51 @@ const saveProfile = async () => {
       ElMessage.warning('头像上传中，请稍后再保存')
       return
     }
-    await request.post('/profile/update', userInfo)
+
+    if (pendingAvatarFile.value) {
+      isAvatarUploading.value = true
+      const formData = new FormData()
+      formData.append('file', pendingAvatarFile.value)
+      const avatarUrl = await request.post('/common/upload/avatar', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      if (!avatarUrl) {
+        ElMessage.error('头像上传失败，请稍后重试')
+        return
+      }
+      editForm.avatar = avatarUrl
+    }
+
+    await request.post('/profile/update', {
+      nickname: editForm.nickname,
+      gender: editForm.gender,
+      goal: editForm.goal,
+      bio: editForm.bio,
+      height: editForm.height,
+      weight: editForm.weight,
+      bodyFat: editForm.bodyFat
+    })
     isEditVisible.value = false
     ElMessage.success('个人资料已保存！')
     fetchProfile() // 重新拉取最新数据
   } catch (error) {
     console.error('保存个人资料失败:', error)
+  } finally {
+    isAvatarUploading.value = false
+    pendingAvatarFile.value = null
+    if (pendingAvatarPreviewUrl.value) {
+      URL.revokeObjectURL(pendingAvatarPreviewUrl.value)
+      pendingAvatarPreviewUrl.value = ''
+    }
+  }
+}
+
+const cancelEdit = () => {
+  isEditVisible.value = false
+  pendingAvatarFile.value = null
+  if (pendingAvatarPreviewUrl.value) {
+    URL.revokeObjectURL(pendingAvatarPreviewUrl.value)
+    pendingAvatarPreviewUrl.value = ''
   }
 }
 

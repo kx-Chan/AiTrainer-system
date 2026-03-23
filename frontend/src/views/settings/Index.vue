@@ -14,7 +14,7 @@
             <h2 class="section-title">修改密码</h2>
             <p class="section-desc">为了您的账号安全，请定期更换密码。</p>
             
-            <el-form label-position="top" :model="passwordForm" status-icon class="password-form">
+            <el-form ref="passwordFormRef" label-position="top" :model="passwordForm" :rules="passwordRules" status-icon class="password-form">
               <el-form-item label="当前密码" prop="oldPassword">
                 <el-input v-model="passwordForm.oldPassword" type="password" show-password placeholder="请输入当前使用的密码">
                   <template #prefix><el-icon><Key /></el-icon></template>
@@ -34,7 +34,7 @@
               </el-form-item>
               
               <el-form-item class="form-actions">
-                <el-button type="primary" class="full-width-btn">更新密码</el-button>
+                <el-button type="primary" class="full-width-btn" :loading="isUpdatingPassword" @click="handleUpdatePassword">更新密码</el-button>
               </el-form-item>
             </el-form>
           </div>
@@ -82,14 +82,61 @@
 </template>
 
 <script setup>
-import { reactive } from 'vue'
-import { Lock, Key, CircleCheck, Microphone, View, DArrowRight } from '@element-plus/icons-vue'
+import { reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
+import { Lock, Key, CircleCheck, View, DArrowRight } from '@element-plus/icons-vue'
+import request from '@/utils/request'
+
+const router = useRouter()
 
 const passwordForm = reactive({
   oldPassword: '',
   newPassword: '',
   confirmPassword: ''
 })
+
+const passwordFormRef = ref(null)
+const isUpdatingPassword = ref(false)
+
+const validateConfirmPassword = (rule, value, callback) => {
+  if (!value) {
+    callback(new Error('请再次输入新密码'))
+    return
+  }
+  if (value !== passwordForm.newPassword) {
+    callback(new Error('两次输入的新密码不一致'))
+    return
+  }
+  callback()
+}
+
+const passwordRules = reactive({
+  oldPassword: [{ required: true, message: '请输入当前密码', trigger: 'blur' }],
+  newPassword: [
+    { required: true, message: '请输入新密码', trigger: 'blur' },
+    { min: 6, message: '新密码长度不能小于 6 位', trigger: 'blur' }
+  ],
+  confirmPassword: [{ validator: validateConfirmPassword, trigger: 'blur' }]
+})
+
+const handleUpdatePassword = async () => {
+  if (!passwordFormRef.value) return
+  try {
+    await passwordFormRef.value.validate()
+    isUpdatingPassword.value = true
+    await request.post('/auth/change-password', {
+      oldPassword: passwordForm.oldPassword,
+      newPassword: passwordForm.newPassword
+    })
+    ElMessage.success('密码修改成功，请重新登录')
+    localStorage.removeItem('jwt_token')
+    router.push('/login')
+  } catch (error) {
+  } finally {
+    isUpdatingPassword.value = false
+  }
+}
 
 const privacyForm = reactive({
   publicProfile: true

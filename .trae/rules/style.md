@@ -25,8 +25,21 @@
 ## 3. 全局统一响应与异常
 - **统一返回**：所有 Controller 必须返回 `Result<T>` 对象。
 - **参数校验**：强制使用 `Jakarta Validation` 注解（`@NotBlank`, `@Min` 等）。
-- **异常处理**：使用 `@ControllerAdvice` 捕获异常。严禁捕获通用 `Exception`，业务错误必须抛出自定义 `BusinessException`。
+- **异常处理**：使用 `@ControllerAdvice` 捕获异常。严禁捕获通用 `Exception`，使用自创的`BusinessException`。
 
 ## 4. 构建与安全
 - **构建工具**：Maven，依赖版本在 `dependencyManagement` 中统一管理。
 - **配置安全**：`application.yml` 敏感信息通过 `${VAR_NAME:default}` 环境变量注入。
+
+
+### 5. 中文注释与 Javadoc
+- **语言**：所有 Javadoc、代码注释、业务报错信息必须使用 **中文**。
+- **方法文档**：`public` 方法需包含 Javadoc。需包含：
+  - 功能描述
+  - `@param` 参数中文含义
+  - `@return` 返回值中文含义
+  - `@throws` 异常场景描述
+
+
+dto包下的类名后缀要是DTO
+vo包下的类名后缀要是VO

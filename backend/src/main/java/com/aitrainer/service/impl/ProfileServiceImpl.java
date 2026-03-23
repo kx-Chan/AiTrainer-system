@@ -4,6 +4,8 @@ import com.aitrainer.entity.User;
 import com.aitrainer.entity.UserProfile;
 import com.aitrainer.mapper.UserMapper;
 import com.aitrainer.mapper.UserProfileMapper;
+import com.aitrainer.common.constant.MessageConstant;
+import com.aitrainer.common.exception.BusinessException;
 import com.aitrainer.service.OssService;
 import com.aitrainer.service.ProfileService;
 import com.aitrainer.dto.OnboardingProfileDTO;
@@ -26,13 +28,18 @@ public class ProfileServiceImpl implements ProfileService {
     private final UserProfileMapper userProfileMapper;
     private final OssService ossService;
 
+    /**
+     * 保存用户初始信息
+     * @param userId 用户 ID。
+     * @param dto    用户资料数据。
+     */
     @Override
     @Transactional
     public void saveOnboardingProfile(Long userId, OnboardingProfileDTO dto) {
         // 1. 校验用户是否存在（可选，根据业务需求，通常 Security 保证了用户存在）
         User user = userMapper.selectById(userId);
         if (user == null) {
-            throw new IllegalStateException("无法找到当前登录用户 ID: " + userId);
+            throw BusinessException.notFound(MessageConstant.USER_NOT_FOUND);
         }
 
         // 2. 创建或更新用户资料
@@ -58,6 +65,11 @@ public class ProfileServiceImpl implements ProfileService {
         log.info("已更新用户 ID: {} 的 isFirstLogin 状态为 false", userId);
     }
 
+    /**
+     * 获取用户信息
+     * @param userId 用户 ID。
+     * @return
+     */
     @Override
     public UserProfileVO getUserProfile(Long userId) {
         final User user = userMapper.selectById(userId);
@@ -89,6 +101,11 @@ public class ProfileServiceImpl implements ProfileService {
                  .build();
      }
 
+    /**
+     * 更新用户信息
+     * @param userId 用户 ID。
+     * @param vo     用户资料视图对象。
+     */
     @Override
     @Transactional
     public void updateProfile(Long userId, UserProfileVO vo) {

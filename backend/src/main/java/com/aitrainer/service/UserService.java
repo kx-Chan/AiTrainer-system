@@ -39,4 +39,20 @@ public interface UserService {
      * @return 如果存在返回 true。
      */
     boolean checkEmailExists(String email);
+
+    /**
+     * 修改密码
+     * @param userId
+     * @param oldPassword
+     * @param newPassword
+     */
+    void changePassword(Long userId, String oldPassword, String newPassword);
+
+    /**
+     * 重置密码
+     * @param email
+     * @param code
+     * @param newPassword
+     */
+    void resetPassword(String email, String code, String newPassword);
 }

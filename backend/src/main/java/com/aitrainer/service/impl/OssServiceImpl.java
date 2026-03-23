@@ -1,6 +1,7 @@
 package com.aitrainer.service.impl;
 
 import com.aitrainer.common.exception.BusinessException;
+import com.aitrainer.common.constant.MessageConstant;
 import com.aitrainer.service.OssService;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
@@ -89,25 +90,25 @@ public class OssServiceImpl implements OssService {
     public String uploadAvatar(final Long userId, final MultipartFile file) {
         // 1) 参数与文件校验（防止空请求与超大文件）
         if (userId == null) {
-            throw new BusinessException("用户 ID 不能为空");
+            throw BusinessException.badRequest(MessageConstant.OSS_USER_ID_EMPTY);
         }
         if (file == null || file.isEmpty()) {
-            throw new BusinessException("请选择要上传的头像文件");
+            throw BusinessException.badRequest(MessageConstant.AVATAR_FILE_EMPTY);
         }
         if (file.getSize() > MAX_AVATAR_BYTES) {
-            throw new BusinessException("头像文件不能超过 2MB");
+            throw BusinessException.badRequest(MessageConstant.AVATAR_FILE_TOO_LARGE);
         }
 
         // 2) OSS 配置校验（凭证缺失时不允许继续）
         if (!StringUtils.hasText(endpoint) || !StringUtils.hasText(bucket)
                 || !StringUtils.hasText(accessKeyId) || !StringUtils.hasText(accessKeySecret)) {
-            throw new BusinessException("OSS 配置不完整，请检查环境变量配置");
+            throw new BusinessException(MessageConstant.OSS_CONFIG_INCOMPLETE);
         }
 
         // 3) 类型白名单校验（仅允许图片 MIME 类型）
         final String contentType = file.getContentType();
         if (!StringUtils.hasText(contentType) || !ALLOWED_CONTENT_TYPES.contains(contentType)) {
-            throw new BusinessException("头像格式不支持，仅支持 JPG/PNG/WEBP/GIF");
+            throw BusinessException.badRequest(MessageConstant.AVATAR_TYPE_NOT_SUPPORTED);
         }
 
         // 4) 生成对象 Key：按用户分目录 + 随机文件名，避免覆盖
@@ -129,7 +130,7 @@ public class OssServiceImpl implements OssService {
         } catch (final Exception e) {
             // 注意：日志仅记录 userId，不输出 endpoint/AK 等敏感信息
             log.error("上传头像失败 userId={}", userId, e);
-            throw new BusinessException("头像上传失败，请稍后重试");
+            throw new BusinessException(MessageConstant.AVATAR_UPLOAD_FAILED);
         } finally {
             if (ossClient != null) {
                 ossClient.shutdown();

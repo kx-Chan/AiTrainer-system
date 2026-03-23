@@ -2,6 +2,9 @@ package com.aitrainer.controller;
 
 import com.aitrainer.dto.LoginRequestDTO;
 import com.aitrainer.dto.RegisterRequestDTO;
+import com.aitrainer.dto.ChangePasswordDTO;
+import com.aitrainer.dto.ResetPasswordDTO;
+import com.aitrainer.common.exception.BusinessException;
 import com.aitrainer.service.UserService;
 import com.aitrainer.service.VerificationService;
 import com.aitrainer.vo.LoginVO;
@@ -12,8 +15,10 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import com.aitrainer.common.security.CustomUser;
 
 /**
  * 处理身份验证相关端点的控制器。
@@ -58,6 +63,18 @@ public final class AuthController {
         return Result.success(MessageConstant.VERIFY_CODE_SENT);
     }
 
+    @Operation(summary = "发送重置密码验证码", description = "向指定邮箱发送 6 位重置密码验证码")
+    @PostMapping("/code/reset")
+    public Result<String> sendResetCode(
+            @Parameter(description = "电子邮箱", example = "user@example.com")
+            @RequestParam final String email) {
+        if (!userService.checkEmailExists(email)) {
+            throw BusinessException.notFound(MessageConstant.EMAIL_NOT_REGISTERED);
+        }
+        verificationService.sendCode(email);
+        return Result.success(MessageConstant.VERIFY_CODE_SENT);
+    }
+
     /**
      * 用户注册端点。
      *
@@ -70,6 +87,23 @@ public final class AuthController {
         log.info("控制器收到注册请求：{}, 邮箱: {}", request.username(), request.email());
         userService.register(request);
         return Result.success(MessageConstant.REGISTER_SUCCESS);
+    }
+
+    @Operation(summary = "重置密码", description = "通过邮箱验证码重置密码")
+    @PostMapping("/reset-password")
+    public Result<Void> resetPassword(@Validated @RequestBody final ResetPasswordDTO request) {
+        userService.resetPassword(request.email(), request.code(), request.newPassword());
+        return Result.success();
+    }
+
+    @Operation(summary = "修改密码", description = "登录状态下修改账号密码")
+    @PostMapping("/change-password")
+    public Result<Void> changePassword(
+            final Authentication authentication,
+            @Validated @RequestBody final ChangePasswordDTO request) {
+        final CustomUser user = (CustomUser) authentication.getPrincipal();
+        userService.changePassword(user.getId(), request.oldPassword(), request.newPassword());
+        return Result.success();
     }
 
     /**
