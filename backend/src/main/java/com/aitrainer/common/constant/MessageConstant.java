@@ -28,4 +28,17 @@ public final class MessageConstant {
     public static final String AVATAR_FILE_TOO_LARGE = "头像文件不能超过 2MB";
     public static final String AVATAR_TYPE_NOT_SUPPORTED = "头像格式不支持，仅支持 JPG/PNG/WEBP/GIF";
     public static final String AVATAR_UPLOAD_FAILED = "头像上传失败，请稍后重试";
+
+    public static final String ALREADY_FOLLOWED = "已关注该用户";
+    public static final String NOT_FOLLOWED = "未关注该用户";
+    public static final String FOLLOW_SUCCESS = "关注成功";
+    public static final String UNFOLLOW_SUCCESS = "取消关注成功";
+    public static final String FOLLOW_ERROR = "关注失败，请稍后重试";
+    public static final String UNFOLLOW_ERROR = "取消关注失败，请稍后重试";
+    public static final String FOLLOWED_USERS_NOT_FOUND = "关注的用户列表为空";
+    public static final String FOLLOWERS_NOT_FOUND = "粉丝列表为空";
+
+    public static final String CANNOT_FOLLOW_SELF = "不能关注自己";
+    
+    
 }

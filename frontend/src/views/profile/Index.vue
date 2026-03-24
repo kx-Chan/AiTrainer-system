@@ -9,7 +9,6 @@
         <div class="info-section">
           <div class="name-row">
             <h2 class="nickname">{{ userInfo.nickname }}</h2>
-            <el-tag type="success" effect="light" round size="small">Lv.4 健身达人</el-tag>
             <el-tag type="warning" effect="light" round size="small" style="margin-left: 8px;">目标: {{ userInfo.goal }}</el-tag>
             
             <el-button type="primary" :icon="Edit" plain size="small" class="edit-btn" @click="openEditModal">编辑资料</el-button>
@@ -154,16 +153,33 @@
 
     <el-dialog v-model="isFollowVisible" :title="followDialogType === 'followers' ? '我的粉丝' : '我的关注'" width="400px">
       <div class="follow-list">
-        <div v-for="user in currentFollowList" :key="user.id" class="follow-item">
+        <div v-for="user in followList" :key="user.id" class="follow-item">
           <el-avatar :size="40" :src="user.avatar" />
           <div class="follow-info">
             <div class="follow-name">{{ user.name }}</div>
             <div class="follow-bio">{{ user.bio }}</div>
           </div>
-          <el-button :type="user.isFollowing ? 'default' : 'primary'" size="small" plain round>
+          <el-button
+            :type="user.isFollowing ? 'default' : 'primary'"
+            size="small"
+            plain
+            round
+            :loading="followActionLoadingId === user.id"
+            @click="toggleFollow(user)"
+          >
             {{ user.isFollowing ? '已关注' : '+ 关注' }}
           </el-button>
         </div>
+      </div>
+      <div style="display: flex; justify-content: center; margin-top: 16px;">
+        <el-pagination
+          v-model:current-page="followPage.page"
+          v-model:page-size="followPage.size"
+          :total="followPage.total"
+          :pager-count="5"
+          layout="prev, pager, next"
+          @current-change="fetchFollowList"
+        />
       </div>
     </el-dialog>
 
@@ -197,7 +213,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { Edit, Medal, Lock, FolderOpened, ArrowRight, Calendar, Plus } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus' 
 import request from '@/utils/request'
@@ -224,8 +240,10 @@ const fetchProfile = async () => {
     if (data) {
       Object.assign(userInfo, data)
     }
+    return data
   } catch (error) {
     console.error('获取个人资料失败:', error)
+    return null
   }
 }
 
@@ -341,7 +359,13 @@ const saveProfile = async () => {
     })
     isEditVisible.value = false
     ElMessage.success('个人资料已保存！')
-    fetchProfile() // 重新拉取最新数据
+    const latest = await fetchProfile()
+    window.dispatchEvent(new CustomEvent('profile:updated', {
+      detail: {
+        avatar: latest?.avatar,
+        nickname: latest?.nickname
+      }
+    }))
   } catch (error) {
     console.error('保存个人资料失败:', error)
   } finally {
@@ -365,26 +389,54 @@ const cancelEdit = () => {
 
 // ================= 弹窗 2：粉丝与关注逻辑 =================
 const isFollowVisible = ref(false)
-const followDialogType = ref('followers') // 'followers' 或 'following'
+const followDialogType = ref('followers')
+const followList = ref([])
+const followActionLoadingId = ref(null)
 
-const openFollowDialog = (type) => {
-  followDialogType.value = type
-  isFollowVisible.value = true
+const followPage = reactive({
+  page: 1,
+  size: 10,
+  total: 0
+})
+
+const fetchFollowList = async () => {
+  try {
+    const data = await request.get(`/follow/${followDialogType.value}`, {
+      params: { page: followPage.page, size: followPage.size }
+    })
+    followList.value = data?.records || []
+    followPage.total = data?.total || 0
+  } catch (error) {
+    followList.value = []
+    followPage.total = 0
+  }
 }
 
-// 模拟的粉丝/关注列表数据
-const mockFollowers = reactive([
-  { id: 1, name: '林教练 (深大荔园)', avatar: 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png', bio: '深蹲狂热爱好者', isFollowing: true },
-  { id: 2, name: '健身萌新_小李', avatar: 'https://cube.elemecdn.com/9/c2/f0ee8a3c7c9638a54940382568c9dpng.png', bio: '正在努力减脂中...', isFollowing: false }
-])
+const openFollowDialog = async (type) => {
+  followDialogType.value = type
+  followPage.page = 1
+  isFollowVisible.value = true
+  await fetchFollowList()
+}
 
-const mockFollowing = reactive([
-  { id: 1, name: '林教练 (深大荔园)', avatar: 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png', bio: '深蹲狂热爱好者', isFollowing: true }
-])
-
-const currentFollowList = computed(() => {
-  return followDialogType.value === 'followers' ? mockFollowers : mockFollowing
-})
+const toggleFollow = async (user) => {
+  if (!user?.id) return
+  try {
+    followActionLoadingId.value = user.id
+    if (user.isFollowing) {
+      await request.delete(`/follow/${user.id}`)
+      ElMessage.success('已取消关注')
+    } else {
+      await request.post(`/follow/${user.id}`)
+      ElMessage.success('关注成功')
+    }
+    await fetchFollowList()
+    fetchProfile()
+  } catch (error) {
+  } finally {
+    followActionLoadingId.value = null
+  }
+}
 
 // ================= 弹窗 3：打卡日历逻辑 =================
 const isCalendarVisible = ref(false)

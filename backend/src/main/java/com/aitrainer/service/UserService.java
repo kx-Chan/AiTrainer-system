@@ -2,6 +2,7 @@ package com.aitrainer.service;
 
 import com.aitrainer.dto.LoginRequestDTO;
 import com.aitrainer.dto.RegisterRequestDTO;
+import com.aitrainer.entity.User;
 import com.aitrainer.vo.LoginVO;
 
 /**
@@ -41,18 +42,70 @@ public interface UserService {
     boolean checkEmailExists(String email);
 
     /**
-     * 修改密码
-     * @param userId
-     * @param oldPassword
-     * @param newPassword
+     * 修改密码。
+     *
+     * @param userId      当前登录用户 ID。
+     * @param oldPassword 旧密码明文。
+     * @param newPassword 新密码明文。
      */
     void changePassword(Long userId, String oldPassword, String newPassword);
 
     /**
-     * 重置密码
-     * @param email
-     * @param code
-     * @param newPassword
+     * 重置密码（邮箱验证码方式）。
+     *
+     * @param email       邮箱。
+     * @param code        6 位验证码。
+     * @param newPassword 新密码明文。
      */
     void resetPassword(String email, String code, String newPassword);
+
+    /**
+     * 根据 ID 获取用户。
+     *
+     * @param userId 用户 ID。
+     * @return 用户实体，找不到返回 null。
+     */
+    User getById(Long userId);
+
+    /**
+     * 批量根据 ID 获取用户。
+     *
+     * @param ids 用户 ID 列表。
+     * @return 用户实体列表。
+     */
+    java.util.List<User> listByIds(java.util.List<Long> ids);
+
+    /**
+     * 关注数 +1。
+     *
+     * @param userId 用户 ID。
+     */
+    void increaseFollowingCount(Long userId);
+
+    /**
+     * 关注数 -1（不小于 0）。
+     *
+     * @param userId 用户 ID。
+     */
+    void decreaseFollowingCount(Long userId);
+
+    /**
+     * 粉丝数 +1。
+     *
+     * @param userId 用户 ID。
+     */
+    void increaseFollowerCount(Long userId);
+
+    /**
+     * 粉丝数 -1（不小于 0）。
+     *
+     * @param userId 用户 ID。
+     */
+    void decreaseFollowerCount(Long userId);
+
+    /**
+     * 根据userId更新user信息
+     * @param user
+     */
+    void updateById(User user);
 }

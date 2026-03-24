@@ -17,6 +17,8 @@ CREATE TABLE IF NOT EXISTS `users` (
     `avatar` VARCHAR(255) COMMENT '头像URL',
     `is_pro` BOOLEAN DEFAULT FALSE COMMENT '是否PRO会员',
     `is_first_login` BOOLEAN DEFAULT TRUE COMMENT '首次登录标记',
+    `following_count` INT DEFAULT 0 COMMENT '关注数量',
+    `follower_count` INT DEFAULT 0 COMMENT '粉丝数量',
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     `deleted_at` TIMESTAMP NULL DEFAULT NULL,
@@ -43,15 +45,24 @@ CREATE TABLE IF NOT EXISTS `user_profiles` (
 
 -- Table: user_follows
 CREATE TABLE IF NOT EXISTS `user_follows` (
+    -- 1. 独立自增主键，计科标准做法
+    `id` BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '自增主键',
+    
     `follower_id` INT NOT NULL COMMENT '关注者ID',
     `followed_id` INT NOT NULL COMMENT '被关注者ID',
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (`follower_id`, `followed_id`),
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '关注时间',
+
+    -- 2. 联合唯一索引：核心逻辑，防止 A 重复关注 B
+    UNIQUE INDEX `uk_follower_followed` (`follower_id`, `followed_id`),
+
+    -- 3. 外键约束：保证数据的引用完整性
     FOREIGN KEY (`follower_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
     FOREIGN KEY (`followed_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
-    INDEX `idx_follower` (`follower_id`),
+
+    -- 4. 辅助索引：优化查询“我的粉丝”列表的速度
+    -- 注意：follower_id 已经在唯一索引的第一列了，所以不需要单独再建 idx_follower
     INDEX `idx_followed` (`followed_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户关注关系表';
 
 -- Table: user_footprints
 CREATE TABLE IF NOT EXISTS `user_footprints` (

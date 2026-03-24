@@ -43,3 +43,12 @@
 
 dto包下的类名后缀要是DTO
 vo包下的类名后缀要是VO
+
+尽可能避免在impl里调用别的mapper，要调用也是调用对应的service，再调用对应的方法
+
+service和serviceImpl的方法都要写注释，
+格式类似以下即可
+/**
+  * 根据id修改菜品基本信息和对应的口味信息
+  * @param dishDTO
+  */

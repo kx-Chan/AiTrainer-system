@@ -57,7 +57,7 @@
 </template>
 
 <script setup>
-import { onMounted, reactive } from 'vue'
+import { onMounted, onUnmounted, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Microphone, ArrowDown } from '@element-plus/icons-vue'
 import request from '@/utils/request'
@@ -72,6 +72,17 @@ const navUser = reactive({
   nickname: '用户'
 })
 
+const handleProfileUpdated = (event) => {
+  const avatar = event?.detail?.avatar
+  const nickname = event?.detail?.nickname
+  if (avatar || nickname) {
+    navUser.avatar = avatar || DEFAULT_AVATAR_URL
+    navUser.nickname = nickname || '用户'
+    return
+  }
+  fetchNavUser()
+}
+
 const fetchNavUser = async () => {
   try {
     const data = await request.get('/profile/info')
@@ -85,6 +96,11 @@ const fetchNavUser = async () => {
 
 onMounted(() => {
   fetchNavUser()
+  window.addEventListener('profile:updated', handleProfileUpdated)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('profile:updated', handleProfileUpdated)
 })
 
 const handleLogout = () => {

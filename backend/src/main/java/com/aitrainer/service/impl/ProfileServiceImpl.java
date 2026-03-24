@@ -8,6 +8,7 @@ import com.aitrainer.common.constant.MessageConstant;
 import com.aitrainer.common.exception.BusinessException;
 import com.aitrainer.service.OssService;
 import com.aitrainer.service.ProfileService;
+import com.aitrainer.service.UserService;
 import com.aitrainer.dto.OnboardingProfileDTO;
 import com.aitrainer.vo.UserProfileVO;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +25,7 @@ public class ProfileServiceImpl implements ProfileService {
 
     private static final String DEFAULT_AVATAR_URL = "https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png";
 
-    private final UserMapper userMapper;
+    private final UserService userService;
     private final UserProfileMapper userProfileMapper;
     private final OssService ossService;
 
@@ -37,7 +38,7 @@ public class ProfileServiceImpl implements ProfileService {
     @Transactional
     public void saveOnboardingProfile(Long userId, OnboardingProfileDTO dto) {
         // 1. 校验用户是否存在（可选，根据业务需求，通常 Security 保证了用户存在）
-        User user = userMapper.selectById(userId);
+        User user = userService.getById(userId);
         if (user == null) {
             throw BusinessException.notFound(MessageConstant.USER_NOT_FOUND);
         }
@@ -61,7 +62,7 @@ public class ProfileServiceImpl implements ProfileService {
 
         // 3. 更新用户的 isFirstLogin 状态
         user.setFirstLogin(false);
-        userMapper.updateById(user);
+        userService.updateById(user);
         log.info("已更新用户 ID: {} 的 isFirstLogin 状态为 false", userId);
     }
 
@@ -72,8 +73,10 @@ public class ProfileServiceImpl implements ProfileService {
      */
     @Override
     public UserProfileVO getUserProfile(Long userId) {
-        final User user = userMapper.selectById(userId);
+        final User user = userService.getById(userId);
         final String avatarUrl = resolveAvatarUrl(user == null ? null : user.getAvatar());
+        final int followingCount = user == null ? 0 : safeCount(user.getFollowingCount());
+        final int followerCount = user == null ? 0 : safeCount(user.getFollowerCount());
 
         final UserProfile profile = userProfileMapper.selectById(userId);
         if (profile == null) {
@@ -81,6 +84,8 @@ public class ProfileServiceImpl implements ProfileService {
                     .userId(userId)
                     .nickname("新用户")
                     .avatar(avatarUrl)
+                    .following(followingCount)
+                    .followers(followerCount)
                     .build();
         }
 
@@ -95,8 +100,8 @@ public class ProfileServiceImpl implements ProfileService {
                 .weight(profile.getWeight())
                 .bodyFat(profile.getBodyFat())
                 .avatar(avatarUrl)
-                .following(24) // 模拟数据
-                .followers(128) // 模拟数据
+                .following(followingCount)
+                .followers(followerCount)
                  .totalDays(45) // 模拟数据
                  .build();
      }
@@ -137,11 +142,30 @@ public class ProfileServiceImpl implements ProfileService {
         log.info("用户 ID: {} 的个人资料已更新", userId);
     }
 
+    /**
+     * 批量查询用户资料实体。
+     * @param userIds 用户 ID 列表。
+     * @return 资料实体列表。
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.List<UserProfile> listProfilesByIds(final java.util.List<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) return java.util.List.of();
+        return userProfileMapper.selectList(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<UserProfile>()
+                        .in(UserProfile::getUserId, userIds)
+        );
+    }
+
     private String resolveAvatarUrl(final String objectKey) {
         final String url = ossService.generateAvatarUrl(objectKey);
         if (url == null || url.isBlank()) {
             return DEFAULT_AVATAR_URL;
         }
         return url;
+    }
+
+    private static int safeCount(final Integer value) {
+        return value == null ? 0 : value;
     }
 }

@@ -66,6 +66,16 @@ public class User {
     private LocalDateTime updatedAt;
 
     /**
+     * 关注数量
+     */
+    private Integer followingCount;
+
+    /**
+     * 粉丝数量
+     */
+    private Integer followerCount;
+
+    /**
      * 软删除标记。
      */
     private LocalDateTime deletedAt;

@@ -31,4 +31,12 @@ public interface ProfileService {
      * @param vo     用户资料视图对象。
      */
     void updateProfile(Long userId, UserProfileVO vo);
+
+    /**
+     * 批量查询用户资料实体（用于内部聚合场景）。
+     *
+     * @param userIds 用户 ID 列表。
+     * @return 用户资料实体列表（可能少于入参大小）。
+     */
+    java.util.List<com.aitrainer.entity.UserProfile> listProfilesByIds(java.util.List<Long> userIds);
 }

@@ -103,6 +103,8 @@ public class UserServiceImpl implements UserService {
                 .isFirstLogin(true) // 新注册用户默认为首次登录
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
+                .followingCount(0) // 关注数量初始化为0
+                .followerCount(0) // 粉丝数量初始化为0
                 .build();
 
         userMapper.insert(user);
@@ -133,10 +135,10 @@ public class UserServiceImpl implements UserService {
     }
 
     /**
-     * 修改密码
-     * @param userId
-     * @param oldPassword
-     * @param newPassword
+     * 修改密码。
+     * @param userId 用户 ID。
+     * @param oldPassword 旧密码。
+     * @param newPassword 新密码。
      */
     @Override
     @Transactional
@@ -161,10 +163,10 @@ public class UserServiceImpl implements UserService {
     }
 
     /**
-     * 重置密码
-     * @param email
-     * @param code
-     * @param newPassword
+     * 重置密码（邮箱验证码）。
+     * @param email 邮箱。
+     * @param code 验证码。
+     * @param newPassword 新密码。
      */
     @Override
     @Transactional
@@ -182,5 +184,93 @@ public class UserServiceImpl implements UserService {
         user.setUpdatedAt(LocalDateTime.now());
         userMapper.updateById(user);
         verificationService.consumeCode(email);
+    }
+
+    /**
+     * 根据 ID 获取用户。
+     * @param userId 用户 ID。
+     * @return 用户或 null。
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public User getById(final Long userId) {
+        return userMapper.selectById(userId);
+    }
+
+    /**
+     * 批量根据 ID 获取用户。
+     * @param ids ID 列表。
+     * @return 用户列表。
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.List<User> listByIds(final java.util.List<Long> ids) {
+        if (ids == null || ids.isEmpty()) return java.util.List.of();
+        return userMapper.selectBatchIds(ids);
+    }
+
+    /**
+     * 关注数 +1。
+     */
+    @Override
+    @Transactional
+    public void increaseFollowingCount(final Long userId) {
+        final User u = userMapper.selectById(userId);
+        if (u == null) throw BusinessException.notFound(MessageConstant.USER_NOT_FOUND);
+        final int v = (u.getFollowingCount() == null ? 0 : u.getFollowingCount()) + 1;
+        u.setFollowingCount(v);
+        u.setUpdatedAt(LocalDateTime.now());
+        userMapper.updateById(u);
+    }
+
+    /**
+     * 关注数 -1。
+     */
+    @Override
+    @Transactional
+    public void decreaseFollowingCount(final Long userId) {
+        final User u = userMapper.selectById(userId);
+        if (u == null) throw BusinessException.notFound(MessageConstant.USER_NOT_FOUND);
+        final int v = Math.max(0, (u.getFollowingCount() == null ? 0 : u.getFollowingCount()) - 1);
+        u.setFollowingCount(v);
+        u.setUpdatedAt(LocalDateTime.now());
+        userMapper.updateById(u);
+    }
+
+    /**
+     * 粉丝数 +1。
+     */
+    @Override
+    @Transactional
+    public void increaseFollowerCount(final Long userId) {
+        final User u = userMapper.selectById(userId);
+        if (u == null) throw BusinessException.notFound(MessageConstant.USER_NOT_FOUND);
+        final int v = (u.getFollowerCount() == null ? 0 : u.getFollowerCount()) + 1;
+        u.setFollowerCount(v);
+        u.setUpdatedAt(LocalDateTime.now());
+        userMapper.updateById(u);
+    }
+
+    /**
+     * 粉丝数 -1。
+     */
+    @Override
+    @Transactional
+    public void decreaseFollowerCount(final Long userId) {
+        final User u = userMapper.selectById(userId);
+        if (u == null) throw BusinessException.notFound(MessageConstant.USER_NOT_FOUND);
+        final int v = Math.max(0, (u.getFollowerCount() == null ? 0 : u.getFollowerCount()) - 1);
+        u.setFollowerCount(v);
+        u.setUpdatedAt(LocalDateTime.now());
+        userMapper.updateById(u);
+    }
+
+    /**
+     * 根据userId更新user信息
+     * @param user
+     */
+    @Override
+    public void updateById(User user) {
+        userMapper.updateById(user);
     }
 }
