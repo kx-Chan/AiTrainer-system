@@ -163,6 +163,17 @@ CREATE TABLE IF NOT EXISTS `community_posts` (
     INDEX `idx_user_posts` (`user_id`, `created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Table: post_images
+CREATE TABLE IF NOT EXISTS `post_images` (
+    `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+    `post_id` INT NOT NULL COMMENT '关联动态ID',
+    `object_key` VARCHAR(255) NOT NULL COMMENT 'OSS 对象 Key',
+    `sort_order` INT DEFAULT 0 COMMENT '排序',
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`post_id`) REFERENCES `community_posts`(`id`) ON DELETE CASCADE,
+    INDEX `idx_post_images` (`post_id`, `sort_order`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- Table: post_likes
 CREATE TABLE IF NOT EXISTS `post_likes` (
     `post_id` INT NOT NULL COMMENT '动态ID',

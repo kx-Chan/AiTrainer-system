@@ -49,6 +49,11 @@ public class OssServiceImpl implements OssService {
     private static final long MAX_AVATAR_BYTES = 2L * 1024 * 1024;
 
     /**
+     * 帖子图片最大大小：5MB。
+     */
+    private static final long MAX_POST_IMAGE_BYTES = 5L * 1024 * 1024;
+
+    /**
      * OSS Endpoint，例如：https://oss-cn-hangzhou.aliyuncs.com
      */
     @Value("${aliyun.oss.endpoint:}")
@@ -139,6 +144,56 @@ public class OssServiceImpl implements OssService {
     }
 
     /**
+     * 上传帖子图片，返回对象 Key。
+     *
+     * @param userId
+     * @param file
+     * @return
+     */
+    @Override
+    public String uploadPostImage(final Long userId, final MultipartFile file) {
+        if (userId == null) {
+            throw BusinessException.badRequest(MessageConstant.OSS_USER_ID_EMPTY);
+        }
+        if (file == null || file.isEmpty()) {
+            throw BusinessException.badRequest(MessageConstant.AVATAR_FILE_EMPTY);
+        }
+        if (file.getSize() > MAX_POST_IMAGE_BYTES) {
+            throw BusinessException.badRequest(MessageConstant.AVATAR_FILE_TOO_LARGE);
+        }
+        if (!StringUtils.hasText(endpoint) || !StringUtils.hasText(bucket)
+                || !StringUtils.hasText(accessKeyId) || !StringUtils.hasText(accessKeySecret)) {
+            throw new BusinessException(MessageConstant.OSS_CONFIG_INCOMPLETE);
+        }
+        final String contentType = file.getContentType();
+        if (!StringUtils.hasText(contentType) || !ALLOWED_CONTENT_TYPES.contains(contentType)) {
+            throw BusinessException.badRequest(MessageConstant.AVATAR_TYPE_NOT_SUPPORTED);
+        }
+
+        final String extension = resolveExtension(file.getOriginalFilename(), contentType);
+        final String objectKey = "posts/" + userId + "/" + UUID.randomUUID() + extension;
+
+        OSS ossClient = null;
+        try {
+            ossClient = new OSSClientBuilder().build(endpoint, accessKeyId, accessKeySecret);
+            final ObjectMetadata metadata = new ObjectMetadata();
+            metadata.setContentLength(file.getSize());
+            metadata.setContentType(contentType);
+            try (InputStream inputStream = file.getInputStream()) {
+                ossClient.putObject(bucket, objectKey, inputStream, metadata);
+            }
+            return objectKey;
+        } catch (final Exception e) {
+            log.error("上传帖子图片失败 userId={}", userId, e);
+            throw new BusinessException(MessageConstant.AVATAR_UPLOAD_FAILED);
+        } finally {
+            if (ossClient != null) {
+                ossClient.shutdown();
+            }
+        }
+    }
+
+    /**
      * 生成头像对象的临时访问链接（签名 URL）。
      *
      * @param objectKey OSS 对象 Key。
@@ -167,6 +222,38 @@ public class OssServiceImpl implements OssService {
             return url == null ? null : url.toString();
         } catch (final Exception e) {
             log.error("生成头像临时链接失败 objectKey={}", objectKey, e);
+            return null;
+        } finally {
+            if (ossClient != null) {
+                ossClient.shutdown();
+            }
+        }
+    }
+
+    /**
+     * 生成帖子图片的临时访问链接。
+     *
+     * @param objectKey
+     * @return
+     */
+    @Override
+    public String generatePostImageUrl(final String objectKey) {
+        if (!StringUtils.hasText(objectKey)) {
+            return null;
+        }
+        if (!StringUtils.hasText(endpoint) || !StringUtils.hasText(bucket)
+                || !StringUtils.hasText(accessKeyId) || !StringUtils.hasText(accessKeySecret)) {
+            return null;
+        }
+        OSS ossClient = null;
+        try {
+            ossClient = new OSSClientBuilder().build(endpoint, accessKeyId, accessKeySecret);
+            final Duration expire = Duration.ofSeconds(Math.max(60, avatarUrlExpireSeconds));
+            final Date expiration = new Date(System.currentTimeMillis() + expire.toMillis());
+            final URL url = ossClient.generatePresignedUrl(bucket, objectKey, expiration);
+            return url == null ? null : url.toString();
+        } catch (final Exception e) {
+            log.error("生成帖子图片临时链接失败 objectKey={}", objectKey, e);
             return null;
         } finally {
             if (ossClient != null) {

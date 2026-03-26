@@ -5,8 +5,11 @@
         
         <el-card class="publisher-card" shadow="never">
           <div class="publisher-layout">
-            <el-avatar :size="48" :src="myAvatar" class="publisher-avatar" />
+            <el-avatar :size="48" :src="userAvatar" class="publisher-avatar" />
             <div class="publisher-input-area">
+              <div v-if="selectedTopic" class="publisher-topic-bar">
+                <el-tag size="small" effect="plain" round closable @close="clearTopic">#{{ selectedTopic }}</el-tag>
+              </div>
               <el-input 
                 v-model="newPostText" 
                 type="textarea" 
@@ -18,11 +21,51 @@
               />
               <div class="publisher-actions">
                 <div class="action-icons">
-                  <el-button link type="info"><el-icon size="18"><Picture /></el-icon> 图片</el-button>
-                  <el-button link type="warning"><el-icon size="18"><DataAnalysis /></el-icon> 附加 AI 战报</el-button>
-                  <el-button link type="primary"><el-icon size="18"><CollectionTag /></el-icon> 话题</el-button>
+                  <el-upload
+                    class="post-uploader"
+                    :http-request="handleImageUpload"
+                    :on-remove="handleImageRemove"
+                    :file-list="uploadedFileList"
+                    :limit="9"
+                    multiple
+                    accept="image/*"
+                    list-type="picture-card">
+                    <el-icon><Picture /></el-icon>
+                  </el-upload>
+                  <el-popover v-model:visible="isTopicPopoverVisible" placement="bottom-start" :width="320" trigger="click">
+                    <div class="topic-popover">
+                      <div class="topic-suggest-title">推荐话题</div>
+                      <div class="topic-suggest-list">
+                        <el-tag
+                          v-for="name in recommendedTopicNames"
+                          :key="name"
+                          class="topic-suggest-tag"
+                          effect="plain"
+                          round
+                          @click="selectTopic(name)"
+                        >
+                          #{{ name }}
+                        </el-tag>
+                      </div>
+                      <el-divider style="margin: 12px 0;" />
+                      <el-input
+                        v-model="customTopic"
+                        placeholder="自定义话题（不需要输入#）"
+                        maxlength="20"
+                        clearable
+                        @keyup.enter="applyCustomTopic"
+                      />
+                      <div class="topic-popover-actions">
+                        <el-button size="small" @click="clearTopic">清空</el-button>
+                        <el-button size="small" type="primary" @click="applyCustomTopic">使用话题</el-button>
+                      </div>
+                    </div>
+                    <template #reference>
+                      <el-button link type="primary"><el-icon size="18"><CollectionTag /></el-icon> 话题</el-button>
+                    </template>
+                  </el-popover>
                 </div>
-                <el-button type="primary" round class="publish-btn" :disabled="!newPostText" @click="publishPost">
+                <el-button type="primary" round class="publish-btn" :loading="isPublishing" :disabled="!newPostText.trim()" @click="publishPost">
                   发布动态
                 </el-button>
               </div>
@@ -71,6 +114,18 @@
                   {{ post.content }}
                 </p>
                 
+                <div v-if="post.images && post.images.length" class="post-images">
+                  <el-image
+                    v-for="(img, idx) in post.images"
+                    :key="idx"
+                    :src="img"
+                    fit="cover"
+                    :preview-src-list="post.images"
+                    :initial-index="idx"
+                    class="post-image-item"
+                  />
+                </div>
+                
                 <div v-if="post.aiReport" class="ai-report-embed">
                   <div class="report-header">
                     <el-icon color="#E6A23C" size="18"><Trophy /></el-icon>
@@ -105,6 +160,9 @@
               </div>
             </el-card>
           </transition-group>
+          <div class="load-more-wrapper" v-if="feedList.length < total">
+            <el-button :loading="loadingMore" @click="loadMore" type="primary" plain round>加载更多</el-button>
+          </div>
         </div>
       </el-col>
 
@@ -168,46 +226,26 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
-import { Picture, DataAnalysis, CollectionTag, Trophy, ChatDotRound, Star, StarFilled, Share, Histogram, Discount, Search, Back } from '@element-plus/icons-vue'
+import { ref, reactive, computed, watch, onMounted } from 'vue'
+import { storeToRefs } from 'pinia'
+import { Picture, CollectionTag, Trophy, ChatDotRound, Star, StarFilled, Share, Histogram, Discount, Search, Back } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import request from '@/utils/request'
+import { useUserStore } from '@/store/userStore'
 
-const myAvatar = 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'
+const userStore = useUserStore()
+const { avatar, nickname } = storeToRefs(userStore)
+const userAvatar = computed(() => avatar.value)
 const activeFeedTab = ref('discover')
+const page = ref(1)
+const size = ref(10)
+const total = ref(0)
+const loadingMore = ref(false)
+const currentTopicFilter = ref('')
 
 // ================= 信息流原始数据 =================
 // 所有的推文都存在这里
-const feedList = reactive([
-  {
-    id: 1,
-    author: '林教练 (深大荔园)',
-    avatar: 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png',
-    time: '10分钟前',
-    device: 'AiTrainer App',
-    isPro: true,
-    isFollowing: false,
-    topic: '#深蹲打卡挑战赛',
-    content: '今天测试了一下 AiTrainer 最新的骨骼关键点追踪算法，延迟几乎感觉不到，太硬核了！给大家看看我的深蹲战报。',
-    likes: 128,
-    comments: 32,
-    isLiked: false,
-    aiReport: { action: '杠铃深蹲 (Squat)', score: 96, calories: 320, comment: '动作极度标准，核心极其稳定！' }
-  },
-  {
-    id: 2,
-    author: '健身萌新_小李',
-    avatar: 'https://cube.elemecdn.com/9/c2/f0ee8a3c7c9638a54940382568c9dpng.png',
-    time: '1小时前',
-    device: 'Web 端',
-    isPro: false,
-    isFollowing: true,
-    topic: '#大学生宿舍减脂',
-    content: '大三狗在宿舍用养生壶煮的西蓝花鸡胸肉，卖相不太行但饱腹感绝了！本月目标减重 5 斤！',
-    likes: 45,
-    comments: 12,
-    isLiked: true
-  }
-])
+const feedList = reactive([])
 
 // ================= 搜索与流切换核心逻辑 =================
 const searchQuery = ref('')
@@ -216,35 +254,27 @@ const isSearching = ref(false)
 const searchResults = ref([])
 
 // 计算属性：控制页面渲染哪个数组的数据
-const currentFeed = computed(() => {
-  return isSearching.value ? searchResults.value : feedList
-})
+const currentFeed = computed(() => feedList)
 
 // 执行搜索
-const handleSearch = () => {
-  if (!searchQuery.value.trim()) {
+const handleSearch = async () => {
+  const name = (searchQuery.value || '').replace(/^#/, '').trim()
+  if (!name) {
     clearSearch()
     return
   }
-  
   isSearching.value = true
-  lastSearchQuery.value = searchQuery.value
-  const keyword = searchQuery.value.toLowerCase()
-  
-  // 模拟前端本地全文检索：匹配作者名、内容、话题
-  searchResults.value = feedList.filter(post => {
-    const matchContent = post.content.toLowerCase().includes(keyword)
-    const matchAuthor = post.author.toLowerCase().includes(keyword)
-    const matchTopic = post.topic && post.topic.toLowerCase().includes(keyword)
-    return matchContent || matchAuthor || matchTopic
-  })
+  lastSearchQuery.value = name
+  currentTopicFilter.value = name
+  await reloadDiscover()
 }
 
 // 清空搜索，返回推荐流
 const clearSearch = () => {
   searchQuery.value = ''
   isSearching.value = false
-  searchResults.value = []
+  currentTopicFilter.value = ''
+  reloadDiscover()
 }
 
 // 联动：点击右侧热门话题，直接触发搜索
@@ -255,24 +285,102 @@ const quickSearch = (tagName) => {
 
 // ================= 发布器逻辑 =================
 const newPostText = ref('')
-const publishPost = () => {
-  if (!newPostText.value.trim()) return
-  const newPost = {
-    id: Date.now(),
-    author: '陈同学_AiTrainer',
-    avatar: myAvatar,
-    time: '刚刚',
-    device: 'Web 端',
-    content: newPostText.value,
-    likes: 0,
-    comments: 0,
-    isFollowing: true,
-    isLiked: false
+const isPublishing = ref(false)
+const isTopicPopoverVisible = ref(false)
+const selectedTopic = ref('')
+const customTopic = ref('')
+const uploadedImages = ref([]) // { key, url }
+const uploadedFileList = ref([]) // el-upload 展示用
+
+const recommendedTopicNames = computed(() => trendingTags.map(tag => tag.name))
+
+const selectTopic = (name) => {
+  if (!name) return
+  selectedTopic.value = name
+  customTopic.value = name
+  isTopicPopoverVisible.value = false
+}
+
+const applyCustomTopic = () => {
+  const name = (customTopic.value || '').replace(/^#/, '').trim()
+  if (!name) return
+  selectedTopic.value = name
+  isTopicPopoverVisible.value = false
+}
+
+const clearTopic = () => {
+  selectedTopic.value = ''
+  customTopic.value = ''
+}
+
+const handleImageUpload = async (options) => {
+  const { file, onError, onSuccess } = options
+  const form = new FormData()
+  form.append('file', file)
+  try {
+    const data = await request.post('/common/upload/post-image', form, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    // data: { key, url }
+    uploadedImages.value.push({ key: data.key, url: data.url })
+    uploadedFileList.value = [...uploadedFileList.value, { name: file.name, url: data.url, response: data }]
+    onSuccess && onSuccess(data)
+  } catch (e) {
+    onError && onError(e)
   }
-  feedList.unshift(newPost) // 永远插到原始大池子的头部
-  newPostText.value = ''
-  clearSearch() // 发布后自动切回推荐流看自己的推文
-  ElMessage.success('发布成功！')
+}
+
+const handleImageRemove = (file, fileList) => {
+  uploadedFileList.value = fileList
+  // 从 uploadedImages 同步移除
+  const resp = file?.response || {}
+  if (resp?.key) {
+    uploadedImages.value = uploadedImages.value.filter(x => x.key !== resp.key)
+  } else if (file?.url) {
+    uploadedImages.value = uploadedImages.value.filter(x => x.url !== file.url)
+  }
+}
+
+const publishPost = async () => {
+  const content = newPostText.value.trim()
+  if (!content) return
+  if (isPublishing.value) return
+
+  try {
+    isPublishing.value = true
+    const created = await request.post('/posts', {
+      content,
+      topic: selectedTopic.value || null,
+      device: 'Web 端',
+      imageKeys: uploadedImages.value.map(x => x.key)
+    })
+
+    const newPost = {
+      id: created?.id ?? Date.now(),
+      author: created?.author || nickname.value || '用户',
+      avatar: created?.avatar || userAvatar.value,
+      time: created?.time || '刚刚',
+      device: created?.device || 'Web 端',
+      isPro: !!created?.isPro,
+      isFollowing: created?.isFollowing ?? true,
+      topic: created?.topic || (selectedTopic.value ? `#${selectedTopic.value}` : ''),
+      content: created?.content || content,
+      images: created?.images || uploadedImages.value.map(x => x.url),
+      likes: created?.likes ?? 0,
+      comments: created?.comments ?? 0,
+      isLiked: created?.isLiked ?? false
+    }
+
+    feedList.unshift(newPost)
+    newPostText.value = ''
+    clearTopic()
+    uploadedImages.value = []
+    uploadedFileList.value = []
+    clearSearch()
+    ElMessage.success('发布成功！')
+  } finally {
+    isPublishing.value = false
+  }
 }
 
 const toggleLike = (post) => {
@@ -283,7 +391,7 @@ const toggleLike = (post) => {
 // ================= 右侧边栏数据 =================
 const leaderboard = reactive([
   { name: 'Jack_Iron', avatar: 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png', score: 3250 },
-  { name: '陈同学_AiTrainer', avatar: myAvatar, score: 2840 },
+  { name: '陈同学_AiTrainer', avatar: userAvatar.value, score: 2840 },
   { name: '代码与铁块', avatar: 'https://cube.elemecdn.com/9/c2/f0ee8a3c7c9638a54940382568c9dpng.png', score: 2100 },  { name: 'Redbird_Dream', avatar: 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png', score: 1850 }
 ])
 
@@ -293,6 +401,60 @@ const trendingTags = reactive([
   { name: '大学生宿舍减脂', hot: '5.2w' },
   { name: '红鸟营备战日常', hot: '3.1w' }
 ])
+
+// ================= 后端分页数据加载 =================
+const fetchDiscover = async () => {
+  loadingMore.value = true
+  const data = await request.get('/posts', { params: { page: page.value, size: size.value, topic: currentTopicFilter.value || undefined } })
+  total.value = data?.total ?? 0
+  const records = data?.records ?? []
+  records.forEach(r => feedList.push(r))
+  loadingMore.value = false
+}
+
+const fetchFollowing = async () => {
+  loadingMore.value = true
+  const data = await request.get('/posts/following', { params: { page: page.value, size: size.value } })
+  total.value = data?.total ?? 0
+  const records = data?.records ?? []
+  records.forEach(r => feedList.push(r))
+  loadingMore.value = false
+}
+
+const reloadDiscover = async () => {
+  feedList.splice(0, feedList.length)
+  page.value = 1
+  await fetchDiscover()
+}
+
+const reloadFollowing = async () => {
+  feedList.splice(0, feedList.length)
+  page.value = 1
+  await fetchFollowing()
+}
+
+const loadMore = async () => {
+  if (loadingMore.value) return
+  if (feedList.length >= total.value) return
+  page.value += 1
+  if (activeFeedTab.value === 'discover') {
+    await fetchDiscover()
+  } else {
+    await fetchFollowing()
+  }
+}
+
+watch(activeFeedTab, async (n) => {
+  if (n === 'discover') {
+    await reloadDiscover()
+  } else {
+    await reloadFollowing()
+  }
+})
+
+onMounted(async () => {
+  await reloadDiscover()
+})
 </script>
 
 <style scoped>
@@ -316,6 +478,24 @@ const trendingTags = reactive([
   color: #606266;
   font-size: 14px;
 }
+
+.post-images {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 8px;
+}
+.post-image-item {
+  width: 100%;
+  height: 120px;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.load-more-wrapper {
+  display: flex;
+  justify-content: center;
+  margin: 16px 0 24px;
+}
 .search-info strong { color: #303133; font-size: 15px; }
 
 /* 搜索框样式 */
@@ -329,10 +509,16 @@ const trendingTags = reactive([
 .publisher-card { border-radius: 12px; margin-bottom: 20px; }
 .publisher-layout { display: flex; gap: 16px; }
 .publisher-input-area { flex: 1; }
+.publisher-topic-bar { margin-bottom: 10px; }
 .publisher-input-area :deep(.el-textarea__inner) { border: none; background-color: #f5f7fa; border-radius: 8px; padding: 12px; box-shadow: none; }
 .publisher-input-area :deep(.el-textarea__inner:focus) { background-color: #fff; box-shadow: 0 0 0 1px #409EFF inset; }
 .publisher-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
 .action-icons { display: flex; gap: 8px; }
+.topic-popover { display: flex; flex-direction: column; }
+.topic-suggest-title { font-weight: 700; color: #303133; margin-bottom: 10px; }
+.topic-suggest-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.topic-suggest-tag { cursor: pointer; }
+.topic-popover-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
 
 .feed-tabs-wrapper { margin-bottom: 16px; padding: 0 4px; }
 .feed-tabs :deep(.el-tabs__nav-wrap::after) { height: 1px; background-color: #ebeef5; }

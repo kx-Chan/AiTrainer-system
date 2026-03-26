@@ -202,6 +202,24 @@ public class FollowServiceImpl implements FollowService {
         userService.decreaseFollowerCount(targetUserId);
     }
 
+    /**
+     * 获取当前用户关注的所有用户ID
+     * @param userId
+     * @return
+     */
+    @Override
+    public List<Long> listFollowingIds(final Long userId) {
+        if (userId == null) {
+            throw BusinessException.unauthorized(MessageConstant.USER_NOT_LOGGED_IN);
+        }
+        return userFollowsMapper.selectList(new LambdaQueryWrapper<UserFollows>()
+                        .select(UserFollows::getFollowedId)
+                        .eq(UserFollows::getFollowerId, userId))
+                .stream()
+                .map(UserFollows::getFollowedId)
+                .toList();
+    }
+
     // 构建关注用户VO列表
     private List<FollowUserVO> buildUsers(final List<Long> userIds, final Set<Long> followingSet, final boolean followingList) {
         if (userIds == null || userIds.isEmpty()) {
@@ -255,14 +273,5 @@ public class FollowServiceImpl implements FollowService {
             return DEFAULT_AVATAR_URL;
         }
         return url;
-    }
-
-    private static int safeIncrement(final Integer value) {
-        return (value == null ? 0 : value) + 1;
-    }
-
-    private static int safeDecrement(final Integer value) {
-        final int v = value == null ? 0 : value;
-        return Math.max(0, v - 1);
     }
 }

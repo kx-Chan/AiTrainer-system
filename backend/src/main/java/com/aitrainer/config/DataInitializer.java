@@ -2,7 +2,6 @@ package com.aitrainer.config;
 
 import com.aitrainer.entity.User;
 import com.aitrainer.mapper.UserMapper;
-import com.aitrainer.service.UserService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

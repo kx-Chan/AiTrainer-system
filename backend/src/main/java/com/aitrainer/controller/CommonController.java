@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import com.aitrainer.vo.PostImageUploadVO;
 
 /**
  * 通用控制器。
@@ -75,5 +76,22 @@ public class CommonController {
         final String url = ossService.generateAvatarUrl(objectKey);
         log.info("用户 {} (ID: {}) 上传了新头像", user.getUsername(), userId);
         return Result.success(url);
+    }
+
+    /**
+     * 上传帖子图片。
+     *
+     * @param authentication 当前登录用户认证信息
+     * @param file           图片文件，字段名必须为 file
+     * @return 包含对象 Key 与临时访问 URL
+     */
+    @Operation(summary = "上传帖子图片", description = "上传帖子配图到阿里云 OSS，并返回对象 Key 与临时访问 URL")
+    @PostMapping(value = "/upload/post-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public Result<PostImageUploadVO> uploadPostImage(Authentication authentication, @RequestPart("file") MultipartFile file) {
+        final CustomUser user = (CustomUser) authentication.getPrincipal();
+        final Long userId = user.getId();
+        final String objectKey = ossService.uploadPostImage(userId, file);
+        final String url = ossService.generatePostImageUrl(objectKey);
+        return Result.success(PostImageUploadVO.builder().key(objectKey).url(url).build());
     }
 }

@@ -30,8 +30,8 @@
       <div class="nav-user-profile">
         <el-dropdown placement="bottom-end">
           <span class="user-dropdown-link">
-            <el-avatar :size="32" :src="navUser.avatar" />
-            <span class="username">{{ navUser.nickname }}</span>
+            <el-avatar :size="32" :src="avatar" />
+            <span class="username">{{ nickname }}</span>
             <el-icon><ArrowDown /></el-icon>
           </span>
           <template #dropdown>
@@ -57,45 +57,30 @@
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, reactive } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Microphone, ArrowDown } from '@element-plus/icons-vue'
-import request from '@/utils/request'
+import { storeToRefs } from 'pinia'
+import { useUserStore } from '@/store/userStore'
 
 const route = useRoute()
 const router = useRouter()
 
-const DEFAULT_AVATAR_URL = 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'
-
-const navUser = reactive({
-  avatar: DEFAULT_AVATAR_URL,
-  nickname: '用户'
-})
+const userStore = useUserStore()
+const { avatar, nickname } = storeToRefs(userStore)
 
 const handleProfileUpdated = (event) => {
   const avatar = event?.detail?.avatar
   const nickname = event?.detail?.nickname
   if (avatar || nickname) {
-    navUser.avatar = avatar || DEFAULT_AVATAR_URL
-    navUser.nickname = nickname || '用户'
+    userStore.applyProfileUpdated(event?.detail)
     return
   }
-  fetchNavUser()
-}
-
-const fetchNavUser = async () => {
-  try {
-    const data = await request.get('/profile/info')
-    navUser.avatar = data?.avatar || DEFAULT_AVATAR_URL
-    navUser.nickname = data?.nickname || '用户'
-  } catch (error) {
-    navUser.avatar = DEFAULT_AVATAR_URL
-    navUser.nickname = '用户'
-  }
+  userStore.fetchNavUser()
 }
 
 onMounted(() => {
-  fetchNavUser()
+  userStore.fetchNavUser()
   window.addEventListener('profile:updated', handleProfileUpdated)
 })
 

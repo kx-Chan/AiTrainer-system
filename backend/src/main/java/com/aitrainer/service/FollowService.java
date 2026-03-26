@@ -35,5 +35,11 @@ public interface FollowService {
      * @param targetUserId
      */
     void unfollow(Long userId, Long targetUserId);
-}
 
+    /**
+     * 获取关注的用户ID列表（不分页）
+     * @param userId 当前用户ID
+     * @return 关注的用户ID列表
+     */
+    java.util.List<Long> listFollowingIds(Long userId);
+}

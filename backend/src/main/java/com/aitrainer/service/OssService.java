@@ -28,4 +28,21 @@ public interface OssService {
      * @return 临时访问 URL；当 objectKey 或 OSS 配置为空时返回 null。
      */
     String generateAvatarUrl(String objectKey);
+
+    /**
+     * 上传帖子图片并返回 OSS 对象 Key。
+     *
+     * @param userId 用户 ID。
+     * @param file   图片文件。
+     * @return OSS 对象 Key。
+     */
+    String uploadPostImage(Long userId, MultipartFile file);
+
+    /**
+     * 根据 OSS 对象 Key 生成帖子图片的临时访问链接。
+     *
+     * @param objectKey OSS 对象 Key。
+     * @return 临时访问 URL；当 objectKey 或配置缺失时返回 null。
+     */
+    String generatePostImageUrl(String objectKey);
 }
