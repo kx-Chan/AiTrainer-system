@@ -17,6 +17,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 
 @Slf4j
 @Service
@@ -152,9 +154,17 @@ public class ProfileServiceImpl implements ProfileService {
     public java.util.List<UserProfile> listProfilesByIds(final java.util.List<Long> userIds) {
         if (userIds == null || userIds.isEmpty()) return java.util.List.of();
         return userProfileMapper.selectList(
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<UserProfile>()
+                new LambdaQueryWrapper<UserProfile>()
                         .in(UserProfile::getUserId, userIds)
         );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Long> searchUserIdsByNicknameLike(final String keyword) {
+        final List<UserProfile> list = userProfileMapper.selectList(
+                new LambdaQueryWrapper<UserProfile>().like(UserProfile::getNickname, keyword));
+        return list.stream().map(UserProfile::getUserId).toList();
     }
 
     private String resolveAvatarUrl(final String objectKey) {

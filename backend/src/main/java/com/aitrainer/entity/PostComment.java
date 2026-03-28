@@ -14,32 +14,14 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("community_posts")
-public class CommunityPost {
-
+@TableName("post_comments")
+public class PostComment {
     @TableId(type = IdType.AUTO)
     private Long id;
-
+    private Long postId;
     private Long userId;
-
+    private Long parentId;
     private String content;
-
-    private String topic;
-
-    private String device;
-
-    private Long aiReportId;
-
     private LocalDateTime createdAt;
-
-    private LocalDateTime updatedAt;
-
     private LocalDateTime deletedAt;
-
-    private Integer likeCount;
-
-    private Integer favoriteCount;
-
-    private Integer commentCount;
 }
-

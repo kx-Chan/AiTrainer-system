@@ -72,15 +72,33 @@
         <el-tab-pane label="我的足迹" name="footprints">
           <div class="footprint-filters">
             <el-radio-group v-model="footprintFilter" size="small">
-              <el-radio-button label="all">全部浏览</el-radio-button>
               <el-radio-button label="liked">我赞过的</el-radio-button>
+              <el-radio-button label="commented">我评论的</el-radio-button>
             </el-radio-group>
           </div>
-          <el-timeline style="margin-top: 20px;">
-            <el-timeline-item v-for="(activity, index) in footprintList" :key="index" :timestamp="activity.time" :type="activity.type">
-              {{ activity.content }}
-            </el-timeline-item>
-          </el-timeline>
+          <div class="post-list" style="margin-top: 16px;">
+            <el-card v-for="post in footprintPosts" :key="post.id" class="post-item" shadow="hover" style="margin-bottom: 12px;">
+              <div style="display:flex;gap:12px;align-items:center;">
+                <el-avatar :size="32" :src="post.avatar" />
+                <div style="flex:1;">
+                  <div style="font-weight:600;">{{ post.author }} <el-tag v-if="post.isPro" type="warning" size="small" effect="dark" round class="pro-tag">PRO</el-tag></div>
+                  <div style="color:#909399;font-size:12px;">{{ post.time }} · {{ post.device }}</div>
+                </div>
+              </div>
+              <div style="margin-top:8px;">
+                <span v-if="post.topic" style="color:#409EFF;margin-right:4px;">{{ post.topic }}</span>{{ post.content }}
+              </div>
+            </el-card>
+            <div style="display:flex;justify-content:center;margin-top:12px;">
+              <el-pagination
+                v-model:current-page="footprintPage.page"
+                v-model:page-size="footprintPage.size"
+                :total="footprintPage.total"
+                layout="prev, pager, next"
+                @current-change="fetchFootprints"
+              />
+            </div>
+          </div>
         </el-tab-pane>
 
         <el-tab-pane label="我的收藏" name="collections">
@@ -213,7 +231,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watchEffect } from 'vue'
 import { Edit, Medal, Lock, FolderOpened, ArrowRight, Calendar, Plus } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus' 
 import request from '@/utils/request'
@@ -466,11 +484,24 @@ const badgeList = reactive([
 const activeTab = ref('posts')
 const postList = reactive([{ id: 1, time: '2026-03-12 10:30', type: 'AI战报', content: '今天使用了 AiTrainer 的深蹲模式，AI 姿态评分高达 92 分！' }])
 
-const footprintFilter = ref('all')
-const footprintList = reactive([
-  { time: '今天 14:20', content: '点赞了 @林教练 的推文《新手如何避免深蹲膝盖内扣》', type: 'success' },
-  { time: '昨天 21:00', content: '浏览了话题 #宿舍减脂餐', type: 'info' }
-])
+const footprintFilter = ref('liked')
+const footprintPosts = reactive([])
+const footprintPage = reactive({ page: 1, size: 10, total: 0 })
+
+const fetchFootprints = async () => {
+  const api = footprintFilter.value === 'commented' ? '/posts/me/commented' : '/posts/me/liked'
+  const data = await request.get(api, { params: { page: footprintPage.page, size: footprintPage.size } })
+  footprintPage.total = data?.total ?? 0
+  footprintPosts.splice(0, footprintPosts.length, ...(data?.records || []))
+}
+
+onMounted(async () => {
+  await fetchFootprints()
+})
+
+watchEffect(async () => {
+  await fetchFootprints()
+})
 
 const collectionFolders = reactive([
   { id: 1, name: '腹肌撕裂干货', count: 12 },

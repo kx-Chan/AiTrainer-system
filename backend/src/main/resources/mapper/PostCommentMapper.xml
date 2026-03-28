@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aitrainer.mapper.PostCommentMapper">
+
+    <select id="selectCommentedPostIds" resultType="java.lang.Long">
+        SELECT post_id
+        FROM post_comments
+        WHERE user_id = #{userId} AND deleted_at IS NULL
+        GROUP BY post_id
+        ORDER BY MAX(created_at) DESC
+            LIMIT #{offset}, #{size}
+    </select>
+
+    <select id="countCommentedPosts" resultType="java.lang.Long">
+        SELECT COUNT(DISTINCT post_id)
+        FROM post_comments
+        WHERE user_id = #{userId} AND deleted_at IS NULL
+    </select>
+
+</mapper>

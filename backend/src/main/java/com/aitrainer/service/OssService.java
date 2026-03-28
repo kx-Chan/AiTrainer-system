@@ -45,4 +45,17 @@ public interface OssService {
      * @return 临时访问 URL；当 objectKey 或配置缺失时返回 null。
      */
     String generatePostImageUrl(String objectKey);
+
+    /**
+     * 清除指定 ObjectKey 的 URL 缓存
+     * @param objectKey
+     */
+    public void evictUrlCache(final String objectKey);
+
+    /**
+     * 从 OSS 物理删除指定对象。
+     *
+     * @param objectKey OSS 对象 Key。
+     */
+    void deleteObject(String objectKey);
 }

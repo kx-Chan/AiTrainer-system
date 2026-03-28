@@ -6,18 +6,20 @@ import com.aitrainer.service.OssService;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
 import com.aliyun.oss.model.ObjectMetadata;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
 import java.net.URL;
-import java.time.Duration;
 import java.util.Date;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 阿里云 OSS 实现类。
@@ -31,7 +33,16 @@ import java.util.UUID;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class OssServiceImpl implements OssService {
+
+    private final StringRedisTemplate redisTemplate;
+
+    // Redis Key 的统一前缀，方便管理
+    private static final String OSS_URL_CACHE_PREFIX = "aitrainer:oss:url:";
+
+    // 缓存时间：1 天（单位：秒）
+    private static final long CACHE_SECONDS = 24 * 3600L;
 
     /**
      * 允许上传的头像 MIME 类型白名单。
@@ -194,34 +205,77 @@ public class OssServiceImpl implements OssService {
     }
 
     /**
-     * 生成头像对象的临时访问链接（签名 URL）。
-     *
-     * @param objectKey OSS 对象 Key。
-     * @return 临时访问 URL；当 objectKey 或配置缺失时返回 null。
+     * 生成头像临时链接（带 Redis 缓存）
      */
     @Override
     public String generateAvatarUrl(final String objectKey) {
-        // objectKey 为空时直接返回
+        return getCacheOrGenerateUrl(objectKey, "avatar");
+    }
+
+    /**
+     * 生成帖子图片临时链接（带 Redis 缓存）
+     */
+    @Override
+    public String generatePostImageUrl(final String objectKey) {
+        return getCacheOrGenerateUrl(objectKey, "post");
+    }
+
+    /**
+     * 核心逻辑：先查 Redis，没有则生成并存入 Redis
+     */
+    private String getCacheOrGenerateUrl(final String objectKey, final String type) {
+        // 1. 基本校验，检查是否有传入key
         if (!StringUtils.hasText(objectKey)) {
             return null;
         }
 
-        // OSS 配置缺失时不生成 URL（避免误用）
-        if (!StringUtils.hasText(endpoint) || !StringUtils.hasText(bucket)
-                || !StringUtils.hasText(accessKeyId) || !StringUtils.hasText(accessKeySecret)) {
-            return null;
-        }
+        // 2. 构造 Redis Key (例如 aitrainer:oss:url:avatars/1/xxx.jpg)
+        final String cacheKey = OSS_URL_CACHE_PREFIX + objectKey;
 
+        try {
+            // 3. 尝试从 Redis 获取
+            String cachedUrl = redisTemplate.opsForValue().get(cacheKey);
+            if (StringUtils.hasText(cachedUrl)) {
+                log.debug("OSS 链接命中缓存 type={}, key={}", type, objectKey);
+                return cachedUrl;
+            }
+
+            // 4. 缓存未命中，执行 OSS 签名逻辑
+            if (!isConfigComplete()) {
+                return null;
+            }
+
+            String newUrl = generatePresignedUrl(objectKey);
+
+            if (newUrl != null) {
+                // 5. 存入 Redis，设置 1 天过期
+                redisTemplate.opsForValue().set(cacheKey, newUrl, CACHE_SECONDS, TimeUnit.SECONDS);
+                log.debug("生成新 OSS 链接并存入缓存 type={}, key={}", type, objectKey);
+            }
+            return newUrl;
+
+        } catch (Exception e) {
+            // 如果 Redis 挂了，降级处理：直接生成链接返回，不影响业务
+            log.error("Redis 缓存处理失败，尝试直接生成 OSS 链接 objectKey={}", objectKey, e);
+            return generatePresignedUrl(objectKey);
+        }
+    }
+
+    /**
+     * 内部封装：OSS 签名生成逻辑
+     */
+    private String generatePresignedUrl(final String objectKey) {
         OSS ossClient = null;
         try {
-            // 使用签名 URL 控制访问有效期，避免永久暴露对象
             ossClient = new OSSClientBuilder().build(endpoint, accessKeyId, accessKeySecret);
-            final Duration expire = Duration.ofSeconds(Math.max(60, avatarUrlExpireSeconds));
-            final Date expiration = new Date(System.currentTimeMillis() + expire.toMillis());
+            // 注意：签名有效期必须 >= Redis 缓存时间，这里设为 25 小时（多留 1 小时缓冲）
+            final long expirationMillis = System.currentTimeMillis() + (CACHE_SECONDS + 3600) * 1000;
+            final Date expiration = new Date(expirationMillis);
+
             final URL url = ossClient.generatePresignedUrl(bucket, objectKey, expiration);
             return url == null ? null : url.toString();
         } catch (final Exception e) {
-            log.error("生成头像临时链接失败 objectKey={}", objectKey, e);
+            log.error("调用 OSS 生成签名失败 objectKey={}", objectKey, e);
             return null;
         } finally {
             if (ossClient != null) {
@@ -231,30 +285,48 @@ public class OssServiceImpl implements OssService {
     }
 
     /**
-     * 生成帖子图片的临时访问链接。
-     *
-     * @param objectKey
-     * @return
+     * 检查 OSS 配置是否完整
+     */
+    private boolean isConfigComplete() {
+        return StringUtils.hasText(endpoint) && StringUtils.hasText(bucket)
+                && StringUtils.hasText(accessKeyId) && StringUtils.hasText(accessKeySecret);
+    }
+
+    /**
+     * 清除指定 ObjectKey 的 URL 缓存
      */
     @Override
-    public String generatePostImageUrl(final String objectKey) {
+    public void evictUrlCache(final String objectKey) {
+        if (StringUtils.hasText(objectKey)) {
+            String cacheKey = "aitrainer:oss:url:" + objectKey;
+            redisTemplate.delete(cacheKey);
+            log.debug("已清除 OSS 缓存 Key: {}", cacheKey);
+        }
+    }
+
+    @Override
+    public void deleteObject(final String objectKey) {
+        // 1) 基本校验：Key 为空则直接返回
         if (!StringUtils.hasText(objectKey)) {
-            return null;
+            return;
         }
-        if (!StringUtils.hasText(endpoint) || !StringUtils.hasText(bucket)
-                || !StringUtils.hasText(accessKeyId) || !StringUtils.hasText(accessKeySecret)) {
-            return null;
+
+        // 2) 配置校验
+        if (!isConfigComplete()) {
+            log.warn("OSS 配置不完整，无法执行删除操作 objectKey={}", objectKey);
+            return;
         }
+
         OSS ossClient = null;
         try {
+            // 3) 构建客户端并执行删除
             ossClient = new OSSClientBuilder().build(endpoint, accessKeyId, accessKeySecret);
-            final Duration expire = Duration.ofSeconds(Math.max(60, avatarUrlExpireSeconds));
-            final Date expiration = new Date(System.currentTimeMillis() + expire.toMillis());
-            final URL url = ossClient.generatePresignedUrl(bucket, objectKey, expiration);
-            return url == null ? null : url.toString();
+            ossClient.deleteObject(bucket, objectKey);
+
+            log.info("OSS 文件物理删除成功: {}", objectKey);
         } catch (final Exception e) {
-            log.error("生成帖子图片临时链接失败 objectKey={}", objectKey, e);
-            return null;
+            // 这里的异常通常只记录日志，不建议抛出，以免因为清理垃圾失败导致换头像等主流程崩溃
+            log.error("物理删除 OSS 文件失败 objectKey={}", objectKey, e);
         } finally {
             if (ossClient != null) {
                 ossClient.shutdown();

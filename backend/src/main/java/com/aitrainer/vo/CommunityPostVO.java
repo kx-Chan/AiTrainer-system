@@ -22,6 +22,9 @@ public class CommunityPostVO {
     @Schema(description = "作者展示名")
     private String author;
 
+    @Schema(description = "作者ID")
+    private Long authorId;
+
     @Schema(description = "作者头像")
     private String avatar;
 
@@ -48,6 +51,12 @@ public class CommunityPostVO {
 
     @Schema(description = "是否已点赞")
     private Boolean isLiked;
+
+    @Schema(description = "收藏数")
+    private Integer favorites;
+
+    @Schema(description = "是否已收藏")
+    private Boolean isFavorited;
 
     @Schema(description = "是否已关注作者")
     private Boolean isFollowing;

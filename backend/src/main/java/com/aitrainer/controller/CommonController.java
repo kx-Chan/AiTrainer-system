@@ -13,6 +13,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -55,24 +57,37 @@ public class CommonController {
      */
     @Operation(summary = "上传头像", description = "上传用户头像到阿里云 OSS，并返回临时访问链接")
     @PostMapping(value = "/upload/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Transactional
     public Result<String> uploadAvatar(Authentication authentication, @RequestPart("file") MultipartFile file) {
-        // 1) 获取当前登录用户
+        // 获取当前登录用户
         final CustomUser user = (CustomUser) authentication.getPrincipal();
         final Long userId = user.getId();
 
-        // 2) 上传到 OSS，拿到对象 Key（用于数据库持久化）
-        final String objectKey = ossService.uploadAvatar(userId, file);
-
-        // 3) 将对象 Key 保存到用户表，避免前端或日志暴露真实存储路径与权限信息
+        // 查出数据库中的旧用户信息，拿到旧头像的 Key
         final User dbUser = userMapper.selectById(userId);
         if (dbUser == null) {
             throw BusinessException.notFound(MessageConstant.USER_NOT_FOUND);
         }
+        final String oldAvatarKey = dbUser.getAvatar(); // 记录旧 Key 用于后续清理
+
+        // 上传到 OSS，拿到对象 Key（用于数据库持久化）
+        final String objectKey = ossService.uploadAvatar(userId, file);
+
+        // 将对象 Key 保存到用户表，避免前端或日志暴露真实存储路径与权限信息
         dbUser.setAvatar(objectKey);
         dbUser.setUpdatedAt(LocalDateTime.now());
         userMapper.updateById(dbUser);
 
-        // 4) 返回签名 URL（有时效），用于前端展示
+        // 清理 Redis 缓存：把旧头像的签名链接从缓存中删掉
+        if (StringUtils.hasText(oldAvatarKey)) {
+            ossService.evictUrlCache(oldAvatarKey);
+
+            if (!oldAvatarKey.contains("default")) {
+                ossService.deleteObject(oldAvatarKey);
+            }
+        }
+
+        // 返回签名 URL（有时效），用于前端展示
         final String url = ossService.generateAvatarUrl(objectKey);
         log.info("用户 {} (ID: {}) 上传了新头像", user.getUsername(), userId);
         return Result.success(url);

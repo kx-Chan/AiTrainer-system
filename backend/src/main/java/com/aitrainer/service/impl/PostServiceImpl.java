@@ -31,6 +31,16 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.aitrainer.vo.PageResultVO;
 import com.aitrainer.service.FollowService;
+import com.aitrainer.entity.PostLike;
+import com.aitrainer.entity.PostFavorite;
+import com.aitrainer.entity.PostComment;
+import com.aitrainer.mapper.PostLikeMapper;
+import com.aitrainer.mapper.PostFavoriteMapper;
+import com.aitrainer.mapper.PostCommentMapper;
+import com.aitrainer.vo.LikeStatusVO;
+import com.aitrainer.vo.FavoriteStatusVO;
+import com.aitrainer.dto.CreateCommentDTO;
+import com.aitrainer.vo.PostCommentVO;
 
 @Service
 @RequiredArgsConstructor
@@ -44,6 +54,9 @@ public class PostServiceImpl implements PostService {
     private final PostImageMapper postImageMapper;
     private final OssService ossService;
     private final FollowService followService;
+    private final PostLikeMapper postLikeMapper;
+    private final PostFavoriteMapper postFavoriteMapper;
+    private final PostCommentMapper postCommentMapper;
 
     /**
      * 发送推文
@@ -100,6 +113,7 @@ public class PostServiceImpl implements PostService {
         return CommunityPostVO.builder()
                 .id(post.getId())
                 .author(author)
+                .authorId(userId)
                 .avatar(avatar)
                 .isPro(user.isPro())
                 .time(post.getCreatedAt())
@@ -109,6 +123,8 @@ public class PostServiceImpl implements PostService {
                 .likes(0)
                 .comments(0)
                 .isLiked(false)
+                .favorites(0)
+                .isFavorited(false)
                 .isFollowing(true)
                 .images(images)
                 .build();
@@ -208,6 +224,22 @@ public class PostServiceImpl implements PostService {
         final Set<Long> followingSet = (viewerId == null) ? Set.of() // 如果是游客登录，肯定是都是+关注
                 : new java.util.HashSet<>(followService.listFollowingIds(viewerId)); // 获取改用户关注的id，并转成set，便于后续的contain判断是否已经关注
 
+        // 1. 获取当前用户对这批推文的交互状态 (这是没法冗余的，必须查表)
+        final Set<Long> likedByViewer = new java.util.HashSet<>();
+        final Set<Long> favoritedByViewer = new java.util.HashSet<>();
+
+        if (viewerId != null) {
+            // 批量查询我点赞过的 ID
+            postLikeMapper.selectList(new LambdaQueryWrapper<PostLike>()
+                            .eq(PostLike::getUserId, viewerId).in(PostLike::getPostId, postIds))
+                    .forEach(lk -> likedByViewer.add(lk.getPostId()));
+
+            // 批量查询我收藏过的 ID
+            postFavoriteMapper.selectList(new LambdaQueryWrapper<PostFavorite>()
+                            .eq(PostFavorite::getUserId, viewerId).in(PostFavorite::getPostId, postIds))
+                    .forEach(fav -> favoritedByViewer.add(fav.getPostId()));
+        }
+
         final List<CommunityPostVO> records = posts.stream()
                 .map(p -> {
                     final User u = userMap.get(p.getUserId());
@@ -217,15 +249,18 @@ public class PostServiceImpl implements PostService {
                     return CommunityPostVO.builder()
                             .id(p.getId())
                             .author(author)
+                            .authorId(p.getUserId())
                             .avatar(avatar)
                             .isPro(u != null && Boolean.TRUE.equals(u.isPro()))
                             .time(p.getCreatedAt())
                             .device(p.getDevice())
                             .topic(p.getTopic() == null ? "" : "#" + p.getTopic())
                             .content(p.getContent())
-                            .likes(0)
-                            .comments(0)
-                            .isLiked(false)
+                            .likes(p.getLikeCount())
+                            .comments(p.getCommentCount())
+                            .isLiked(likedByViewer.contains(p.getId()))
+                            .favorites(p.getFavoriteCount())
+                            .isFavorited(favoritedByViewer.contains(p.getId()))
                             .isFollowing(followingSet.contains(p.getUserId()))
                             .images(postImages.getOrDefault(p.getId(), List.of()))
                             .build();
@@ -237,6 +272,302 @@ public class PostServiceImpl implements PostService {
                 .page(mpPage.getCurrent())
                 .size(mpPage.getSize())
                 .build();
+    }
+
+    /**
+     * 点赞推文
+     * @param userId
+     * @param postId
+     * @return
+     */
+    @Override
+    @Transactional
+    public LikeStatusVO like(final Long userId, final Long postId) {
+        if (userId == null) throw BusinessException.unauthorized(MessageConstant.USER_NOT_LOGGED_IN);
+        final Long c = postLikeMapper.selectCount(new LambdaQueryWrapper<PostLike>()
+                .eq(PostLike::getUserId, userId).eq(PostLike::getPostId, postId));
+        if (c == null || c == 0) {
+            postLikeMapper.insert(PostLike.builder().postId(postId).userId(userId).createdAt(LocalDateTime.now()).build());
+        }
+        // 增加点赞数量
+        communityPostMapper.incrementLikeCount(postId);
+        // 获取总的点赞数
+        final int likes = communityPostMapper.selectById(postId).getLikeCount();
+        return LikeStatusVO.builder().liked(true).likes(likes).build();
+    }
+
+    /**
+     * 取消点赞
+     * @param userId
+     * @param postId
+     * @return
+     */
+    @Override
+    @Transactional
+    public LikeStatusVO unlike(final Long userId, final Long postId) {
+        if (userId == null) throw BusinessException.unauthorized(MessageConstant.USER_NOT_LOGGED_IN);
+        postLikeMapper.delete(new LambdaQueryWrapper<PostLike>().eq(PostLike::getUserId, userId).eq(PostLike::getPostId, postId));
+        // 减少点赞数量
+        communityPostMapper.decrementLikeCount(postId);
+        // 获取总的点赞数
+        final int likes = communityPostMapper.selectById(postId).getLikeCount();
+        return LikeStatusVO.builder().liked(false).likes(likes).build();
+    }
+
+    /**
+     * 收藏推文
+     * @param userId
+     * @param postId
+     * @return
+     */
+    @Override
+    @Transactional
+    public FavoriteStatusVO favorite(final Long userId, final Long postId) {
+        if (userId == null) throw BusinessException.unauthorized(MessageConstant.USER_NOT_LOGGED_IN);
+        final Long c = postFavoriteMapper.selectCount(new LambdaQueryWrapper<PostFavorite>()
+                .eq(PostFavorite::getUserId, userId).eq(PostFavorite::getPostId, postId));
+        if (c == null || c == 0) {
+            postFavoriteMapper.insert(PostFavorite.builder().postId(postId).userId(userId).createdAt(LocalDateTime.now()).build());
+        }
+        // 增加点赞数量
+        communityPostMapper.incrementfavoriteCount(postId);
+        // 获取总的点赞数
+        final int favorites = communityPostMapper.selectById(postId).getFavoriteCount();
+        return FavoriteStatusVO.builder().favorited(true).favorites(favorites).build();
+    }
+
+    /**
+     * 取消收藏
+     * @param userId
+     * @param postId
+     * @return
+     */
+    @Override
+    @Transactional
+    public FavoriteStatusVO unfavorite(final Long userId, final Long postId) {
+        if (userId == null) throw BusinessException.unauthorized(MessageConstant.USER_NOT_LOGGED_IN);
+        postFavoriteMapper.delete(new LambdaQueryWrapper<PostFavorite>().eq(PostFavorite::getUserId, userId).eq(PostFavorite::getPostId, postId));
+        // 增加点赞数量
+        communityPostMapper.decrementfavoriteCount(postId);
+        // 获取总的点赞数
+        final int favorites = communityPostMapper.selectById(postId).getFavoriteCount();
+        return FavoriteStatusVO.builder().favorited(false).favorites(favorites).build();
+    }
+
+    /**
+     * 发表评论
+     * @param userId
+     * @param postId
+     * @param dto
+     * @return
+     */
+    @Override
+    @Transactional
+    public PostCommentVO addComment(final Long userId, final Long postId, final CreateCommentDTO dto) {
+        // 判断用户是否登录
+        if (userId == null) throw BusinessException.unauthorized(MessageConstant.USER_NOT_LOGGED_IN);
+        final String content = dto.content() == null ? "" : dto.content().trim();
+        // 判断该推文内容是否为空
+        if (content.isBlank()) throw BusinessException.badRequest(MessageConstant.POST_CANNOT_BE_EMPTY);
+        final PostComment c = PostComment.builder()
+                .postId(postId).userId(userId).parentId(dto.parentId()).content(content).createdAt(LocalDateTime.now()).build();
+        // 插入评论
+        postCommentMapper.insert(c);
+        communityPostMapper.incrementCommentCount(postId);
+
+        final User u = userService.getById(userId);
+        final var prof = profileService.getUserProfile(userId);
+        final String author = normalizeAuthor(prof == null ? null : prof.getNickname(), u == null ? null : u.getUsername());
+        final String avatar = u == null ? null : ossService.generateAvatarUrl(u.getAvatar());
+        return PostCommentVO.builder()
+                .id(c.getId()).userId(userId).author(author).avatar(avatar)
+                .isPro(u != null && Boolean.TRUE.equals(u.isPro())).time(c.getCreatedAt()).content(content).parentId(dto.parentId())
+                .build();
+    }
+
+    /**
+     * 展示评论
+     * @param userId
+     * @param postId
+     * @param page
+     * @param size
+     * @return
+     */
+    @Override
+    public PageResultVO<PostCommentVO> listComments(final Long userId, final Long postId, final long page, final long size) {
+        final Page<PostComment> mp = new Page<>(page, size, true);
+        // 通过postId获取该post对应的所有评论
+        final LambdaQueryWrapper<PostComment> w = new LambdaQueryWrapper<PostComment>()
+                .eq(PostComment::getPostId, postId).isNull(PostComment::getDeletedAt).orderByAsc(PostComment::getCreatedAt);
+        postCommentMapper.selectPage(mp, w);
+        final List<PostComment> rows = mp.getRecords();
+        // 判断是否得到的评论是空
+        if (rows == null || rows.isEmpty()) {
+            return PageResultVO.<PostCommentVO>builder().records(List.of()).total(mp.getTotal()).page(mp.getCurrent()).size(mp.getSize()).build();
+        }
+        // 获取评论的用户
+        final List<Long> uids = rows.stream().map(PostComment::getUserId).distinct().toList();
+        final Map<Long, User> userMap = new HashMap<>();
+        for (final User u : userService.listByIds(uids)) userMap.put(u.getId(), u);
+        // 获取评论的用户信息
+        final Map<Long, UserProfile> profileMap = new HashMap<>();
+        for (final var p : profileService.listProfilesByIds(uids)) profileMap.put(p.getUserId(), p);
+        final List<PostCommentVO> vos = rows.stream().map(r -> {
+            final User u = userMap.get(r.getUserId());
+            final var prof = profileMap.get(r.getUserId());
+            final String author = normalizeAuthor(prof == null ? null : prof.getNickname(), u == null ? null : u.getUsername());
+            final String avatar = u == null ? null : ossService.generateAvatarUrl(u.getAvatar());
+            return PostCommentVO.builder()
+                    .id(r.getId()).userId(r.getUserId()).author(author).avatar(avatar)
+                    .isPro(u != null && Boolean.TRUE.equals(u.isPro())).time(r.getCreatedAt()).content(r.getContent()).parentId(r.getParentId())
+                    .build();
+        }).toList();
+        return PageResultVO.<PostCommentVO>builder().records(vos).total(mp.getTotal()).page(mp.getCurrent()).size(mp.getSize()).build();
+    }
+
+    /**
+     * 搜索功能
+     * @param viewerId
+     * @param keywordRaw
+     * @param page
+     * @param size
+     * @return
+     */
+    @Override
+    public PageResultVO<CommunityPostVO> search(final Long viewerId, final String keywordRaw, final long page, final long size) {
+        // 1. 基础清洗：去除空格
+        if (keywordRaw == null || keywordRaw.trim().isEmpty()) {
+            return listAll(viewerId, page, size, null);
+        }
+        final String kw = keywordRaw.trim();
+
+        // --- 优先级 1：搜索话题 (Topic) ---
+        // 假设数据库里存的是 "深蹲"，用户搜 "深" 也能匹配
+        final Page<CommunityPost> p1 = new Page<>(page, size);
+        communityPostMapper.selectPage(p1, new LambdaQueryWrapper<CommunityPost>()
+                .like(CommunityPost::getTopic, kw)
+                .orderByDesc(CommunityPost::getCreatedAt));
+
+        if (p1.getTotal() > 0) {
+            return buildPageVO(viewerId, p1);
+        }
+
+        // --- 优先级 2：搜索昵称 (Nickname) ---
+        // 先去 profileService 查出所有名字里带 kw 的用户 ID
+        final List<Long> matchedUserIds = profileService.searchUserIdsByNicknameLike(kw);
+        if (!matchedUserIds.isEmpty()) {
+            final Page<CommunityPost> p2 = new Page<>(page, size);
+            communityPostMapper.selectPage(p2, new LambdaQueryWrapper<CommunityPost>()
+                    .in(CommunityPost::getUserId, matchedUserIds)
+                    .orderByDesc(CommunityPost::getCreatedAt));
+
+            if (p2.getTotal() > 0) {
+                return buildPageVO(viewerId, p2);
+            }
+        }
+
+        // --- 优先级 3：搜索推文正文内容 (Content) ---
+        // 直接在当前表里进行全文本模糊匹配
+        final Page<CommunityPost> p3 = new Page<>(page, size);
+        communityPostMapper.selectPage(p3, new LambdaQueryWrapper<CommunityPost>()
+                .like(CommunityPost::getContent, kw)
+                .orderByDesc(CommunityPost::getCreatedAt));
+
+        if (p3.getTotal() > 0) {
+            return buildPageVO(viewerId, p3);
+        }
+
+        // --- 最终兜底：啥也没搜到，返回空页面 ---
+        return buildPageVO(viewerId, new Page<>(page, size));
+    }
+
+    /**
+     * 展示我点赞的推文
+     * @param userId
+     * @param page
+     * @param size
+     * @return
+     */
+    @Override
+    public PageResultVO<CommunityPostVO> listMeLiked(final Long userId, final long page, final long size) {
+        // 1. 先查点赞记录，按点赞时间倒序 (最新点赞的在最前)
+        final Page<PostLike> mp = new Page<>(page, size, true);
+        postLikeMapper.selectPage(mp, new LambdaQueryWrapper<PostLike>()
+                .eq(PostLike::getUserId, userId)
+                .orderByDesc(PostLike::getCreatedAt));
+
+        final List<Long> ids = mp.getRecords().stream().map(PostLike::getPostId).toList();
+        if (ids.isEmpty()) {
+            return PageResultVO.<CommunityPostVO>builder().records(List.of()).total(mp.getTotal()).page(mp.getCurrent()).size(mp.getSize()).build();
+        }
+
+        // 2. 批量查出推文内容 (此时 SQL 的 IN 语句查出来的顺序通常是按 ID 排的，不是按 ids 列表排的)
+        final List<CommunityPost> unsortedPosts = communityPostMapper.selectList(
+                new LambdaQueryWrapper<CommunityPost>().in(CommunityPost::getId, ids)
+        );
+
+        // 3. 【核心步骤】按 ids 的顺序在内存中重排
+        // 先转成 Map 方便 O(1) 查找
+        Map<Long, CommunityPost> postMap = unsortedPosts.stream()
+                .collect(Collectors.toMap(CommunityPost::getId, p -> p));
+
+        // 按照原始 ids 的顺序重新构建 List
+        List<CommunityPost> sortedPosts = ids.stream()
+                .map(postMap::get)
+                .filter(Objects::nonNull) // 防御性编程：万一对应的推文被物理删除了
+                .toList();
+
+        // 4. 将排好序的 List 塞回 Page 对象，交给 buildPageVO 处理
+        final Page<CommunityPost> postPage = new Page<>(page, size, mp.getTotal());
+        postPage.setRecords(sortedPosts);
+
+        return buildPageVO(userId, postPage);
+    }
+
+    /**
+     * 展示我评论的推文
+     * @param userId
+     * @param page
+     * @param size
+     * @return
+     */
+    @Override
+    public PageResultVO<CommunityPostVO> listMeCommented(final Long userId, final long page, final long size) {
+        // 1. 调用自定义 SQL 获取这一页的 ID
+        long offset = (page - 1) * size;
+        List<Long> slice = postCommentMapper.selectCommentedPostIds(userId, offset, size);
+        long total = postCommentMapper.countCommentedPosts(userId);
+
+        if (slice.isEmpty()) {
+            return PageResultVO.<CommunityPostVO>builder()
+                    .records(List.of())
+                    .total(total)
+                    .page(page)
+                    .size(size)
+                    .build();
+        }
+
+        // 2. 批量查出推文实体
+        List<CommunityPost> unsorted = communityPostMapper.selectList(
+                new LambdaQueryWrapper<CommunityPost>().in(CommunityPost::getId, slice)
+        );
+
+        // 3. 【关键】由于数据库 IN 查询不保序，这里依然需要用 Map 在内存里“对齐”一次顺序
+        Map<Long, CommunityPost> map = unsorted.stream()
+                .collect(Collectors.toMap(CommunityPost::getId, p -> p));
+
+        List<CommunityPost> sorted = slice.stream()
+                .map(map::get)
+                .filter(Objects::nonNull)
+                .toList();
+
+        // 4. 封装并返回
+        Page<CommunityPost> postPage = new Page<>(page, size, total);
+        postPage.setRecords(sorted);
+
+        PageResultVO<CommunityPostVO> vo = buildPageVO(userId, postPage);
+        vo.setTotal(total);
+        return vo;
     }
 
     /**

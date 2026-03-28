@@ -155,12 +155,25 @@ CREATE TABLE IF NOT EXISTS `community_posts` (
     `topic` VARCHAR(50) COMMENT '话题',
     `device` VARCHAR(50) DEFAULT 'AiTrainer App' COMMENT '发布设备',
     `ai_report_id` INT NULL COMMENT '关联战报ID',
+    
+    -- ================= 新增：冗余计数字段 =================
+    `like_count` INT UNSIGNED DEFAULT 0 COMMENT '点赞总数',
+    `favorite_count` INT UNSIGNED DEFAULT 0 COMMENT '收藏总数',
+    `comment_count` INT UNSIGNED DEFAULT 0 COMMENT '评论总数',
+    -- ====================================================
+
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     `deleted_at` TIMESTAMP NULL DEFAULT NULL,
+    
+    -- 外键约束
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
     FOREIGN KEY (`ai_report_id`) REFERENCES `workout_sessions`(`id`) ON DELETE SET NULL,
-    INDEX `idx_user_posts` (`user_id`, `created_at`)
+    
+    -- 索引优化
+    INDEX `idx_user_posts` (`user_id`, `created_at`), -- 优化个人主页时间轴查询
+    INDEX `idx_topic_created` (`topic`, `created_at`), -- 优化话题页搜索排布
+    INDEX `idx_created_at` (`created_at`) -- 优化全站最新动态流分页
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Table: post_images
@@ -176,6 +189,16 @@ CREATE TABLE IF NOT EXISTS `post_images` (
 
 -- Table: post_likes
 CREATE TABLE IF NOT EXISTS `post_likes` (
+    `post_id` INT NOT NULL COMMENT '动态ID',
+    `user_id` INT NOT NULL COMMENT '用户ID',
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`post_id`, `user_id`),
+    FOREIGN KEY (`post_id`) REFERENCES `community_posts`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Table: post_favorites
+CREATE TABLE IF NOT EXISTS `post_favorites` (
     `post_id` INT NOT NULL COMMENT '动态ID',
     `user_id` INT NOT NULL COMMENT '用户ID',
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

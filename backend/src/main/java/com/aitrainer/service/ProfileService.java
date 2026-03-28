@@ -39,4 +39,12 @@ public interface ProfileService {
      * @return 用户资料实体列表（可能少于入参大小）。
      */
     java.util.List<com.aitrainer.entity.UserProfile> listProfilesByIds(java.util.List<Long> userIds);
+
+    /**
+     * 根据昵称模糊搜索用户ID列表。
+     *
+     * @param keyword 关键字
+     * @return 用户ID列表
+     */
+    java.util.List<Long> searchUserIdsByNicknameLike(String keyword);
 }
