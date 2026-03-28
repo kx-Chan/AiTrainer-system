@@ -41,6 +41,7 @@ import com.aitrainer.vo.LikeStatusVO;
 import com.aitrainer.vo.FavoriteStatusVO;
 import com.aitrainer.dto.CreateCommentDTO;
 import com.aitrainer.vo.PostCommentVO;
+import org.springframework.util.StringUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -567,6 +568,49 @@ public class PostServiceImpl implements PostService {
 
         PageResultVO<CommunityPostVO> vo = buildPageVO(userId, postPage);
         vo.setTotal(total);
+        return vo;
+    }
+
+    /**
+     * 展示我发送的推文
+     * @param userId
+     * @param keyword
+     * @param page
+     * @param size
+     * @return
+     */
+    public PageResultVO<CommunityPostVO> listMyPosts(final Long userId, final String keyword, final long page, final long size) {
+        // 1. 初始化 MyBatis-Plus 分页对象
+        Page<CommunityPost> postPage = new Page<>(page, size);
+
+        // 2. 构建查询条件
+        LambdaQueryWrapper<CommunityPost> wrapper = new LambdaQueryWrapper<>();
+
+        // 核心条件：作者必须是当前用户
+        wrapper.eq(CommunityPost::getUserId, userId);
+
+        // 搜索条件：如果 keyword 不为空，则模糊匹配推文内容
+        // 使用 StringUtils.hasText 也是计科中防止空字符串干扰的常用手段
+        if (StringUtils.hasText(keyword)) {
+            wrapper.like(CommunityPost::getContent, keyword);
+        }
+
+        // 排序：按发布时间倒序排列（最新发布的在最上面）
+        wrapper.orderByDesc(CommunityPost::getCreatedAt);
+
+        // 3. 执行分页查询
+        // 这里直接使用 baseMapper 或 communityPostMapper 提供的 selectPage 方法
+        communityPostMapper.selectPage(postPage, wrapper);
+
+        // 4. 复用你代码中已有的 buildPageVO 逻辑进行转换
+        // buildPageVO 内部应该已经处理了将 Entity 转换为 VO，以及点赞状态的注入
+        PageResultVO<CommunityPostVO> vo = buildPageVO(userId, postPage);
+
+        // 5. 显式设置分页元数据，确保前端分页组件正常工作
+        vo.setTotal(postPage.getTotal());
+        vo.setPage(page);
+        vo.setSize(size);
+
         return vo;
     }
 

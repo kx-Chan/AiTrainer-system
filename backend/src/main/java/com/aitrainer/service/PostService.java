@@ -33,4 +33,6 @@ public interface PostService {
     PageResultVO<CommunityPostVO> listMeLiked(Long userId, long page, long size);
 
     PageResultVO<CommunityPostVO> listMeCommented(Long userId, long page, long size);
+
+    PageResultVO<CommunityPostVO> listMyPosts(Long id, String keyword, long page, long size);
 }

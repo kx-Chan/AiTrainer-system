@@ -58,14 +58,59 @@
       <el-tabs v-model="activeTab" class="custom-tabs">
         
         <el-tab-pane label="我的推文" name="posts">
-          <div class="post-list">
-            <el-card v-for="post in postList" :key="post.id" class="post-item" shadow="hover">
-              <div class="post-header">
-                <span class="post-time">{{ post.time }}</span>
-                <el-tag :type="post.type === 'AI战报' ? 'warning' : 'info'" size="small">{{ post.type }}</el-tag>
+          <div v-loading="myPostsLoading" class="post-list">
+            <div class="my-posts-search-bar">
+              <el-input 
+                v-model="myPostsSearchKeyword" 
+                placeholder="输入关键字，搜索我的历史动态..." 
+                clearable
+                @keyup.enter="handleMyPostsSearch"
+                @clear="handleMyPostsSearch"
+              >
+                <template #prefix>
+                  <el-icon><Search /></el-icon>
+                </template>
+                <template #append>
+                  <el-button @click="handleMyPostsSearch">搜索</el-button>
+                </template>
+              </el-input>
+            </div>
+
+            <el-card v-for="post in myPosts" :key="post.id" class="post-item" shadow="hover" style="margin-bottom: 12px;">
+              <div style="display:flex; gap:12px; align-items:center;">
+                <el-avatar :size="32" :src="userInfo.avatar" />
+                <div style="flex:1;">
+                  <div style="font-weight:600;">
+                    {{ userInfo.nickname }} 
+                    <el-tag v-if="userInfo.isPro" type="warning" size="small" effect="dark" round class="pro-tag">PRO</el-tag>
+                  </div>
+                  <div style="color:#909399; font-size:12px;">
+                    {{ formatDate(post.time) }} · {{ post.device || '来自 AiTrainer' }}
+                  </div>
+                </div>
+                <el-tag :type="post.type === 'AI战报' ? 'warning' : 'info'" size="small">
+                  {{ post.type }}
+                </el-tag>
               </div>
-              <p class="post-content">{{ post.content }}</p>
+
+              <div style="margin-top:12px; font-size:14px; color:#303133; line-height:1.6;">
+                <span v-if="post.topic" style="color:#409EFF; margin-right:4px;">#{{ post.topic }}#</span>
+                {{ post.content }}
+              </div>
             </el-card>
+
+            <el-empty v-if="myPosts.length === 0" description="你还没有发布过动态，快去社区分享吧！" />
+
+            <div style="display:flex; justify-content:center; margin-top:16px;">
+              <el-pagination
+                v-model:current-page="myPostsPage.page"
+                v-model:page-size="myPostsPage.size"
+                :total="myPostsPage.total"
+                layout="prev, pager, next"
+                small
+                @current-change="handleMyPostsPageChange"
+              />
+            </div>
           </div>
         </el-tab-pane>
 
@@ -82,7 +127,7 @@
                 <el-avatar :size="32" :src="post.avatar" />
                 <div style="flex:1;">
                   <div style="font-weight:600;">{{ post.author }} <el-tag v-if="post.isPro" type="warning" size="small" effect="dark" round class="pro-tag">PRO</el-tag></div>
-                  <div style="color:#909399;font-size:12px;">{{ post.time }} · {{ post.device }}</div>
+                  <div style="color:#909399;font-size:12px;">{{ formatDate(post.time) }} · {{ post.device }}</div>
                 </div>
               </div>
               <div style="margin-top:8px;">
@@ -231,191 +276,109 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watchEffect } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
 import { Edit, Medal, Lock, FolderOpened, ArrowRight, Calendar, Plus } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus' 
 import request from '@/utils/request'
 
-// ================= 基础数据 =================
+// ================= 1. 核心状态定义 =================
+// 关键点：因为这是“我的”页面，isMe 永远为 true
+const isMe = true 
+
+const myPostsSearchKeyword = ref('') // 存储我的推文搜索词
+
 const userInfo = reactive({
   avatar: 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png',
-  nickname: '',
-  gender: '',
-  goal: '',
-  bio: '',
-  following: 0,
-  followers: 0,
-  totalDays: 0,
-  height: null,
-  weight: null,
-  bodyFat: null
+  nickname: '', gender: '', goal: '', bio: '', following: 0, followers: 0, totalDays: 0, height: null, weight: null, bodyFat: null
 })
 
-// 获取个人资料
-const fetchProfile = async () => {
-  try {
-    const data = await request.get('/profile/info')
-    if (data) {
-      Object.assign(userInfo, data)
-    }
-    return data
-  } catch (error) {
-    console.error('获取个人资料失败:', error)
-    return null
-  }
-}
+const activeTab = ref('posts')
 
-onMounted(() => {
-  fetchProfile()
-})
+// 我的推文
+const myPosts = ref([])
+const myPostsLoading = ref(false)
+const myPostsPage = reactive({ page: 1, size: 10, total: 0 })
 
+// 我的足迹
+const footprintFilter = ref('liked')
+const footprintPosts = reactive([])
+const footprintPage = reactive({ page: 1, size: 10, total: 0 })
+
+// 弹窗控制
 const isEditVisible = ref(false)
-const editForm = reactive({
-  avatar: '',
-  nickname: '',
-  gender: '',
-  goal: '',
-  bio: '',
-  height: null,
-  weight: null,
-  bodyFat: null
-})
+const isFollowVisible = ref(false)
+const isCalendarVisible = ref(false)
+const isBadgeVisible = ref(false)
 
+// 编辑表单与头像上传
+const editForm = reactive({ avatar: '', nickname: '', gender: '', goal: '', bio: '', height: null, weight: null, bodyFat: null })
 const pendingAvatarFile = ref(null)
 const pendingAvatarPreviewUrl = ref('')
-
-const openEditModal = async () => {
-  let data = null
-  try {
-    data = await request.get('/profile/info')
-  } catch (error) {
-    data = null
-  }
-
-  const source = data || userInfo
-  editForm.avatar = source.avatar || ''
-  editForm.nickname = source.nickname || ''
-  editForm.gender = source.gender || ''
-  editForm.goal = source.goal || ''
-  editForm.bio = source.bio || ''
-  editForm.height = source.height ?? null
-  editForm.weight = source.weight ?? null
-  editForm.bodyFat = source.bodyFat ?? null
-
-  pendingAvatarFile.value = null
-  if (pendingAvatarPreviewUrl.value) {
-    URL.revokeObjectURL(pendingAvatarPreviewUrl.value)
-    pendingAvatarPreviewUrl.value = ''
-  }
-
-  if (data) {
-    Object.assign(userInfo, data)
-  }
-  isEditVisible.value = true
-}
-
-// ================= 头像上传与本地预览逻辑 =================
 const isAvatarUploading = ref(false)
 
-const handleAvatarChange = (uploadFile) => {
-  const file = uploadFile?.raw
-  if (!file) {
-    ElMessage.error('未获取到头像文件')
-    return
-  }
-
-  if (!file.type?.startsWith('image/')) {
-    ElMessage.error('头像只能是图片格式!')
-    return
-  }
-  
-  if (file.size > 2 * 1024 * 1024) {
-    ElMessage.error('头像文件不能超过 2MB')
-    return
-  }
-
-  if (pendingAvatarPreviewUrl.value) {
-    URL.revokeObjectURL(pendingAvatarPreviewUrl.value)
-    pendingAvatarPreviewUrl.value = ''
-  }
-
-  const previewUrl = URL.createObjectURL(file)
-  pendingAvatarPreviewUrl.value = previewUrl
-  pendingAvatarFile.value = file
-  editForm.avatar = previewUrl
-}
-
-const saveProfile = async () => {
-  try {
-    if (isAvatarUploading.value) {
-      ElMessage.warning('头像上传中，请稍后再保存')
-      return
-    }
-
-    if (pendingAvatarFile.value) {
-      isAvatarUploading.value = true
-      const formData = new FormData()
-      formData.append('file', pendingAvatarFile.value)
-      const avatarUrl = await request.post('/common/upload/avatar', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      })
-      if (!avatarUrl) {
-        ElMessage.error('头像上传失败，请稍后重试')
-        return
-      }
-      editForm.avatar = avatarUrl
-    }
-
-    await request.post('/profile/update', {
-      nickname: editForm.nickname,
-      gender: editForm.gender,
-      goal: editForm.goal,
-      bio: editForm.bio,
-      height: editForm.height,
-      weight: editForm.weight,
-      bodyFat: editForm.bodyFat
-    })
-    isEditVisible.value = false
-    ElMessage.success('个人资料已保存！')
-    const latest = await fetchProfile()
-    window.dispatchEvent(new CustomEvent('profile:updated', {
-      detail: {
-        avatar: latest?.avatar,
-        nickname: latest?.nickname
-      }
-    }))
-  } catch (error) {
-    console.error('保存个人资料失败:', error)
-  } finally {
-    isAvatarUploading.value = false
-    pendingAvatarFile.value = null
-    if (pendingAvatarPreviewUrl.value) {
-      URL.revokeObjectURL(pendingAvatarPreviewUrl.value)
-      pendingAvatarPreviewUrl.value = ''
-    }
-  }
-}
-
-const cancelEdit = () => {
-  isEditVisible.value = false
-  pendingAvatarFile.value = null
-  if (pendingAvatarPreviewUrl.value) {
-    URL.revokeObjectURL(pendingAvatarPreviewUrl.value)
-    pendingAvatarPreviewUrl.value = ''
-  }
-}
-
-// ================= 弹窗 2：粉丝与关注逻辑 =================
-const isFollowVisible = ref(false)
+// 关注/粉丝
 const followDialogType = ref('followers')
 const followList = ref([])
 const followActionLoadingId = ref(null)
+const followPage = reactive({ page: 1, size: 10, total: 0 })
 
-const followPage = reactive({
-  page: 1,
-  size: 10,
-  total: 0
-})
+// 模拟/静态数据
+const checkinDays = reactive(['2026-03-10', '2026-03-12', '2026-03-14', '2026-03-15'])
+const badgeList = reactive([
+  { id: 1, name: '初入训练场', icon: '🏃', desc: '完成首次 AI 动作识别', unlocked: true },
+  { id: 2, name: '钢铁大腿', icon: '🦵', desc: '累计完成 1000 个标准深蹲', unlocked: true },
+  { id: 3, name: '自律机器', icon: '🔥', desc: '连续打卡 7 天', unlocked: true },
+  { id: 7, name: '社交达人', icon: '💬', desc: '推文累计获得 100 个赞', unlocked: true },
+  { id: 8, name: '核心撕裂者', icon: '🍫', desc: '解锁高级核心动作库', unlocked: false }
+])
+const collectionFolders = reactive([
+  { id: 1, name: '腹肌撕裂干货', count: 12, isPublic: true },
+  { id: 2, name: '养生壶减脂食谱', count: 8, isPublic: true },
+  { id: 3, name: 'CV 算法论文收集', count: 5, isPublic: false }
+])
+
+// ================= 2. 工具函数 =================
+const formatDate = (timeStr) => {
+  if (!timeStr) return ''
+  return timeStr.length > 10 ? timeStr.substring(0, 10) : timeStr
+}
+
+// ================= 3. 数据抓取逻辑 (API) =================
+const fetchProfile = async () => {
+  try {
+    const data = await request.get('/profile/info')
+    if (data) Object.assign(userInfo, data)
+  } catch (e) { console.error(e) }
+}
+
+const fetchMyPosts = async () => {
+  myPostsLoading.value = true
+  try {
+    const keywordParam = myPostsSearchKeyword.value ? myPostsSearchKeyword.value.trim() : ''
+    const data = await request.get('/posts/me', {
+      params: {
+      page: myPostsPage.page,
+      size: myPostsPage.size,
+      keyword: keywordParam // 传给后端的干净的字符串
+    }
+    })
+    myPostsPage.total = data?.total ?? 0
+    myPosts.value = data?.records || []
+  } finally {
+    myPostsLoading.value = false
+  }
+}
+
+const fetchFootprints = async () => {
+  const api = footprintFilter.value === 'commented' ? '/posts/me/commented' : '/posts/me/liked'
+  try {
+    const data = await request.get(api, {
+      params: { page: footprintPage.page, size: footprintPage.size }
+    })
+    footprintPage.total = data?.total ?? 0
+    footprintPosts.splice(0, footprintPosts.length, ...(data?.records || []))
+  } catch (e) { console.error(e) }
+}
 
 const fetchFollowList = async () => {
   try {
@@ -424,90 +387,88 @@ const fetchFollowList = async () => {
     })
     followList.value = data?.records || []
     followPage.total = data?.total || 0
-  } catch (error) {
-    followList.value = []
-    followPage.total = 0
+  } catch (e) { console.error(e) }
+}
+
+// ================= 4. UI 交互逻辑 =================
+const handleMyPostsSearch = () => {
+  myPostsPage.page = 1 // 搜索时，必须把页码重置为 1
+  fetchMyPosts()
+}
+
+const handleMyPostsPageChange = (val) => {
+  myPostsPage.page = val
+  fetchMyPosts()
+}
+
+const openEditModal = () => {
+  Object.assign(editForm, userInfo)
+  isEditVisible.value = true
+}
+
+const handleAvatarChange = (uploadFile) => {
+  const file = uploadFile?.raw
+  if (!file) return
+  const previewUrl = URL.createObjectURL(file)
+  pendingAvatarPreviewUrl.value = previewUrl
+  pendingAvatarFile.value = file
+  editForm.avatar = previewUrl
+}
+
+const saveProfile = async () => {
+  try {
+    if (pendingAvatarFile.value) {
+      isAvatarUploading.value = true
+      const formData = new FormData()
+      formData.append('file', pendingAvatarFile.value)
+      const avatarUrl = await request.post('/common/upload/avatar', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      editForm.avatar = avatarUrl
+    }
+    await request.post('/profile/update', editForm)
+    ElMessage.success('保存成功')
+    isEditVisible.value = false
+    fetchProfile()
+  } finally {
+    isAvatarUploading.value = false
   }
 }
 
-const openFollowDialog = async (type) => {
+const cancelEdit = () => { isEditVisible.value = false }
+
+const openFollowDialog = (type) => {
   followDialogType.value = type
   followPage.page = 1
   isFollowVisible.value = true
-  await fetchFollowList()
+  fetchFollowList()
 }
 
 const toggleFollow = async (user) => {
-  if (!user?.id) return
   try {
     followActionLoadingId.value = user.id
     if (user.isFollowing) {
       await request.delete(`/follow/${user.id}`)
-      ElMessage.success('已取消关注')
+      user.isFollowing = false
     } else {
       await request.post(`/follow/${user.id}`)
-      ElMessage.success('关注成功')
+      user.isFollowing = true
     }
-    await fetchFollowList()
-    fetchProfile()
-  } catch (error) {
+    fetchProfile() // 刷新头部的粉丝数
   } finally {
     followActionLoadingId.value = null
   }
 }
 
-// ================= 弹窗 3：打卡日历逻辑 =================
-const isCalendarVisible = ref(false)
-// 模拟有打卡记录的日期 (格式需与 Element Plus 的 data.day 匹配)
-// 注意：这里填了几个 3 月份的日子，你可以点开日历看看 10号、12号、14号的绿点
-const checkinDays = reactive([
-  '2026-03-10',
-  '2026-03-12',
-  '2026-03-14',
-  '2026-03-15'
-])
+// ================= 5. 监听与初始化 =================
+watch([footprintFilter, () => footprintPage.page], () => fetchFootprints())
+watch(() => myPostsPage.page, () => fetchMyPosts())
 
-// ================= 弹窗 4：全部徽章逻辑 =================
-const isBadgeVisible = ref(false)
-const badgeList = reactive([
-  { id: 1, name: '初入训练场', icon: '🏃', desc: '完成首次 AI 动作识别', unlocked: true },
-  { id: 2, name: '钢铁大腿', icon: '🦵', desc: '累计完成 1000 个标准深蹲', unlocked: true },
-  { id: 3, name: '自律机器', icon: '🔥', desc: '连续打卡 7 天', unlocked: true },
-  { id: 4, name: '早鸟修仙', icon: '🌅', desc: '在早上 6:00 前完成一次训练', unlocked: false },
-  { id: 5, name: '夜行侠', icon: '🦉', desc: '在晚上 23:00 后完成一次训练', unlocked: false },
-  { id: 6, name: '百发百中', icon: '🎯', desc: '单次训练 AI 评分达到 100 分', unlocked: false },
-  { id: 7, name: '社交达人', icon: '💬', desc: '推文累计获得 100 个赞', unlocked: true },
-  { id: 8, name: '核心撕裂者', icon: '🍫', desc: '解锁高级核心动作库', unlocked: false }
-])
-
-// ================= 底部内容区数据 =================
-const activeTab = ref('posts')
-const postList = reactive([{ id: 1, time: '2026-03-12 10:30', type: 'AI战报', content: '今天使用了 AiTrainer 的深蹲模式，AI 姿态评分高达 92 分！' }])
-
-const footprintFilter = ref('liked')
-const footprintPosts = reactive([])
-const footprintPage = reactive({ page: 1, size: 10, total: 0 })
-
-const fetchFootprints = async () => {
-  const api = footprintFilter.value === 'commented' ? '/posts/me/commented' : '/posts/me/liked'
-  const data = await request.get(api, { params: { page: footprintPage.page, size: footprintPage.size } })
-  footprintPage.total = data?.total ?? 0
-  footprintPosts.splice(0, footprintPosts.length, ...(data?.records || []))
-}
-
-onMounted(async () => {
-  await fetchFootprints()
+onMounted(() => {
+  fetchProfile()
+  fetchMyPosts()
+  fetchFootprints()
 })
-
-watchEffect(async () => {
-  await fetchFootprints()
-})
-
-const collectionFolders = reactive([
-  { id: 1, name: '腹肌撕裂干货', count: 12 },
-  { id: 2, name: '养生壶减脂食谱', count: 8 },
-  { id: 3, name: 'CV 算法论文收集', count: 5 }
-])
 </script>
 
 <style scoped>

@@ -143,4 +143,19 @@ public class PostController {
         final CustomUser user = (CustomUser) authentication.getPrincipal();
         return Result.success(postService.listMeCommented(user.getId(), page, size));
     }
+
+    @Operation(summary = "搜索我的推文")
+    @GetMapping("/me")
+    public Result<PageResultVO<CommunityPostVO>> searchMyPosts(
+            final Authentication authentication,
+            @RequestParam(required = false) final String keyword, // 搜索关键词
+            @RequestParam(defaultValue = "1") final long page,
+            @RequestParam(defaultValue = "10") final long size) {
+
+        // 从安全上下文提取当前登录用户
+        final CustomUser user = (CustomUser) authentication.getPrincipal();
+
+        // 调用 Service 逻辑
+        return Result.success(postService.listMyPosts(user.getId(), keyword, page, size));
+    }
 }
