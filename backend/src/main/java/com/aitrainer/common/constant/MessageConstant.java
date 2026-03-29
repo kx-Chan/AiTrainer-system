@@ -34,6 +34,9 @@ public final class MessageConstant {
     public static final String CANNOT_FOLLOW_SELF = "不能关注自己";
 
     public static final String POST_CANNOT_BE_EMPTY = "推文内容不能为空";
-    
+
+    public static final String COMMENT_NOT_FOUND = "评论不存在或已被删除";
+    public static final String COMMENT_DELETE_FORBIDDEN = "权限不足，只有作者或推文主人可以删除评论";
+    public static final String POST_NOT_FOUND = "相关推文不存在";
     
 }

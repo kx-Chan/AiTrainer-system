@@ -22,5 +22,8 @@ public interface CommunityPostMapper extends BaseMapper<CommunityPost> {
 
     @Update("UPDATE community_posts SET comment_count = comment_count + 1 WHERE id = #{postId}")
     void incrementCommentCount(Long postId);
+
+    @Update("UPDATE community_posts SET comment_count = comment_count - 1 WHERE id = #{postId} AND comment_count > 0")
+    void decrementCommentCount(Long postId);
 }
 

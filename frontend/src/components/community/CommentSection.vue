@@ -31,9 +31,26 @@
             <span class="comment-time">{{ c.time }}</span>
           </div>
           <div class="comment-text">{{ c.content }}</div>
-          <div class="comment-actions">
-            <el-button link size="small">回复</el-button>
+          <div class="comment-footer-actions">
+            <div class="left-interaction">
+              <el-button link size="small">回复</el-button>
+            </div>
+            
+            <div class="right-interaction">
+              <el-button 
+                v-if="canDelete(c)" 
+                link 
+                type="danger" 
+                size="small" 
+                :icon="Delete"
+                @click="handleDelete(c.id)"
+                class="comment-delete-btn"
+              >
+                删除
+              </el-button>
+            </div>
           </div>
+          
         </div>
       </div>
 
@@ -48,17 +65,18 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { ElMessage } from 'element-plus'
-import { ArrowDown } from '@element-plus/icons-vue'
+import { ElMessageBox, ElMessage } from 'element-plus'
+import { ArrowDown, Delete } from '@element-plus/icons-vue'
 import request from '@/utils/request'
 
 const props = defineProps({
   postId: { type: [Number, String], required: true },
   postAuthorId: { type: [Number, String], required: true },
+  viewerUserId: { type: [Number, String], required: true },
   viewerAvatar: { type: String, default: '' }
 })
 
-const emit = defineEmits(['comment-added', 'go-to-space'])
+const emit = defineEmits(['comment-added', 'comment-deleted', 'go-to-space'])
 
 const postIdNum = computed(() => Number(props.postId))
 
@@ -110,6 +128,40 @@ const submit = async () => {
     ElMessage.success('评论成功')
   } finally {
     submitting.value = false
+  }
+}
+
+// 权限判断：我是评论者 OR 我是推文作者
+const canDelete = (comment) => {
+  // const currentId = String(props.viewerUserId)
+  const currentId = String(props.viewerUserId)
+  return String(comment.userId) === currentId || String(props.postAuthorId) === currentId
+}
+
+// 执行删除
+const handleDelete = async (commentId) => {
+  try {
+    await ElMessageBox.confirm(
+      '确定要删除这条评论吗？删除后无法恢复',
+      '提示',
+      { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' }
+    )
+    
+    // 调用你之前写好的后端接口
+    await request.delete(`/posts/comments/${commentId}`)
+    
+    // 前端本地状态同步：从数组中滤掉这一条
+    comments.value = comments.value.filter(c => c.id !== commentId)
+    total.value -= 1
+    
+    // 通知父组件（PostItem）更新评论计数
+    emit('comment-deleted', postIdNum.value)
+    
+    ElMessage.success('评论已删除')
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除失败:', error)
+    }
   }
 }
 
@@ -205,7 +257,34 @@ onMounted(() => {
   word-break: break-all;
 }
 
-.comment-actions {
+/* .comment-actions {
   margin-top: 4px;
+} */
+
+/* 新增：新的操作栏容器样式 */
+.comment-footer-actions {
+  display: flex;
+  justify-content: space-between; /* 关键：让左侧和右侧分别对齐两端 */
+  align-items: center;
+  margin-top: 8px; /* 保持与评论正文的距离 */
+}
+
+/* 左侧按钮组 */
+.comment-footer-actions .left-interaction {
+  display: flex;
+  gap: 12px; /* 如果将来有多个按钮，它们之间有间距 */
+  align-items: center;
+}
+
+/* 右侧删除按钮 */
+.comment-delete-btn {
+  transition: all 0.3s ease;
+  font-size: 13px !important; /* 让它比正文稍小一点，不喧宾夺主 */
+}
+
+/* 增加点视觉反馈，让删除更有警示感 */
+.comment-delete-btn:hover {
+  background-color: #fef0f0; /* 悬停时淡淡的红色背景 */
+  border-radius: 4px;
 }
 </style>

@@ -615,6 +615,44 @@ public class PostServiceImpl implements PostService {
     }
 
     /**
+     * 安全删除评论
+     * @param currentUserId
+     * @param commentId
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void secureDeleteComment(Long currentUserId, Long commentId) {
+        // 1. 查找评论，若不存在抛出 404
+        PostComment comment = postCommentMapper.selectById(commentId);
+        if (comment == null) {
+            throw BusinessException.notFound(MessageConstant.COMMENT_NOT_FOUND);
+        }
+
+        // 2. 查找评论所属的推文，若推文都没了，逻辑上也无法判断权限
+        CommunityPost post = communityPostMapper.selectById(comment.getPostId());
+        if (post == null) {
+            throw BusinessException.notFound(MessageConstant.POST_NOT_FOUND);
+        }
+
+        // 3. 权限判定逻辑
+        boolean isCommentOwner = comment.getUserId().equals(currentUserId);
+        boolean isPostOwner = post.getUserId().equals(currentUserId);
+
+        // 4. 如果既不是评论者，也不是推文作者，抛出 403 Forbidden
+        if (!(isCommentOwner || isPostOwner)) {
+            throw BusinessException.forbidden(MessageConstant.COMMENT_DELETE_FORBIDDEN);
+        }
+
+        // 5. 执行逻辑删除
+        int rows = postCommentMapper.deleteById(commentId);
+
+        // 6. 更新推文表中的评论计数
+        if (rows > 0) {
+            communityPostMapper.decrementCommentCount(post.getId());
+        }
+    }
+
+    /**
      * 统一话题格式，便于搜索热门话题
      * @param raw
      * @return

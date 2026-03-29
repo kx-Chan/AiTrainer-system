@@ -221,7 +221,7 @@ CREATE TABLE IF NOT EXISTS `post_comments` (
     FOREIGN KEY (`parent_id`) REFERENCES `post_comments`(`id`) ON DELETE CASCADE,
     INDEX `idx_post_comments` (`post_id`, `created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
+ALTER TABLE post_comments ADD COLUMN is_deleted TINYINT DEFAULT 0;
 -- ----------------------------
 -- 6. Diet Management
 -- ----------------------------

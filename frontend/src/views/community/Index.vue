@@ -44,6 +44,7 @@
               @toggle-favorite="toggleFavorite"
               @topic-click="handleTopicClick"
               @comment-added="handleCommentAdded"
+              @comment-deleted="handleCommentDeleted"
             />
           </transition-group>
           <div class="load-more-wrapper" v-if="feedList.length < total">
@@ -283,6 +284,17 @@ const handleCommentAdded = (postId) => {
   p.comments = (p.comments || 0) + 1
 }
 
+const handleCommentDeleted = (postId) => {
+  // 1. 在大列表中根据 ID 找到这条推文
+  const targetPost = feedList.find(p => Number(p.id) === Number(postId))
+  
+  // 2. 如果找到了，就把它的评论计数减 1
+  if (targetPost && targetPost.comments > 0) {
+    targetPost.comments -= 1
+    console.log(`推文 ${postId} 的评论数已同步减少为: ${targetPost.comments}`)
+  }
+}
+
 // ================= 右侧边栏数据 =================
 const leaderboard = computed(() => [
   { name: 'Jack_Iron', avatar: 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png', score: 3250 },
@@ -499,6 +511,7 @@ onMounted(async () => {
 }
 
 .btn-content span { margin-top: 2px; }
+
 </style>
 
 <style>

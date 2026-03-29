@@ -35,4 +35,6 @@ public interface PostService {
     PageResultVO<CommunityPostVO> listMeCommented(Long userId, long page, long size);
 
     PageResultVO<CommunityPostVO> listMyPosts(Long id, String keyword, long page, long size);
+
+    void secureDeleteComment(Long id, Long commentId);
 }

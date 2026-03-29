@@ -131,8 +131,10 @@
       v-if="showComments"
       :post-id="post.id"
       :post-author-id="post.authorId"
+      :viewer-user-id="viewerUserId"
       :viewer-avatar="viewerAvatar"
       @comment-added="$emit('comment-added', $event)"
+      @comment-deleted="$emit('comment-deleted', $event)"
       @go-to-space="$emit('go-to-space', $event)"
     />
   </el-card>
@@ -150,7 +152,7 @@ const props = defineProps({
   followLoadingId: { type: [Number, String, null], default: null }
 })
 
-const emit = defineEmits(['go-to-space', 'follow', 'unfollow', 'toggle-like', 'toggle-favorite', 'topic-click', 'comment-added'])
+const emit = defineEmits(['go-to-space', 'follow', 'unfollow', 'toggle-like', 'toggle-favorite', 'topic-click', 'comment-added', 'comment-deleted'])
 
 const showComments = ref(false)
 

@@ -158,4 +158,15 @@ public class PostController {
         // 调用 Service 逻辑
         return Result.success(postService.listMyPosts(user.getId(), keyword, page, size));
     }
+
+    @Operation(summary = "安全删除评论")
+    @DeleteMapping("/comments/{id}")
+    public Result<Void> deleteComment(
+            final Authentication authentication,
+            @PathVariable("id") Long commentId) {
+
+        final CustomUser user = (CustomUser) authentication.getPrincipal();
+        postService.secureDeleteComment(user.getId(), commentId);
+        return Result.success();
+    }
 }

@@ -39,6 +39,9 @@ mybatis-plus:
   global-config:
     db-config:
       id-type: auto
+      logic-delete-field: isDeleted  # 全局逻辑删除字段名
+      logic-delete-value: 1          # 逻辑已删除值
+      logic-not-delete-value: 0      # 逻辑未删除值
 
 jwt:
   # secret 已移至 application-dev.yml

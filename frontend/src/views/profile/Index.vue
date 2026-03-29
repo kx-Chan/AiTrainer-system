@@ -217,9 +217,9 @@
     <el-dialog v-model="isFollowVisible" :title="followDialogType === 'followers' ? '我的粉丝' : '我的关注'" width="400px">
       <div class="follow-list">
         <div v-for="user in followList" :key="user.id" class="follow-item">
-          <el-avatar :size="40" :src="user.avatar" />
+          <el-avatar :size="40" :src="user.avatar" @click="handleUserClick(user.id)" style="cursor: pointer"/>
           <div class="follow-info">
-            <div class="follow-name">{{ user.name }}</div>
+            <div class="follow-name" @click="handleUserClick(user.id)" style="cursor: pointer">{{ user.name }}</div>
             <div class="follow-bio">{{ user.bio }}</div>
           </div>
           <el-button
@@ -280,10 +280,13 @@ import { ref, reactive, onMounted, watch } from 'vue'
 import { Edit, Medal, Lock, FolderOpened, ArrowRight, Calendar, Plus } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus' 
 import request from '@/utils/request'
+import { useRouter } from 'vue-router'
 
 // ================= 1. 核心状态定义 =================
 // 关键点：因为这是“我的”页面，isMe 永远为 true
 const isMe = true 
+
+const router = useRouter()
 
 const myPostsSearchKeyword = ref('') // 存储我的推文搜索词
 
@@ -341,6 +344,21 @@ const collectionFolders = reactive([
 const formatDate = (timeStr) => {
   if (!timeStr) return ''
   return timeStr.length > 10 ? timeStr.substring(0, 10) : timeStr
+}
+
+const handleUserClick = (userId) => {
+  // 计科细节：获取当前登录用户的 ID（假设你在 store 里存了）
+  // 如果点的是自己，直接关闭弹窗即可，或者跳到个人主页
+  // 这里我们统一走跳转逻辑，路由会自动处理
+  
+  // 1. 先关闭当前的关注/粉丝弹窗，防止遮挡跳转后的页面
+  isFollowVisible.value = false
+  
+  // 2. 执行跳转
+  router.push({ 
+    name: 'UserSpace', // 确保你的路由表中这个页面的 name 叫 UserSpace
+    params: { id: String(userId) } 
+  })
 }
 
 // ================= 3. 数据抓取逻辑 (API) =================
@@ -573,4 +591,5 @@ onMounted(() => {
 }
 
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
 </style>
