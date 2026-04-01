@@ -30,4 +30,5 @@ public interface CollectionFolderService {
 
     void updateFolder(Long id, Long id1, UpdateFolderDTO dto);
 
+    public FolderVO getFolderById(final Long folderId, final Long userId);
 }

@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS `user_profiles` (
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
+ALTER TABLE user_profiles ADD COLUMN total_likes INT UNSIGNED DEFAULT 0;
 -- ----------------------------
 -- 2. Social & Tracking
 -- ----------------------------
@@ -105,6 +105,7 @@ CREATE TABLE `collection_item` (
   KEY `idx_user_post` (`user_id`, `post_id`),         -- 方便快速查询：该用户是否收藏过该推文
   KEY `idx_folder_id` (`folder_id`)                   -- 方便查询收藏夹下的所有内容
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='收藏明细表';
+ALTER TABLE collection_item ADD COLUMN is_deleted TINYINT DEFAULT 0;
 -- ----------------------------
 -- 4. Workouts & Sessions
 -- ----------------------------
@@ -175,6 +176,7 @@ CREATE TABLE IF NOT EXISTS `community_posts` (
     INDEX `idx_topic_created` (`topic`, `created_at`), -- 优化话题页搜索排布
     INDEX `idx_created_at` (`created_at`) -- 优化全站最新动态流分页
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+ALTER TABLE community_posts ADD COLUMN is_deleted TINYINT DEFAULT 0;
 
 -- Table: post_images
 CREATE TABLE IF NOT EXISTS `post_images` (

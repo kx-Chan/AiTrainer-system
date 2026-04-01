@@ -221,6 +221,49 @@ public class CollectionFolderServiceImpl implements CollectionFolderService {
     }
 
     /**
+     * 根据 ID 获取单个收藏夹详情
+     * @param folderId 收藏夹ID
+     * @param userId 当前登录用户ID（用于安全校验）
+     * @return FolderVO
+     */
+    @Override
+    public FolderVO getFolderById(final Long folderId, final Long userId) {
+        log.info("用户 {} 正在获取收藏夹 {} 的详情", userId, folderId);
+
+        // 1. 获取基本信息并进行所有权校验
+        // 核心安全逻辑：必须同时满足 ID 和 UserId 匹配
+        final CollectionFolder folder = folderMapper.selectOne(
+                new LambdaQueryWrapper<CollectionFolder>()
+                        .eq(CollectionFolder::getId, folderId)
+                        .eq(CollectionFolder::getUserId, userId)
+                        .eq(CollectionFolder::getIsDeleted, 0) // 确保没被删除
+        );
+
+        if (folder == null) {
+            log.warn("用户 {} 尝试访问不存在或不属于自己的收藏夹 {}", userId, folderId);
+            // 抛出业务异常，让全局异常处理器捕获
+            throw BusinessException.unauthorized(MessageConstant.FOLDER_NOT_FOUND);
+        }
+
+        // 2. 获取该文件夹内的推文总数
+        // 这里不需要用 batchFetchItemCounts，直接查单个更高效
+        final Long count = itemMapper.selectCount(
+                new LambdaQueryWrapper<CollectionItem>()
+                        .eq(CollectionItem::getFolderId, folderId)
+                        .eq(CollectionItem::getIsDeleted, 0)
+        );
+
+        // 3. 组装并返回 VO
+        return FolderVO.builder()
+                .id(folder.getId())
+                .name(folder.getName())
+                .isDefault(folder.getIsDefault())
+                .isPublic(folder.getIsPublic())
+                .itemCount(count.intValue())
+                .build();
+    }
+
+    /**
      * 私有辅助方法：直接通过 Mapper 批量获取文件夹内的推文数量
      */
     private Map<Long, Integer> batchFetchItemCounts(List<Long> folderIds) {

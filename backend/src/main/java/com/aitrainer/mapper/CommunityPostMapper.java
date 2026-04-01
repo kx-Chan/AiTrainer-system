@@ -2,12 +2,15 @@ package com.aitrainer.mapper;
 
 import com.aitrainer.entity.CommunityPost;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Update;
 
 @Mapper
 public interface CommunityPostMapper extends BaseMapper<CommunityPost> {
+
     @Update("UPDATE community_posts SET like_count = like_count + 1 WHERE id = #{postId}")
     int incrementLikeCount(@Param("postId") Long postId);
 

@@ -26,9 +26,16 @@
               <span class="stat-label">粉丝</span>
             </div>
             <div class="stat-divider"></div>
-            <div class="stat-item clickable" @click="isCalendarVisible = true">
-              <span class="stat-value">{{ userInfo.totalDays }}</span>
-              <span class="stat-label">累计打卡(天) <el-icon><Calendar /></el-icon></span>
+            <div class="stat-item">
+              <span class="stat-value">{{ userInfo.totalLikes }}</span>
+              <span class="stat-label">
+                累计获赞 
+                <el-icon class="like-icon">
+                  <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+                    <path fill="currentColor" d="M512 896a32 32 0 0 1-22.624-9.376l-320-320a320 320 0 1 1 452.624-452.624L512 204.032l90.016-90.032a320 320 0 1 1 452.624 452.624l-320 320A32 32 0 0 1 512 896z"></path>
+                  </svg>
+                </el-icon>
+              </span>
             </div>
           </div>
         </div>
@@ -57,7 +64,14 @@
               </el-input>
             </div>
 
-            <el-card v-for="post in myPosts" :key="post.id" class="post-item" shadow="hover" style="margin-bottom: 12px;">
+            <el-card
+              v-for="post in myPosts"
+              :key="post.id"
+              class="post-item clickable-post"
+              shadow="hover"
+              style="margin-bottom: 12px;"
+              @click="openMyPostInCommunity(post)"
+            >
               <div style="display:flex; gap:12px; align-items:center;">
                 <el-avatar :size="32" :src="userInfo.avatar" />
                 <div style="flex:1;">
@@ -103,7 +117,14 @@
             </el-radio-group>
           </div>
           <div class="post-list" style="margin-top: 16px;">
-            <el-card v-for="post in footprintPosts" :key="post.id" class="post-item" shadow="hover" style="margin-bottom: 12px;">
+            <el-card
+              v-for="post in footprintPosts"
+              :key="post.id"
+              class="post-item clickable-post"
+              shadow="hover"
+              style="margin-bottom: 12px;"
+              @click="openFootprintPostInCommunity(post)"
+            >
               <div style="display:flex;gap:12px;align-items:center;">
                 <el-avatar :size="32" :src="post.avatar" />
                 <div style="flex:1;">
@@ -164,7 +185,7 @@
 
           <el-row :gutter="20" class="collection-grid">
             <el-col :span="8" v-for="folder in collectionFolders" :key="folder.id">
-              <el-card class="folder-card" shadow="hover">
+              <el-card class="folder-card" shadow="hover" @click="goToFolderDetail(folder)">
                 
                 <div class="folder-tags">
                   <el-tag v-if="folder.isDefault === 1" size="small" type="warning" effect="dark" round>默认</el-tag>
@@ -182,14 +203,14 @@
                   <div class="folder-count">{{ folder.itemCount || 0 }} 篇内容</div>
                 </div>
 
-                <div class="folder-footer">
-                  <el-button link type="primary" @click="handleEditFolder(folder)">编辑</el-button>
+                <div class="folder-footer" @click.stop>
+                  <el-button link type="primary" @click.stop="handleEditFolder(folder)">编辑</el-button>
                   
                   <template v-if="folder.isDefault !== 1">
                     <el-divider direction="vertical" />
-                    <el-button link type="warning" @click="handleSetDefault(folder)">设为默认</el-button>
+                    <el-button link type="warning" @click.stop="handleSetDefault(folder)">设为默认</el-button>
                     <el-divider direction="vertical" />
-                    <el-button link type="danger" @click="handleDeleteFolder(folder)">删除</el-button>
+                    <el-button link type="danger" @click.stop="handleDeleteFolder(folder)">删除</el-button>
                   </template>
                 </div>
 
@@ -256,13 +277,15 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="isFollowVisible" :title="followDialogType === 'followers' ? '我的粉丝' : '我的关注'" width="400px">
-      <div class="follow-list">
+    <el-dialog v-model="isFollowVisible" :title="followDialogType === 'followers' ? '我的粉丝' : '我的关注'" width="440px">
+      <div v-loading="followListLoading" class="follow-list">
+        <el-empty v-if="!followListLoading && followList.length === 0" description="暂无数据" />
+
         <div v-for="user in followList" :key="user.id" class="follow-item">
-          <el-avatar :size="40" :src="user.avatar" @click="handleUserClick(user.id)" style="cursor: pointer"/>
+          <el-avatar :size="44" :src="user.avatar" @click="handleUserClick(user.id)" class="follow-avatar" />
           <div class="follow-info">
-            <div class="follow-name" @click="handleUserClick(user.id)" style="cursor: pointer">{{ user.name }}</div>
-            <div class="follow-bio">{{ user.bio }}</div>
+            <div class="follow-name" @click="handleUserClick(user.id)">{{ user.name }}</div>
+            <div v-if="user.bio" class="follow-bio">{{ user.bio }}</div>
           </div>
           <el-button
             :type="user.isFollowing ? 'default' : 'primary'"
@@ -286,17 +309,6 @@
           @current-change="fetchFollowList"
         />
       </div>
-    </el-dialog>
-
-    <el-dialog v-model="isCalendarVisible" title="我的训练打卡记录" width="600px">
-      <el-calendar class="custom-calendar">
-        <template #date-cell="{ data }">
-          <div class="calendar-cell">
-            <span :class="{ 'is-today': data.isToday }">{{ data.day.split('-').slice(2).join('') }}</span>
-            <div v-if="checkinDays.includes(data.day)" class="checkin-dot"></div>
-          </div>
-        </template>
-      </el-calendar>
     </el-dialog>
 
     <el-dialog v-model="folderDialogVisible" :title="folderDialogMode === 'create' ? '新建收藏夹' : '编辑收藏夹'" width="420px" destroy-on-close>
@@ -326,10 +338,10 @@
 
 <script setup>
 import { ref, reactive, onMounted, watch } from 'vue'
-import { Edit, FolderOpened, Calendar, Plus, Search } from '@element-plus/icons-vue'
+import { Edit, FolderOpened, Plus, Search  } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus' 
 import request from '@/utils/request'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { folderApi } from '@/api/collection'
 
 // ================= 1. 核心状态定义 =================
@@ -337,12 +349,13 @@ import { folderApi } from '@/api/collection'
 const isMe = true 
 
 const router = useRouter()
+const route = useRoute()
 
 const myPostsSearchKeyword = ref('') // 存储我的推文搜索词
 
 const userInfo = reactive({
   avatar: 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png',
-  nickname: '', gender: '', goal: '', bio: '', following: 0, followers: 0, totalDays: 0, height: null, weight: null, bodyFat: null
+  nickname: '', gender: '', goal: '', bio: '', following: 0, followers: 0, totalLikes: 0, height: null, weight: null, bodyFat: null
 })
 
 const activeTab = ref('posts')
@@ -360,7 +373,6 @@ const footprintPage = reactive({ page: 1, size: 10, total: 0 })
 // 弹窗控制
 const isEditVisible = ref(false)
 const isFollowVisible = ref(false)
-const isCalendarVisible = ref(false)
 
 // 编辑表单与头像上传
 const editForm = reactive({ avatar: '', nickname: '', gender: '', goal: '', bio: '', height: null, weight: null, bodyFat: null })
@@ -373,14 +385,42 @@ const followDialogType = ref('followers')
 const followList = ref([])
 const followActionLoadingId = ref(null)
 const followPage = reactive({ page: 1, size: 10, total: 0 })
-
-// 模拟/静态数据
-const checkinDays = reactive(['2026-03-10', '2026-03-12', '2026-03-14', '2026-03-15'])
+const followListLoading = ref(false)
 
 // ================= 2. 工具函数 =================
 const formatDate = (timeStr) => {
   if (!timeStr) return ''
   return timeStr.length > 10 ? timeStr.substring(0, 10) : timeStr
+}
+
+const openPostInCommunity = (post, tab) => {
+  if (!post?.id) return
+  const normalized = {
+    likes: post.likes ?? 0,
+    favorites: post.favorites ?? 0,
+    comments: post.comments ?? 0,
+    ...post
+  }
+  try {
+    sessionStorage.setItem(`community:post:${post.id}`, JSON.stringify(normalized))
+  } catch (e) { }
+  router.push({ name: 'Community', query: { postId: String(post.id), from: 'profile', tab: tab || 'posts' } })
+}
+
+const openMyPostInCommunity = (post) => {
+  if (!post?.id) return
+  const patched = {
+    ...post,
+    author: post.author || userInfo.nickname || '我',
+    avatar: post.avatar || userInfo.avatar,
+    authorId: post.authorId || userInfo.id || userInfo.userId || 0,
+    device: post.device || 'AiTrainer'
+  }
+  openPostInCommunity(patched, 'posts')
+}
+
+const openFootprintPostInCommunity = (post) => {
+  openPostInCommunity(post, 'footprints')
 }
 
 const handleUserClick = (userId) => {
@@ -437,12 +477,16 @@ const fetchFootprints = async () => {
 
 const fetchFollowList = async () => {
   try {
+    followListLoading.value = true
     const data = await request.get(`/follow/${followDialogType.value}`, {
       params: { page: followPage.page, size: followPage.size }
     })
     followList.value = data?.records || []
     followPage.total = data?.total || 0
   } catch (e) { console.error(e) }
+  finally {
+    followListLoading.value = false
+  }
 }
 
 // ================= 4. UI 交互逻辑 =================
@@ -617,6 +661,12 @@ const handleDeleteFolder = async (folder) => {
   } catch (e) { }
 }
 
+// 跳转收藏夹详情页（带回退所需的标记）
+const goToFolderDetail = (folder) => {
+  if (!folder?.id) return
+  router.push({ name: 'CollectionDetail', params: { id: String(folder.id) }, query: { from: 'profile', tab: 'collections' } })
+}
+
 // ================= 5. 监听与初始化 =================
 watch([footprintFilter, () => footprintPage.page], () => fetchFootprints())
 watch(() => myPostsPage.page, () => fetchMyPosts())
@@ -626,6 +676,8 @@ onMounted(() => {
   fetchMyPosts()
   fetchFootprints()
   fetchFolders()
+  const tab = String(route.query?.tab || '').trim()
+  if (tab) activeTab.value = tab
 })
 
 
@@ -719,6 +771,64 @@ onMounted(() => {
 /* ================= 3. 内容区与足迹过滤器 ================= */
 .content-card { border-radius: 16px; min-height: 400px; border: none; }
 .custom-tabs :deep(.el-tabs__item) { font-size: 16px; font-weight: 500; }
+
+.clickable-post {
+  cursor: pointer;
+}
+
+.follow-list {
+  min-height: 200px;
+}
+
+.follow-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid #ebeef5;
+  background: #fff;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.follow-item + .follow-item {
+  margin-top: 12px;
+}
+
+.follow-item:hover {
+  background-color: #f8faff;
+  border-color: #dcdfe6;
+  transform: translateY(-1px);
+}
+
+.follow-avatar {
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.follow-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.follow-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.follow-bio {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #909399;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 /* 足迹过滤器加大 */
 .footprint-filters :deep(.el-radio-button__inner) {
@@ -841,6 +951,27 @@ onMounted(() => {
   align-items: center;
   border-bottom-left-radius: 12px;
   border-bottom-right-radius: 12px;
+}
+
+.folder-card {
+  cursor: pointer; /* 鼠标悬停变小手 */
+  transition: all 0.3s;
+}
+
+.folder-card:hover {
+  transform: translateY(-5px); /* 悬停时稍微往上浮动，增加交互感 */
+  border-color: var(--el-color-primary-light-3);
+}
+
+/* 确保页脚按钮区域不要让用户觉得那是背景点击区 */
+.folder-footer {
+  cursor: default; /* 按钮区域恢复默认指针 */
+}
+
+.like-icon {
+  color: #f56c6c; /* 漂亮的爱心红 */
+  vertical-align: middle;
+  margin-left: 4px;
 }
 
 /* ================= 6. 其他 UI 组件 ================= */

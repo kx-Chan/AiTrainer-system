@@ -4,6 +4,9 @@ export const folderApi = {
   // 获取收藏夹列表（带关键字搜索）
   list: (keyword) => request.get('/collection/folders', { params: { keyword: (keyword || '').trim() || undefined } }),
   
+  // 获取收藏夹详情
+  get: (id) => request.get(`/collection/folders/${id}`),
+  
   // 创建收藏夹
   create: (data) => request.post('/collection/folders', data),
   
@@ -28,5 +31,8 @@ export const itemApi = {
   add: (postId, folderId) => request.post('/collection/item', { postId, folderId }),
   
   // 从某个文件夹移除
-  remove: (postId, folderId) => request.delete('/collection/item', { data: { postId, folderId } })
+  remove: (postId, folderId) => request.delete('/collection/item', { data: { postId, folderId } }),
+  
+  // 获取收藏夹内的推文列表（分页）
+  getPostsInFolder: (folderId, params) => request.get(`/collection/folders/${folderId}/posts`, { params })
 }

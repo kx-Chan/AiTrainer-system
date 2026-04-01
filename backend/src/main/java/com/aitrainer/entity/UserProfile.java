@@ -66,4 +66,10 @@ public class UserProfile {
      * 记录更新时间。
      */
     private LocalDateTime updatedAt;
+
+    /**
+     * 累计获赞
+     * 映射数据库 INT UNSIGNED
+     */
+    private Long totalLikes;
 }

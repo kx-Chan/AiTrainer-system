@@ -5,7 +5,10 @@ import com.aitrainer.common.security.CustomUser;
 import com.aitrainer.dto.CreateFolderDTO;
 import com.aitrainer.dto.UpdateFolderDTO;
 import com.aitrainer.service.CollectionFolderService;
+import com.aitrainer.service.PostService;
+import com.aitrainer.vo.CommunityPostVO;
 import com.aitrainer.vo.FolderVO;
+import com.aitrainer.vo.PageResultVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -28,6 +31,7 @@ import java.util.List;
 public final class CollectionFolderController {
 
     private final CollectionFolderService folderService;
+    private final PostService postService;
 
     @Operation(summary = "获取收藏夹列表", description = "获取当前登录用户的所有收藏夹，支持名称模糊搜索")
     @GetMapping
@@ -90,5 +94,29 @@ public final class CollectionFolderController {
 
         folderService.updateFolder(user.getId(), id, dto);
         return Result.success();
+    }
+
+    @Operation(summary = "获取收藏夹的推文", description = "根据ID获取单个收藏夹的推文信息")
+    @GetMapping("/{id}/posts")
+    public Result<PageResultVO<CommunityPostVO>> getFolderPosts(
+            final Authentication authentication,
+            @PathVariable("id") Long folderId,
+            @RequestParam(defaultValue = "1") Long page,
+            @RequestParam(defaultValue = "10") Long size) {
+
+        final CustomUser user = (CustomUser) authentication.getPrincipal();
+        return Result.success(postService.getFolderPosts(user.getId(), folderId, page, size));
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "获取收藏夹详情页上的收藏夹名称")
+    public Result<FolderVO> getFolderById(
+            final Authentication authentication,
+            @PathVariable final Long id) {
+        final CustomUser user = (CustomUser) authentication.getPrincipal();
+
+        // 去 Service 查一下这个文件夹的信息
+        FolderVO vo = folderService.getFolderById(id,user.getId());
+        return Result.success(vo);
     }
 }

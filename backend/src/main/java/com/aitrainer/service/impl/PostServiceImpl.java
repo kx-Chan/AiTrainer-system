@@ -3,44 +3,31 @@ package com.aitrainer.service.impl;
 import com.aitrainer.common.constant.MessageConstant;
 import com.aitrainer.common.exception.BusinessException;
 import com.aitrainer.dto.CreatePostDTO;
-import com.aitrainer.entity.CommunityPost;
-import com.aitrainer.entity.User;
-import com.aitrainer.entity.PostImage;
-import com.aitrainer.entity.UserProfile;
-import com.aitrainer.mapper.CommunityPostMapper;
-import com.aitrainer.mapper.PostImageMapper;
+import com.aitrainer.entity.*;
+import com.aitrainer.mapper.*;
 import com.aitrainer.service.PostService;
 import com.aitrainer.service.ProfileService;
 import com.aitrainer.service.UserService;
 import com.aitrainer.service.OssService;
 import com.aitrainer.vo.CommunityPostVO;
 import com.aitrainer.vo.UserProfileVO;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.aitrainer.vo.PageResultVO;
 import com.aitrainer.service.FollowService;
-import com.aitrainer.entity.PostLike;
-import com.aitrainer.entity.PostFavorite;
-import com.aitrainer.entity.PostComment;
-import com.aitrainer.mapper.PostLikeMapper;
-import com.aitrainer.mapper.PostFavoriteMapper;
-import com.aitrainer.mapper.PostCommentMapper;
 import com.aitrainer.vo.LikeStatusVO;
 import com.aitrainer.vo.FavoriteStatusVO;
 import com.aitrainer.dto.CreateCommentDTO;
 import com.aitrainer.vo.PostCommentVO;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 @Service
@@ -58,6 +45,8 @@ public class PostServiceImpl implements PostService {
     private final PostLikeMapper postLikeMapper;
     private final PostFavoriteMapper postFavoriteMapper;
     private final PostCommentMapper postCommentMapper;
+    private final CollectionItemMapper collectionItemMapper;
+    private final UserProfileMapper userProfileMapper;
 
     /**
      * 发送推文
@@ -285,14 +274,31 @@ public class PostServiceImpl implements PostService {
     @Transactional
     public LikeStatusVO like(final Long userId, final Long postId) {
         if (userId == null) throw BusinessException.unauthorized(MessageConstant.USER_NOT_LOGGED_IN);
-        final Long c = postLikeMapper.selectCount(new LambdaQueryWrapper<PostLike>()
+
+        // 1. 尝试插入点赞记录 (利用数据库唯一索引或手动判断)
+        final Long exists = postLikeMapper.selectCount(new LambdaQueryWrapper<PostLike>()
                 .eq(PostLike::getUserId, userId).eq(PostLike::getPostId, postId));
-        if (c == null || c == 0) {
-            postLikeMapper.insert(PostLike.builder().postId(postId).userId(userId).createdAt(LocalDateTime.now()).build());
+
+        if (exists == null || exists == 0) {
+            // 插入记录
+            postLikeMapper.insert(PostLike.builder()
+                    .postId(postId)
+                    .userId(userId)
+                    .createdAt(LocalDateTime.now())
+                    .build());
+
+            // 2. 增加推文自身的获赞数
+            communityPostMapper.incrementLikeCount(postId);
+
+            // 3. 增加作者个人的总获赞数
+            CommunityPost post = communityPostMapper.selectById(postId);
+            if (post != null) {
+                // 直接调用 Mapper 执行 SQL：total_likes = total_likes + 1
+                userProfileMapper.incrementTotalLikes(post.getUserId());
+            }
         }
-        // 增加点赞数量
-        communityPostMapper.incrementLikeCount(postId);
-        // 获取总的点赞数
+
+        // 获取最新数据返回
         final int likes = communityPostMapper.selectById(postId).getLikeCount();
         return LikeStatusVO.builder().liked(true).likes(likes).build();
     }
@@ -307,10 +313,27 @@ public class PostServiceImpl implements PostService {
     @Transactional
     public LikeStatusVO unlike(final Long userId, final Long postId) {
         if (userId == null) throw BusinessException.unauthorized(MessageConstant.USER_NOT_LOGGED_IN);
-        postLikeMapper.delete(new LambdaQueryWrapper<PostLike>().eq(PostLike::getUserId, userId).eq(PostLike::getPostId, postId));
-        // 减少点赞数量
-        communityPostMapper.decrementLikeCount(postId);
-        // 获取总的点赞数
+
+        // 1. 删除点赞记录
+        // 注意：记录删除成功才进行后续扣减，防止多次请求导致数据扣成负数
+        int rows = postLikeMapper.delete(new LambdaQueryWrapper<PostLike>()
+                .eq(PostLike::getUserId, userId)
+                .eq(PostLike::getPostId, postId));
+
+        if (rows > 0) {
+            // 2. 减少推文自身的点赞计数 (Post 维度)
+            communityPostMapper.decrementLikeCount(postId);
+
+            // 3. 减少推文作者的“总被点赞量” (User 维度)
+            CommunityPost post = communityPostMapper.selectById(postId);
+            if (post != null) {
+                Long authorId = post.getUserId();
+                // 关键：调用 Mapper 执行 SQL 层面减 1
+                userProfileMapper.decrementTotalLikes(authorId);
+            }
+        }
+
+        // 4. 获取最新点赞数
         final int likes = communityPostMapper.selectById(postId).getLikeCount();
         return LikeStatusVO.builder().liked(false).likes(likes).build();
     }
@@ -330,7 +353,6 @@ public class PostServiceImpl implements PostService {
         if (c == null || c == 0) {
             postFavoriteMapper.insert(PostFavorite.builder().postId(postId).userId(userId).createdAt(LocalDateTime.now()).build());
         }
-        // 增加点赞数量
         communityPostMapper.incrementFavoriteCount(postId);
         // 获取总的点赞数
         final int favorites = communityPostMapper.selectById(postId).getFavoriteCount();
@@ -655,6 +677,67 @@ public class PostServiceImpl implements PostService {
         if (rows > 0) {
             communityPostMapper.decrementCommentCount(post.getId());
         }
+    }
+
+    /**
+     * 获取收藏夹下的推文
+     * @param userId
+     * @param folderId
+     * @param page
+     * @param size
+     * @return
+     */
+    @Override
+    public PageResultVO<CommunityPostVO> getFolderPosts(final Long userId, final Long folderId, final long page, final long size) {
+        // 1. 在 collection_item 表进行分页查询，只取 postId
+        // 这样是为了利用数据库索引快速定位这一页有哪些推文
+        Page<CollectionItem> itemPageParam = new Page<>(page, size);
+        LambdaQueryWrapper<CollectionItem> itemWrapper = new LambdaQueryWrapper<>();
+        itemWrapper.select(CollectionItem::getPostId) // 💡 只查询 ID，减少 IO
+                .eq(CollectionItem::getFolderId, folderId)
+                .orderByDesc(CollectionItem::getCreateTime); // 按收藏时间倒序
+
+        IPage<CollectionItem> itemPage = collectionItemMapper.selectPage(itemPageParam, itemWrapper);
+        long total = itemPage.getTotal();
+
+        // 2. 提取本页推文 ID 列表
+        List<Long> postIds = itemPage.getRecords().stream()
+                .map(CollectionItem::getPostId)
+                .toList();
+
+        if (postIds.isEmpty()) {
+            return PageResultVO.<CommunityPostVO>builder()
+                    .records(Collections.emptyList())
+                    .total(total)
+                    .page(page)
+                    .size(size)
+                    .build();
+        }
+
+        // 3. 批量查出推文实体 (Batch Fetch)
+        List<CommunityPost> unsortedPosts = communityPostMapper.selectList(
+                new LambdaQueryWrapper<CommunityPost>()
+                        .in(CommunityPost::getId, postIds)
+                        .eq(CommunityPost::getIsDeleted, 0)
+        );
+
+        // 4. 【保序】使用 Map 在内存里根据 postIds 的顺序重新排序
+        // 因为 SQL 的 IN 查询返回顺序是不可控的
+        Map<Long, CommunityPost> postMap = unsortedPosts.stream()
+                .collect(Collectors.toMap(CommunityPost::getId, p -> p));
+
+        List<CommunityPost> sortedPosts = postIds.stream()
+                .map(postMap::get)
+                .filter(Objects::nonNull)
+                .toList();
+
+        // 5. 封装为 Page 对象，复用你现有的 buildPageVO 逻辑
+        // buildPageVO 内部应该包含了 VO 转换、头像补全、点赞/收藏状态判断
+        Page<CommunityPost> tempPage = new Page<>(page, size, total);
+        tempPage.setRecords(sortedPosts);
+
+        // 这样出来的 VO 结构，和评论列表接口返回的一模一样
+        return buildPageVO(userId, tempPage);
     }
 
     /**

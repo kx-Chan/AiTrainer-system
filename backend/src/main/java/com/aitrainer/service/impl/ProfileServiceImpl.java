@@ -88,6 +88,7 @@ public class ProfileServiceImpl implements ProfileService {
                     .avatar(avatarUrl)
                     .following(followingCount)
                     .followers(followerCount)
+                    .totalLikes(0L)
                     .build();
         }
 
@@ -104,8 +105,8 @@ public class ProfileServiceImpl implements ProfileService {
                 .avatar(avatarUrl)
                 .following(followingCount)
                 .followers(followerCount)
-                 .totalDays(45) // 模拟数据
-                 .build();
+                .totalLikes(profile.getTotalLikes()) // 模拟数据
+                .build();
      }
 
     /**

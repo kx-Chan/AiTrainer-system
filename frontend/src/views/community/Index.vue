@@ -20,8 +20,8 @@
               <el-icon><Search /></el-icon> 
               <span>关于 "<strong>{{ lastSearchQuery }}</strong>" 的搜索结果 ({{ currentFeed.length }}条)</span>
             </div>
-            <el-button link type="primary" @click="clearSearch">
-              <el-icon><Back /></el-icon> 返回推荐流
+            <el-button link type="primary" @click="handleSearchBack">
+              <el-icon><Back /></el-icon> {{ searchBackText }}
             </el-button>
           </div>
         </div>
@@ -138,7 +138,7 @@
 <script setup>
 import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { EditPen, Histogram, Discount, Search, Back } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import request from '@/utils/request'
@@ -147,6 +147,7 @@ import Publisher from '@/components/community/Publisher.vue'
 import PostItem from '@/components/community/PostItem.vue'
 
 const router = useRouter()
+const route = useRoute()
 
 const userStore = useUserStore()
 const { avatar, nickname } = storeToRefs(userStore)
@@ -171,6 +172,34 @@ const isSearching = ref(false)
 // 计算属性：控制页面渲染哪个数组的数据
 const currentFeed = computed(() => feedList)
 
+const isSinglePostView = computed(() => {
+  const postId = String(route.query?.postId || '').trim()
+  return Boolean(postId)
+})
+
+const searchBackText = computed(() => {
+  if (!isSearching.value) return '返回推荐流'
+  return isSinglePostView.value ? '返回' : '返回推荐流'
+})
+
+const navigateBackToOrigin = () => {
+  const from = String(route.query?.from || '').trim()
+  const tab = String(route.query?.tab || '').trim()
+  const folderId = String(route.query?.folderId || '').trim()
+
+  if (from === 'profile') {
+    router.replace({ name: 'Profile', query: { tab: tab || 'posts' } })
+    return
+  }
+
+  if (from === 'collectionDetail' && folderId) {
+    router.replace({ name: 'CollectionDetail', params: { id: folderId }, query: { from: 'profile', tab: 'collections' } })
+    return
+  }
+
+  router.back()
+}
+
 // 执行搜索
 const handleSearch = async () => {
   const name = (searchQuery.value || '').replace(/^#/, '').trim()
@@ -191,6 +220,60 @@ const clearSearch = () => {
   currentTopicFilter.value = ''
   activeFeedTab.value = 'discover'
   reloadDiscover()
+}
+
+const handleSearchBack = () => {
+  if (isSinglePostView.value) {
+    navigateBackToOrigin()
+    return
+  }
+  clearSearch()
+}
+
+const loadSinglePost = async (postIdRaw) => {
+  const postId = String(postIdRaw || '').trim()
+  if (!postId) return
+
+  isSearching.value = true
+  searchQuery.value = ''
+  lastSearchQuery.value = `推文ID: ${postId}`
+  currentTopicFilter.value = ''
+  activeFeedTab.value = 'discover'
+  loadingMore.value = false
+  total.value = 0
+  page.value = 1
+  feedList.splice(0, feedList.length)
+
+  let post = null
+  try {
+    const cache = sessionStorage.getItem(`community:post:${postId}`)
+    if (cache) post = JSON.parse(cache)
+  } catch (e) { }
+
+  if (!post) {
+    try {
+      post = await request.get(`/posts/${postId}`)
+    } catch (e) { }
+  }
+
+  if (!post) {
+    try {
+      const data = await request.get('/posts/search', { params: { page: 1, size: 10, keyword: postId } })
+      const records = data?.records || []
+      post = records.find(r => String(r?.id) === postId) || records[0] || null
+    } catch (e) { }
+  }
+
+  if (!post) {
+    lastSearchQuery.value = `推文ID: ${postId}`
+    total.value = 0
+    return
+  }
+
+  feedList.push(post)
+  total.value = 1
+  const content = String(post.content || '').trim()
+  if (content) lastSearchQuery.value = content.length > 20 ? `${content.slice(0, 20)}...` : content
 }
 
 // 联动：点击右侧热门话题，直接触发搜索
@@ -412,7 +495,24 @@ watch(activeFeedTab, async (n) => {
 })
 
 onMounted(async () => {
+  const postId = String(route.query?.postId || '').trim()
+  if (postId) {
+    await loadSinglePost(postId)
+    return
+  }
   await reloadDiscover()
+})
+
+watch(() => route.query?.postId, async (n, o) => {
+  const nextId = String(n || '').trim()
+  const prevId = String(o || '').trim()
+  if (nextId) {
+    await loadSinglePost(nextId)
+    return
+  }
+  if (prevId && !nextId) {
+    clearSearch()
+  }
 })
 </script>
 

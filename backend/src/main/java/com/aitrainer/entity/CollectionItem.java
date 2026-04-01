@@ -19,4 +19,7 @@ public class CollectionItem {
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
+
+    @TableLogic
+    private Integer isDeleted; // 0-正常，1-已删除
 }

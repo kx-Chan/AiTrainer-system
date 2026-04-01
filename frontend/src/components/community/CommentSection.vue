@@ -34,7 +34,11 @@
             <span class="comment-author" style="cursor: pointer;" @click="$emit('go-to-space', c.userId)">{{ c.author }}</span>
             <template v-if="c.parentId">
               <span class="reply-label">回复</span>
-              <span class="reply-user">@{{ getReplyToUserName(c) }}</span>
+              <span
+                class="reply-user"
+                :style="{ cursor: getReplyToUserId(c) ? 'pointer' : 'default' }"
+                @click="$emit('go-to-space', getReplyToUserId(c))"
+              >@{{ getReplyToUserName(c) }}</span>
             </template>
             <el-tag v-if="String(c.userId) === String(postAuthorId)" size="small" effect="plain" class="author-tag">作者</el-tag>
             <span class="comment-time">{{ c.time }}</span>
@@ -78,7 +82,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { ElMessageBox, ElMessage } from 'element-plus'
-import { ArrowDown, Delete } from '@element-plus/icons-vue'
+import { ArrowDown, Delete, Close } from '@element-plus/icons-vue'
 import request from '@/utils/request'
 
 const props = defineProps({
@@ -134,6 +138,15 @@ const getReplyToContent = (comment) => {
   if (parentId == null) return ''
   const parent = commentById.value.get(String(parentId))
   return String(parent?.content ?? '').trim()
+}
+
+const getReplyToUserId = (comment) => {
+  const direct = comment?.replyToUserId
+  if (direct != null && String(direct).trim() !== '') return direct
+  const parentId = comment?.parentId
+  if (parentId == null) return null
+  const parent = commentById.value.get(String(parentId))
+  return parent?.userId ?? null
 }
 
 const fetchPage = async (reset) => {

@@ -63,6 +63,12 @@ const routes = [
         path: '/userSpace/:id',
         redirect: to => `/user/${to.params.id}`
       },
+      {
+        path: '/collection/:id',
+        name: 'CollectionDetail',
+        component: () => import('@/views/community/CollectionDetail.vue'),
+        props: true // 这样 folderId 会作为 prop 传给组件
+      },
     ]
   },
   // 独立全屏显示的 AI 战报页 (也可以选择放在 Layout 下，看你想要全屏还是带导航的沉浸感)

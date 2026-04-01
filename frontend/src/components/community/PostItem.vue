@@ -218,7 +218,22 @@ const emit = defineEmits(['go-to-space', 'follow', 'unfollow', 'toggle-like', 't
 
 const showComments = ref(false)
 
-// ... formattedTime 和 onTopicClick 逻辑保持不变 ...
+const formattedTime = computed(() => {
+  const t = props.post?.time
+  if (!t) return ''
+  const s = String(t)
+  return s.length > 16 ? s.slice(0, 16) : s
+})
+
+const onTopicClick = () => {
+  const topic = props.post?.topic
+  if (!topic) return
+  emit('topic-click', topic)
+}
+
+const toggleComments = () => {
+  showComments.value = !showComments.value
+}
 
 const favoriteDialogVisible = ref(false)
 const foldersLoading = ref(false)

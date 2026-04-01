@@ -90,7 +90,7 @@ public class UserProfileVO {
     /**
      * 累计打卡天数 (模拟)。
      */
-    @Schema(description = "累计打卡天数")
+    @Schema(description = "累计获赞")
     @Builder.Default
-    private Integer totalDays = 0;
+    private Long totalLikes = 0L;
 }
