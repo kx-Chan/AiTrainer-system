@@ -35,25 +35,6 @@
       </div>
     </el-card>
 
-    <div class="section-title">
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <el-icon><Medal /></el-icon> 荣誉徽章墙
-      </div>
-      <el-button link type="primary" @click="isBadgeVisible = true">查看全部 <el-icon><ArrowRight /></el-icon></el-button>
-    </div>
-    
-    <el-row :gutter="20" class="badge-row">
-      <el-col :span="6" v-for="badge in badgeList.slice(0, 4)" :key="badge.id">
-        <el-tooltip :content="badge.desc" placement="top" effect="light">
-          <el-card class="badge-card" :class="{ 'is-locked': !badge.unlocked }" shadow="hover">
-            <div class="badge-icon">{{ badge.icon }}</div>
-            <div class="badge-name">{{ badge.name }}</div>
-            <div v-if="!badge.unlocked" class="lock-mask"><el-icon><Lock /></el-icon></div>
-          </el-card>
-        </el-tooltip>
-      </el-col>
-    </el-row>
-
     <el-card class="content-card" shadow="never">
       <el-tabs v-model="activeTab" class="custom-tabs">
         
@@ -116,7 +97,7 @@
 
         <el-tab-pane label="我的足迹" name="footprints">
           <div class="footprint-filters">
-            <el-radio-group v-model="footprintFilter" size="small">
+            <el-radio-group v-model="footprintFilter" size="medium">
               <el-radio-button label="liked">我赞过的</el-radio-button>
               <el-radio-button label="commented">我评论的</el-radio-button>
             </el-radio-group>
@@ -147,15 +128,76 @@
         </el-tab-pane>
 
         <el-tab-pane label="我的收藏" name="collections">
-          <el-row :gutter="20">
+          <div class="collection-toolbar">
+            <div class="toolbar-left">
+              <el-icon class="title-icon"><FolderOpened /></el-icon>
+              <span class="toolbar-title">我的收藏夹</span>
+            </div>
+
+            <div class="toolbar-right">
+              <el-input 
+                v-model="folderSearchKeyword" 
+                placeholder="输入名称搜索..." 
+                class="search-input-group"
+                clearable
+                @keyup.enter="handleFolderSearch"
+                @clear="handleFolderSearch"
+              >
+                <template #prefix>
+                  <el-icon><Search /></el-icon>
+                </template>
+                <template #append>
+                  <el-button :icon="Search" @click="handleFolderSearch">搜索</el-button>
+                </template>
+              </el-input>
+
+              <el-button 
+                type="primary" 
+                class="create-btn"
+                @click="startCreateFolder"
+              >
+                <el-icon style="margin-right: 4px;"><Plus /></el-icon>
+                新建收藏夹
+              </el-button>
+            </div>
+          </div>
+
+          <el-row :gutter="20" class="collection-grid">
             <el-col :span="8" v-for="folder in collectionFolders" :key="folder.id">
               <el-card class="folder-card" shadow="hover">
-                <el-icon class="folder-icon"><FolderOpened /></el-icon>
-                <div class="folder-name">{{ folder.name }}</div>
-                <div class="folder-count">{{ folder.count }} 篇内容</div>
+                
+                <div class="folder-tags">
+                  <el-tag v-if="folder.isDefault === 1" size="small" type="warning" effect="dark" round>默认</el-tag>
+                  <el-tag :type="folder.isPublic === 1 ? 'success' : 'info'" size="small" effect="plain" round>
+                    {{ folder.isPublic === 1 ? '公开' : '私密' }}
+                  </el-tag>
+                </div>
+
+                <div class="folder-visual">
+                  <el-icon class="folder-main-icon"><FolderOpened /></el-icon>
+                </div>
+
+                <div class="folder-info">
+                  <div class="folder-name">{{ folder.name }}</div>
+                  <div class="folder-count">{{ folder.itemCount || 0 }} 篇内容</div>
+                </div>
+
+                <div class="folder-footer">
+                  <el-button link type="primary" @click="handleEditFolder(folder)">编辑</el-button>
+                  
+                  <template v-if="folder.isDefault !== 1">
+                    <el-divider direction="vertical" />
+                    <el-button link type="warning" @click="handleSetDefault(folder)">设为默认</el-button>
+                    <el-divider direction="vertical" />
+                    <el-button link type="danger" @click="handleDeleteFolder(folder)">删除</el-button>
+                  </template>
+                </div>
+
               </el-card>
             </el-col>
           </el-row>
+
+          <el-empty v-if="collectionFolders.length === 0" description="空空如也，快去创建一个收藏夹吧！" />
         </el-tab-pane>
 
       </el-tabs>
@@ -257,19 +299,26 @@
       </el-calendar>
     </el-dialog>
 
-    <el-dialog v-model="isBadgeVisible" title="成就徽章图鉴" width="700px">
-      <el-alert title="解锁更多徽章，彰显你的自律荣誉！" type="success" :closable="false" style="margin-bottom: 20px;" />
-      <el-row :gutter="16">
-        <el-col :span="6" v-for="badge in badgeList" :key="badge.id" style="margin-bottom: 16px;">
-          <el-tooltip :content="badge.desc" placement="top" effect="light">
-            <el-card class="badge-card" :class="{ 'is-locked': !badge.unlocked }" shadow="never" style="background-color: #f8f9fa;">
-              <div class="badge-icon">{{ badge.icon }}</div>
-              <div class="badge-name">{{ badge.name }}</div>
-              <div v-if="!badge.unlocked" class="lock-mask"><el-icon><Lock /></el-icon></div>
-            </el-card>
-          </el-tooltip>
-        </el-col>
-      </el-row>
+    <el-dialog v-model="folderDialogVisible" :title="folderDialogMode === 'create' ? '新建收藏夹' : '编辑收藏夹'" width="420px" destroy-on-close>
+      <el-form label-width="90px" :model="folderForm">
+        <el-form-item label="收藏夹名称">
+          <el-input v-model="folderForm.name" placeholder="请输入名称" maxlength="20" show-word-limit />
+        </el-form-item>
+        <el-form-item label="可见性">
+          <el-radio-group v-model="folderForm.isPublic">
+            <el-radio-button :label="0">私密</el-radio-button>
+            <el-radio-button :label="1">公开</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="folderDialogVisible = false">取消</el-button>
+          <el-button type="primary" :loading="folderDialogLoading" @click="submitFolder">
+            {{ folderDialogMode === 'create' ? '创建' : '保存' }}
+          </el-button>
+        </span>
+      </template>
     </el-dialog>
 
   </div>
@@ -277,10 +326,11 @@
 
 <script setup>
 import { ref, reactive, onMounted, watch } from 'vue'
-import { Edit, Medal, Lock, FolderOpened, ArrowRight, Calendar, Plus } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus' 
+import { Edit, FolderOpened, Calendar, Plus, Search } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus' 
 import request from '@/utils/request'
 import { useRouter } from 'vue-router'
+import { folderApi } from '@/api/collection'
 
 // ================= 1. 核心状态定义 =================
 // 关键点：因为这是“我的”页面，isMe 永远为 true
@@ -311,7 +361,6 @@ const footprintPage = reactive({ page: 1, size: 10, total: 0 })
 const isEditVisible = ref(false)
 const isFollowVisible = ref(false)
 const isCalendarVisible = ref(false)
-const isBadgeVisible = ref(false)
 
 // 编辑表单与头像上传
 const editForm = reactive({ avatar: '', nickname: '', gender: '', goal: '', bio: '', height: null, weight: null, bodyFat: null })
@@ -327,18 +376,6 @@ const followPage = reactive({ page: 1, size: 10, total: 0 })
 
 // 模拟/静态数据
 const checkinDays = reactive(['2026-03-10', '2026-03-12', '2026-03-14', '2026-03-15'])
-const badgeList = reactive([
-  { id: 1, name: '初入训练场', icon: '🏃', desc: '完成首次 AI 动作识别', unlocked: true },
-  { id: 2, name: '钢铁大腿', icon: '🦵', desc: '累计完成 1000 个标准深蹲', unlocked: true },
-  { id: 3, name: '自律机器', icon: '🔥', desc: '连续打卡 7 天', unlocked: true },
-  { id: 7, name: '社交达人', icon: '💬', desc: '推文累计获得 100 个赞', unlocked: true },
-  { id: 8, name: '核心撕裂者', icon: '🍫', desc: '解锁高级核心动作库', unlocked: false }
-])
-const collectionFolders = reactive([
-  { id: 1, name: '腹肌撕裂干货', count: 12, isPublic: true },
-  { id: 2, name: '养生壶减脂食谱', count: 8, isPublic: true },
-  { id: 3, name: 'CV 算法论文收集', count: 5, isPublic: false }
-])
 
 // ================= 2. 工具函数 =================
 const formatDate = (timeStr) => {
@@ -444,10 +481,23 @@ const saveProfile = async () => {
       })
       editForm.avatar = avatarUrl
     }
+
+    // 1. 发送更新请求
     await request.post('/profile/update', editForm)
+    
+    // 2. ✅ 核心修改：手动通知 App.vue (导航栏) 更新
+    window.dispatchEvent(new CustomEvent('profile:updated', {
+      detail: {
+        nickname: editForm.nickname,
+        avatar: editForm.avatar
+      }
+    }))
+
     ElMessage.success('保存成功')
     isEditVisible.value = false
-    fetchProfile()
+    fetchProfile() // 刷新当前页面的头部信息
+  } catch (e) {
+    console.error('更新失败:', e)
   } finally {
     isAvatarUploading.value = false
   }
@@ -478,6 +528,95 @@ const toggleFollow = async (user) => {
   }
 }
 
+const folderSearchKeyword = ref('')
+
+// 1. 搜索逻辑（带防抖效果更好）
+const handleFolderSearch = () => {
+  fetchFolders()
+}
+
+// 获取收藏夹
+const collectionFolders = ref([])
+
+const folderDialogVisible = ref(false)
+const folderDialogMode = ref('create')
+const folderDialogLoading = ref(false)
+const editingFolderId = ref(null)
+const folderForm = reactive({ name: '', isPublic: 0 })
+
+// 2. 加载数据
+const fetchFolders = async () => {
+  try {
+    // ✅ 统一使用封装好的 folderApi
+    // 这样如果你以后要改 URL，只需要改 api/collection.js 一个地方
+    const data = await folderApi.list(folderSearchKeyword.value)
+    collectionFolders.value = data
+  } catch (e) {
+    console.error("获取收藏夹失败", e)
+  }
+}
+
+// 3. 设为默认
+const handleSetDefault = async (folder) => {
+  try {
+    await folderApi.setDefault(folder.id)
+    ElMessage.success('已更改默认收藏夹')
+    fetchFolders() // 刷新列表，看到“默认”标签转移
+  } catch (e) {  }
+}
+
+const startCreateFolder = () => {
+  folderDialogMode.value = 'create'
+  editingFolderId.value = null
+  folderForm.name = ''
+  folderForm.isPublic = 0
+  folderDialogVisible.value = true
+}
+
+const handleEditFolder = (folder) => {
+  if (!folder?.id) return
+  folderDialogMode.value = 'edit'
+  editingFolderId.value = folder.id
+  folderForm.name = String(folder.name || '')
+  folderForm.isPublic = Number(folder.isPublic) === 1 ? 1 : 0
+  folderDialogVisible.value = true
+}
+
+const submitFolder = async () => {
+  const name = String(folderForm.name || '').trim()
+  if (!name) return
+  folderDialogLoading.value = true
+  try {
+    const payload = { name, isPublic: Number(folderForm.isPublic) === 1 ? 1 : 0 }
+    if (folderDialogMode.value === 'create') {
+      await folderApi.create(payload)
+      ElMessage.success('创建成功')
+    } else {
+      if (!editingFolderId.value) return
+      await folderApi.update(editingFolderId.value, payload)
+      ElMessage.success('保存成功')
+    }
+    folderDialogVisible.value = false
+    fetchFolders()
+  } finally {
+    folderDialogLoading.value = false
+  }
+}
+
+// 删除收藏夹
+const handleDeleteFolder = async (folder) => {
+  try {
+    await ElMessageBox.confirm(`确认删除收藏夹「${folder?.name || ''}」吗？`, '删除确认', {
+      type: 'warning',
+      confirmButtonText: '删除',
+      cancelButtonText: '取消'
+    })
+    await folderApi.remove(folder.id)
+    ElMessage.success('删除成功')
+    fetchFolders()
+  } catch (e) { }
+}
+
 // ================= 5. 监听与初始化 =================
 watch([footprintFilter, () => footprintPage.page], () => fetchFootprints())
 watch(() => myPostsPage.page, () => fetchMyPosts())
@@ -486,110 +625,235 @@ onMounted(() => {
   fetchProfile()
   fetchMyPosts()
   fetchFootprints()
+  fetchFolders()
 })
+
+
 </script>
 
 <style scoped>
-.profile-container { max-width: 1000px; margin: 0 auto; animation: fadeIn 0.5s ease; }
-.profile-header-card { border-radius: 16px; background: linear-gradient(135deg, #ffffff 0%, #f8faff 100%); margin-bottom: 30px; }
-.user-info-wrapper { display: flex; align-items: center; gap: 30px; padding: 10px; }
-.avatar-section .el-avatar { border: 4px solid #fff; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
-.info-section { flex: 1; }
-.name-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
-.nickname { margin: 0; font-size: 24px; color: #303133; }
-.edit-btn { margin-left: auto; border-radius: 20px; }
-.bio { color: #606266; font-size: 14px; margin-top: 0; margin-bottom: 20px; }
+/* ================= 1. 基础布局与动画 ================= */
+.profile-container { 
+  max-width: 1000px; 
+  margin: 0 auto; 
+  animation: fadeIn 0.5s ease; 
+}
 
-/* 增强数据栏点击交互 */
+@keyframes fadeIn { 
+  from { opacity: 0; transform: translateY(10px); } 
+  to { opacity: 1; transform: translateY(0); } 
+}
+
+/* ================= 2. 个人信息头部卡片 ================= */
+.profile-header-card { 
+  border-radius: 16px; 
+  background: linear-gradient(135deg, #ffffff 0%, #f8faff 100%); 
+  margin-bottom: 30px; 
+  border: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.user-info-wrapper { 
+  display: flex; 
+  align-items: center; 
+  gap: 30px; 
+  padding: 10px; 
+}
+
+.avatar-section .el-avatar { 
+  border: 4px solid #fff; 
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); 
+}
+
+.info-section { flex: 1; }
+
+.name-row { 
+  display: flex; 
+  align-items: center; 
+  gap: 12px; 
+  margin-bottom: 8px; 
+}
+
+.nickname { 
+  margin: 0; 
+  font-size: 24px; 
+  font-weight: 600;
+  color: #303133; 
+}
+
+.edit-btn { 
+  margin-left: auto; 
+  border-radius: 20px; 
+}
+
+.bio { 
+  color: #606266; 
+  font-size: 14px; 
+  margin-top: 0; 
+  margin-bottom: 20px; 
+}
+
+/* 数据统计栏 */
 .stats-row { display: flex; align-items: center; gap: 20px; }
-.stat-item { display: flex; flex-direction: column; align-items: center; padding: 8px 16px; border-radius: 8px; transition: background-color 0.3s; }
+.stat-item { 
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
+  padding: 8px 16px; 
+  border-radius: 8px; 
+  transition: background-color 0.3s; 
+}
 .stat-item.clickable { cursor: pointer; }
 .stat-item.clickable:hover { background-color: #f0f4f8; }
 .stat-value { font-size: 20px; font-weight: bold; color: #303133; }
-.stat-label { font-size: 12px; color: #909399; margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+.stat-label { 
+  font-size: 12px; 
+  color: #909399; 
+  margin-top: 4px; 
+  display: flex; 
+  align-items: center; 
+  gap: 4px; 
+}
 .stat-divider { width: 1px; height: 30px; background-color: #ebeef5; }
 
-/* 徽章区样式 */
-.section-title { font-size: 18px; font-weight: bold; color: #303133; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
-.badge-row { margin-bottom: 30px; }
-.badge-card { text-align: center; border-radius: 12px; position: relative; cursor: pointer; border: 1px solid #f0f2f5; transition: transform 0.3s; }
-.badge-card:hover { transform: translateY(-3px); box-shadow: 0 8px 16px rgba(0,0,0,0.05); }
-.badge-card.is-locked { filter: grayscale(100%); opacity: 0.6; }
-.badge-icon { font-size: 40px; margin-bottom: 10px; }
-.badge-name { font-size: 14px; font-weight: bold; }
-.lock-mask { position: absolute; top: 10px; right: 10px; color: #909399; font-size: 18px; }
-
-/* 底部内容区 */
-.content-card { border-radius: 16px; min-height: 400px; }
+/* ================= 3. 内容区与足迹过滤器 ================= */
+.content-card { border-radius: 16px; min-height: 400px; border: none; }
 .custom-tabs :deep(.el-tabs__item) { font-size: 16px; font-weight: 500; }
-.post-item { margin-bottom: 16px; border-radius: 8px; }
-.post-header { display: flex; justify-content: space-between; margin-bottom: 12px; }
-.post-time { font-size: 13px; color: #909399; }
-.post-content { font-size: 15px; color: #303133; line-height: 1.6; }
 
-/* 收藏夹样式 */
-.folder-card { text-align: center; border-radius: 12px; padding: 20px 0; cursor: pointer; border: 1px dashed #dcdfe6; background-color: #fafafa; }
-.folder-card:hover { border-color: #409eff; color: #409eff; }
-.folder-icon { font-size: 36px; color: #c0c4cc; margin-bottom: 12px; }
-.folder-card:hover .folder-icon { color: #409eff; }
-.folder-name { font-size: 16px; font-weight: bold; color: #303133; margin-bottom: 6px; }
-.folder-count { font-size: 12px; color: #909399; }
+/* 足迹过滤器加大 */
+.footprint-filters :deep(.el-radio-button__inner) {
+  padding: 12px 28px;
+  font-size: 15px;
+  font-weight: 500;
+}
 
-/* 关注/粉丝列表弹窗样式 */
-.follow-list { display: flex; flex-direction: column; gap: 16px; }
-.follow-item { display: flex; align-items: center; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid #f0f2f5; }
-.follow-item:last-child { border-bottom: none; }
-.follow-info { flex: 1; }
-.follow-name { font-size: 15px; font-weight: bold; color: #303133; margin-bottom: 4px; }
-.follow-bio { font-size: 12px; color: #909399; }
+/* ================= 4. 收藏夹管理栏 (核心修复) ================= */
+.collection-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 10px 0 25px 0;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #f0f2f5;
+}
 
-/* 日历自定义样式 */
-.custom-calendar :deep(.el-calendar-table .el-calendar-day) { height: 60px; padding: 4px; }
-.calendar-cell { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
-.is-today { font-weight: bold; color: #409EFF; }
-/* 渲染绿色的打卡圆点 */
-.checkin-dot { width: 6px; height: 6px; background-color: #67C23A; border-radius: 50%; margin-top: 4px; box-shadow: 0 0 4px rgba(103, 194, 58, 0.5); }
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 
-/* ================= 头像上传组件样式 ================= */
-.avatar-uploader :deep(.el-upload) {
-  border: 1px dashed #dcdfe6;
-  border-radius: 50%; /* 变成圆形 */
-  cursor: pointer;
-  position: relative;
+.title-icon { font-size: 20px; color: #409EFF; }
+.toolbar-title { font-size: 18px; font-weight: 600; color: #303133; }
+
+.toolbar-right {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+/* ✅ 重点修复：搜索框与按钮无缝衔接 */
+.search-input-group {
+  width: 300px;
+}
+
+/* 消除 Append 区域的默认样式影响 */
+.search-input-group :deep(.el-input-group__append) {
+  background-color: #409EFF !important;
+  border: none;
+  padding: 0; /* 必须清空 padding */
   overflow: hidden;
-  transition: border-color 0.3s;
-  background-color: #fafafa;
 }
 
-.avatar-uploader :deep(.el-upload:hover) {
-  border-color: #409EFF;
-}
-
-.avatar-uploader-icon {
-  font-size: 28px;
-  color: #8c939d;
-  width: 80px;
-  height: 80px;
+/* 强制内部按钮填满空间并修正高度 */
+.search-input-group :deep(.el-input-group__append .el-button) {
+  background-color: transparent !important;
+  color: white !important;
+  border: none;
+  margin: 0;
+  height: 40px; /* 强制对齐 Element Plus 默认高度 */
+  padding: 0 20px;
+  border-radius: 0; /* 消除左侧圆角 */
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.uploaded-avatar {
-  width: 80px;
-  height: 80px;
-  display: block;
-  object-fit: cover; /* 保证图片不变形 */
+.search-input-group :deep(.el-input-group__append .el-button:hover) {
+  background-color: rgba(255, 255, 255, 0.1) !important;
 }
 
-.upload-tip {
-  font-size: 12px;
-  color: #909399;
-  line-height: 1.4;
-  margin-top: 8px;
-  width: 100%;
+.create-btn {
+  font-weight: 600;
+  height: 40px;
+  border-radius: 8px;
 }
 
-@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+/* ================= 5. 收藏夹卡片样式 ================= */
+.folder-card {
+  position: relative;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  text-align: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid #f0f2f5;
+}
 
+.folder-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+  border-color: #409EFF;
+}
+
+.folder-tags {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  gap: 4px;
+}
+
+.folder-tags :deep(.el-tag) {
+  transform: scale(0.85);
+  transform-origin: right center;
+}
+
+.folder-visual { margin-top: 25px; margin-bottom: 10px; }
+.folder-main-icon { font-size: 52px; color: #409EFF; opacity: 0.7; }
+
+.folder-name {
+  font-size: 16px;
+  font-weight: bold;
+  color: #303133;
+  margin-bottom: 6px;
+  padding: 0 15px;
+}
+
+.folder-count { font-size: 13px; color: #909399; }
+
+.folder-footer {
+  margin-top: 20px;
+  padding: 12px 0;
+  background-color: #fafafa;
+  border-top: 1px solid #f0f2f5;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+/* ================= 6. 其他 UI 组件 ================= */
+.avatar-uploader :deep(.el-upload) {
+  border: 1px dashed #dcdfe6;
+  border-radius: 50%;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: 0.3s;
+}
+
+.avatar-uploader :deep(.el-upload:hover) { border-color: #409EFF; }
+.avatar-uploader-icon { font-size: 28px; color: #8c939d; width: 80px; height: 80px; line-height: 80px; text-align: center; }
+.uploaded-avatar { width: 80px; height: 80px; display: block; object-fit: cover; }
 </style>

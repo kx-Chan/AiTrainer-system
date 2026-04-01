@@ -38,5 +38,9 @@ public final class MessageConstant {
     public static final String COMMENT_NOT_FOUND = "评论不存在或已被删除";
     public static final String COMMENT_DELETE_FORBIDDEN = "权限不足，只有作者或推文主人可以删除评论";
     public static final String POST_NOT_FOUND = "相关推文不存在";
-    
+    public static final String COMMENT_REPLY_FAILED = "回复评论失败，原评论可能已被删除";
+
+    public static final String FOLDER_NAME_EMPTY = "收藏夹名称为空";
+    public static final String FOLDER_NUMS_LIMITS = "收藏夹数量已达上限，请删除不常用的再试";
+    public static final String FOLDER_NOT_FOUND = "收藏夹不存在或无权操作";
 }

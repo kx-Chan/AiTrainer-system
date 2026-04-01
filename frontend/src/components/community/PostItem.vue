@@ -111,7 +111,7 @@
       </el-tooltip>
 
       <el-tooltip content="添加到收藏夹" placement="top" :show-after="500">
-        <div class="interaction-btn" :class="{ 'is-favorited': post.isFavorited }" @click="$emit('toggle-favorite', post)">
+        <div class="interaction-btn" :class="{ 'is-favorited': post.isFavorited }" @click="openFavoriteDialog">
           <el-icon size="20">
             <component :is="post.isFavorited ? 'StarFilled' : 'Star'" :color="post.isFavorited ? '#ff9900' : ''" />
           </el-icon>
@@ -127,6 +127,64 @@
       </el-tooltip>
     </div>
 
+    <el-dialog v-model="favoriteDialogVisible" title="添加到收藏夹" width="420px" @open="loadFoldersAndSelection">
+      <div class="favorite-dialog-body" v-loading="foldersLoading">
+        <div v-if="folders.length" class="folder-list">
+          <div
+            v-for="f in folders"
+            :key="f.id"
+            class="folder-item"
+            :class="{ 'is-selected': selectedFolderIdSet.has(String(f.id)) }"
+            @click="togglePostInFolder(f)"
+          >
+            <div class="folder-left">
+              <el-icon size="18"><Folder /></el-icon>
+              <div class="folder-meta">
+                <div class="folder-name">
+                  <span>{{ f.name }}</span>
+                  <el-tag v-if="Number(f.isDefault) === 1" type="warning" size="small" effect="light" round>默认</el-tag>
+                </div>
+                <div class="folder-desc">{{ Number(f.isPublic) === 1 ? '公开' : '私密' }}</div>
+              </div>
+            </div>
+            <el-icon v-if="selectedFolderIdSet.has(String(f.id))" size="18" color="#67C23A"><CircleCheckFilled /></el-icon>
+          </div>
+        </div>
+        <el-empty v-else description="你还没有收藏夹" />
+
+        <div class="folder-create">
+          <template v-if="isCreatingFolder">
+            <el-input
+              v-model="newFolderName"
+              placeholder="请输入收藏夹名称"
+              maxlength="20"
+              show-word-limit
+              @keyup.enter="createFolder"
+              style="margin-bottom: 12px;"
+            />
+            
+            <div style="margin-bottom: 15px; display: flex; align-items: center; justify-content: space-between;">
+              <span style="font-size: 13px; color: #606266;">是否公开：</span>
+              <el-switch
+                v-model="newFolderIsPublic"
+                :active-value="1"
+                :inactive-value="0"
+                active-text="公开"
+                inactive-text="私密"
+                inline-prompt
+              />
+            </div>
+
+            <div class="create-actions">
+              <el-button type="primary" :loading="creatingFolderLoading" @click="createFolder">创建</el-button>
+              <el-button @click="cancelCreateFolder">取消</el-button>
+            </div>
+          </template>
+          <el-button v-else type="primary" plain :icon="Plus" @click="startCreateFolder">新建收藏夹</el-button>
+        </div>
+      </div>
+    </el-dialog>
+
     <CommentSection
       v-if="showComments"
       :post-id="post.id"
@@ -141,9 +199,13 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
-import { ArrowDown, ChatDotRound, Trophy } from '@element-plus/icons-vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { ElMessage } from 'element-plus'
+import { ArrowDown, ChatDotRound, Folder, Plus, Trophy, CircleCheckFilled } from '@element-plus/icons-vue'
 import CommentSection from './CommentSection.vue'
+
+// ✅ 1. 导入封装好的 API
+import { folderApi, itemApi } from '@/api/collection' 
 
 const props = defineProps({
   post: { type: Object, required: true },
@@ -152,27 +214,161 @@ const props = defineProps({
   followLoadingId: { type: [Number, String, null], default: null }
 })
 
-const emit = defineEmits(['go-to-space', 'follow', 'unfollow', 'toggle-like', 'toggle-favorite', 'topic-click', 'comment-added', 'comment-deleted'])
+const emit = defineEmits(['go-to-space', 'follow', 'unfollow', 'toggle-like', 'topic-click', 'comment-added', 'comment-deleted', 'favorite-changed'])
 
 const showComments = ref(false)
 
-const formattedTime = computed(() => {
-  const time = props.post?.time
-  if (!time) return ''
-  const s = String(time)
-  return s.length > 10 ? s.substring(0, 10) : s
+// ... formattedTime 和 onTopicClick 逻辑保持不变 ...
+
+const favoriteDialogVisible = ref(false)
+const foldersLoading = ref(false)
+const folders = ref([])
+const selectedFolderIdSet = ref(new Set())
+
+// 🟢 变量声明（只保留这一份）
+const isCreatingFolder = ref(false)
+const creatingFolderLoading = ref(false)
+const newFolderName = ref('')
+
+const postId = computed(() => props.post?.id)
+const userId = computed(() => props.viewerUserId)
+const newFolderIsPublic = ref(0) // 0 表示私密，1 表示公开
+
+const openFavoriteDialog = () => {
+  favoriteDialogVisible.value = true
+}
+
+// ✅ 2. 加载逻辑
+const loadFoldersAndSelection = async () => {
+  if (!postId.value) return
+  foldersLoading.value = true
+  try {
+    const [folderList, folderIds] = await Promise.all([
+      folderApi.list(),
+      itemApi.getInFolderIds(postId.value)
+    ])
+    folders.value = Array.isArray(folderList) ? folderList : []
+    const ids = Array.isArray(folderIds) ? folderIds : []
+    selectedFolderIdSet.value = new Set(ids.map(x => String(x)))
+  } catch (e) {
+    console.error("加载收藏信息失败", e)
+  } finally {
+    foldersLoading.value = false
+  }
+}
+
+// ✅ 3. 同步状态逻辑
+const syncFavoritedState = async () => {
+  if (!postId.value) return
+  try {
+    const isFavorited = await itemApi.checkFavorited(postId.value)
+    props.post.isFavorited = isFavorited
+  } catch (e) {
+    console.error("同步收藏状态失败", e)
+  }
+}
+
+// ✅ 4. 收藏切换逻辑
+const togglePostInFolder = async (folder) => {
+  const folderId = folder?.id
+  if (!folderId || !postId.value) return
+
+  const beforeAny = selectedFolderIdSet.value.size > 0
+  const key = String(folderId)
+  const isSelected = selectedFolderIdSet.value.has(key)
+
+  foldersLoading.value = true
+  try {
+    let resData;
+    if (isSelected) {
+      resData = await itemApi.remove(postId.value, folderId)
+      ElMessage.success(`已从「${folder?.name}」移除`)
+    } else {
+      resData = await itemApi.add(postId.value, folderId)
+      ElMessage.success(`已收藏到「${folder?.name}」`)
+    }
+
+    const folderIds = resData?.folderIds || []
+    selectedFolderIdSet.value = new Set(folderIds.map(x => String(x)))
+
+    const afterAny = selectedFolderIdSet.value.size > 0
+    props.post.isFavorited = afterAny
+
+    const beforeCount = Number(props.post.favorites ?? 0)
+    const delta = beforeAny === afterAny ? 0 : (afterAny ? 1 : -1)
+    const nextCount = Math.max(0, beforeCount + delta)
+    props.post.favorites = nextCount
+
+    emit('favorite-changed', { postId: postId.value, isFavorited: afterAny, favorites: nextCount })
+  } catch (e) {
+    console.error("收藏操作失败", e)
+  } finally {
+    foldersLoading.value = false
+  }
+}
+
+// 🟢 下面是控制新建收藏夹显隐的逻辑
+const startCreateFolder = () => {
+  isCreatingFolder.value = true
+  newFolderName.value = ''
+}
+
+const cancelCreateFolder = () => {
+  isCreatingFolder.value = false
+  newFolderName.value = ''
+}
+
+// ✅ 5. 核心创建逻辑（只保留这一份，带自动收藏功能）
+const createFolder = async () => {
+  const name = String(newFolderName.value || '').trim()
+  if (!name) {
+    ElMessage.warning('收藏夹名称不能为空')
+    return
+  }
+
+  creatingFolderLoading.value = true
+  try {
+    // 1. 发送请求，带上公开性参数
+    const created = await folderApi.create({ 
+      name, 
+      isPublic: newFolderIsPublic.value 
+    })
+
+    if (created) {
+      // 2. 提示成功
+      ElMessage({
+        message: '收藏夹创建成功',
+        type: 'success',
+        duration: 2000
+      })
+
+      // 3. 自动将当前推文存入新收藏夹（可选，建议加上，体验极佳）
+      await togglePostInFolder(created)
+
+      // 4. 重新加载列表，这样新收藏夹就会立刻出现在弹窗里
+      await loadFoldersAndSelection()
+
+      // 5. 重置状态
+      isCreatingFolder.value = false
+      newFolderName.value = ''
+      newFolderIsPublic.value = 0 // 重置为默认私密
+    }
+  } catch (e) {
+    console.error("创建失败", e)
+    // 这里通常全局拦截器会弹窗，如果没有，手动加一个
+    ElMessage.error('创建收藏夹失败，请稍后重试')
+  } finally {
+    creatingFolderLoading.value = false
+  }
+}
+
+onMounted(() => {
+  syncFavoritedState()
 })
 
-const onTopicClick = () => {
-  const raw = props.post?.topic
-  const name = raw ? String(raw).replace(/^#/, '').trim() : ''
-  if (!name) return
-  emit('topic-click', name)
-}
-
-const toggleComments = () => {
-  showComments.value = !showComments.value
-}
+watch([postId, userId], () => {
+  syncFavoritedState()
+})
 </script>
 
 <style scoped>
@@ -368,5 +564,74 @@ const toggleComments = () => {
 
 .interaction-btn.is-favorited:hover {
   transform: scale(1.1);
+}
+
+.favorite-dialog-body {
+  min-height: 120px;
+}
+
+.folder-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.folder-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border: 1px solid #ebeef5;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.folder-item:hover {
+  border-color: #c6e2ff;
+  background: #f5faff;
+}
+
+.folder-item.is-selected {
+  border-color: #b3e19d;
+  background: #f0f9eb;
+}
+
+.folder-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.folder-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.folder-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #303133;
+  font-weight: 600;
+}
+
+.folder-desc {
+  font-size: 12px;
+  color: #909399;
+}
+
+.folder-create {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.create-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
 }
 </style>

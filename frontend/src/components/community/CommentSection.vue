@@ -3,11 +3,16 @@
     <div class="comment-input-section">
       <el-avatar :size="32" :src="viewerAvatar" />
       <div class="input-wrapper">
+        <div v-if="replyTarget" class="reply-target-bar">
+          <span class="reply-hint">正在回复 @{{ replyTarget.author }}<span v-if="replyTarget.content">：{{ clipText(replyTarget.content, 60) }}</span></span>
+          <el-button link type="info" :icon="Close" @click="cancelReply">取消</el-button>
+        </div>
+        
         <el-input
           v-model="input"
           type="textarea"
           :autosize="{ minRows: 1, maxRows: 4 }"
-          placeholder="友善评论，文明发言..."
+          :placeholder="replyTarget ? `回复 @${replyTarget.author}...` : '友善评论，文明发言...'"
           resize="none"
           @keydown.enter.exact.prevent="submit"
           class="custom-comment-input"
@@ -27,13 +32,20 @@
         <div class="comment-content-box">
           <div class="comment-meta">
             <span class="comment-author" style="cursor: pointer;" @click="$emit('go-to-space', c.userId)">{{ c.author }}</span>
+            <template v-if="c.parentId">
+              <span class="reply-label">回复</span>
+              <span class="reply-user">@{{ getReplyToUserName(c) }}</span>
+            </template>
             <el-tag v-if="String(c.userId) === String(postAuthorId)" size="small" effect="plain" class="author-tag">作者</el-tag>
             <span class="comment-time">{{ c.time }}</span>
+          </div>
+          <div v-if="c.parentId && getReplyToContent(c)" class="reply-quote">
+            <span class="reply-quote-text">{{ clipText(getReplyToContent(c), 80) }}</span>
           </div>
           <div class="comment-text">{{ c.content }}</div>
           <div class="comment-footer-actions">
             <div class="left-interaction">
-              <el-button link size="small">回复</el-button>
+              <el-button link size="small" @click="onReply(c)">回复</el-button>
             </div>
             
             <div class="right-interaction">
@@ -90,6 +102,40 @@ const input = ref('')
 
 const hasMore = computed(() => comments.value.length < total.value)
 
+const commentById = computed(() => {
+  const map = new Map()
+  for (const c of comments.value) {
+    if (c?.id != null) map.set(String(c.id), c)
+  }
+  return map
+})
+
+const clipText = (text, maxLen = 60) => {
+  const s = String(text ?? '').replace(/\s+/g, ' ').trim()
+  if (!s) return ''
+  if (s.length <= maxLen) return s
+  return `${s.slice(0, maxLen)}…`
+}
+
+const getReplyToUserName = (comment) => {
+  const direct = String(comment?.replyToUserName ?? '').trim()
+  if (direct) return direct
+  const parentId = comment?.parentId
+  if (parentId == null) return '原评论'
+  const parent = commentById.value.get(String(parentId))
+  const name = String(parent?.author ?? '').trim()
+  return name || '原评论'
+}
+
+const getReplyToContent = (comment) => {
+  const direct = String(comment?.replyToContent ?? '').trim()
+  if (direct) return direct
+  const parentId = comment?.parentId
+  if (parentId == null) return ''
+  const parent = commentById.value.get(String(parentId))
+  return String(parent?.content ?? '').trim()
+}
+
 const fetchPage = async (reset) => {
   if (reset) {
     page.value = 1
@@ -120,12 +166,20 @@ const submit = async () => {
   if (submitting.value) return
   try {
     submitting.value = true
-    const c = await request.post(`/posts/${postIdNum.value}/comments`, { content: text })
+    const payload = {
+      content: text,
+      parentId: replyTarget.value ? replyTarget.value.id : null
+    }
+    const c = await request.post(`/posts/${postIdNum.value}/comments`, payload)
+    if (replyTarget.value) {
+      c.replyToUserName = replyTarget.value.author
+      c.replyToContent = replyTarget.value.content
+    }
     comments.value = [c, ...comments.value]
     total.value += 1
     input.value = ''
     emit('comment-added', postIdNum.value)
-    ElMessage.success('评论成功')
+    ElMessage.success(payload.parentId ? '回复成功' : '评论成功')
   } finally {
     submitting.value = false
   }
@@ -163,6 +217,23 @@ const handleDelete = async (commentId) => {
       console.error('删除失败:', error)
     }
   }
+}
+
+// CommentSection.vue 的 script setup
+const replyTarget = ref(null) // 存储当前正在回复的评论对象
+
+// 点击“回复”按钮触发
+const onReply = (comment) => {
+  replyTarget.value = comment
+  input.value = '' // 清空输入框
+  // 计科细节：自动聚焦到输入框
+  const inputEl = document.querySelector('.custom-comment-input textarea')
+  if (inputEl) inputEl.focus()
+}
+
+// 取消回复模式
+const cancelReply = () => {
+  replyTarget.value = null
 }
 
 onMounted(() => {
@@ -286,5 +357,52 @@ onMounted(() => {
 .comment-delete-btn:hover {
   background-color: #fef0f0; /* 悬停时淡淡的红色背景 */
   border-radius: 4px;
+}
+
+/* ✅ 新增：回复模式下的提示条样式 */
+.reply-target-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #f0f2f5;
+  padding: 4px 12px;
+  border-radius: 4px 4px 0 0;
+  border: 1px solid #dcdfe6;
+  border-bottom: none;
+}
+
+.reply-hint {
+  font-size: 12px;
+  color: #606266;
+}
+
+/* ✅ 元数据中的回复文本 */
+.reply-label {
+  font-size: 13px;
+  color: #909399;
+  margin: 0 4px;
+}
+
+.reply-user {
+  font-size: 14px;
+  font-weight: 600;
+  color: #409EFF;
+  cursor: pointer;
+}
+
+.reply-quote {
+  margin: 4px 0 8px;
+  padding: 8px 10px;
+  border-left: 3px solid #dcdfe6;
+  background: #f6f7f9;
+  border-radius: 6px;
+}
+
+.reply-quote-text {
+  font-size: 13px;
+  color: #909399;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 </style>

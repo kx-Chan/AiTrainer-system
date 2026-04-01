@@ -3,6 +3,7 @@ package com.aitrainer.service.impl;
 import com.aitrainer.common.constant.MessageConstant;
 import com.aitrainer.common.exception.BusinessException;
 import com.aitrainer.dto.RegisterRequestDTO;
+import com.aitrainer.service.CollectionFolderService;
 import com.aitrainer.utils.JwtUtils;
 import com.aitrainer.dto.LoginRequestDTO;
 import com.aitrainer.mapper.UserMapper;
@@ -31,6 +32,7 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;
     private final VerificationService verificationService;
+    private final CollectionFolderService collectionFolderService;
 
     /**
      * 验证用户身份并返回登录视图对象。
@@ -106,6 +108,9 @@ public class UserServiceImpl implements UserService {
                 .followingCount(0) // 关注数量初始化为0
                 .followerCount(0) // 粉丝数量初始化为0
                 .build();
+
+        // 5. 创建默认收藏夹
+        collectionFolderService.initDefaultFolder(user.getId());
 
         userMapper.insert(user);
         log.info("用户 {} 注册成功，ID: {}", request.username(), user.getId());

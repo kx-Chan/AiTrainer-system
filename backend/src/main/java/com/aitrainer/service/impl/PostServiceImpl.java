@@ -331,7 +331,7 @@ public class PostServiceImpl implements PostService {
             postFavoriteMapper.insert(PostFavorite.builder().postId(postId).userId(userId).createdAt(LocalDateTime.now()).build());
         }
         // 增加点赞数量
-        communityPostMapper.incrementfavoriteCount(postId);
+        communityPostMapper.incrementFavoriteCount(postId);
         // 获取总的点赞数
         final int favorites = communityPostMapper.selectById(postId).getFavoriteCount();
         return FavoriteStatusVO.builder().favorited(true).favorites(favorites).build();
@@ -349,7 +349,7 @@ public class PostServiceImpl implements PostService {
         if (userId == null) throw BusinessException.unauthorized(MessageConstant.USER_NOT_LOGGED_IN);
         postFavoriteMapper.delete(new LambdaQueryWrapper<PostFavorite>().eq(PostFavorite::getUserId, userId).eq(PostFavorite::getPostId, postId));
         // 增加点赞数量
-        communityPostMapper.decrementfavoriteCount(postId);
+        communityPostMapper.decrementFavoriteCount(postId);
         // 获取总的点赞数
         final int favorites = communityPostMapper.selectById(postId).getFavoriteCount();
         return FavoriteStatusVO.builder().favorited(false).favorites(favorites).build();
@@ -367,6 +367,11 @@ public class PostServiceImpl implements PostService {
     public PostCommentVO addComment(final Long userId, final Long postId, final CreateCommentDTO dto) {
         // 判断用户是否登录
         if (userId == null) throw BusinessException.unauthorized(MessageConstant.USER_NOT_LOGGED_IN);
+        if (dto.parentId() != null) {
+            // 校验原评论是否存在（且没被逻辑删除）
+            PostComment parent = postCommentMapper.selectById(dto.parentId());
+            if (parent == null) throw BusinessException.notFound(MessageConstant.COMMENT_REPLY_FAILED);
+        }
         final String content = dto.content() == null ? "" : dto.content().trim();
         // 判断该推文内容是否为空
         if (content.isBlank()) throw BusinessException.badRequest(MessageConstant.POST_CANNOT_BE_EMPTY);

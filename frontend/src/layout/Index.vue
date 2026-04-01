@@ -69,14 +69,20 @@ const router = useRouter()
 const userStore = useUserStore()
 const { avatar, nickname } = storeToRefs(userStore)
 
-const handleProfileUpdated = (event) => {
-  const avatar = event?.detail?.avatar
-  const nickname = event?.detail?.nickname
-  if (avatar || nickname) {
-    userStore.applyProfileUpdated(event?.detail)
-    return
+// App.vue 中的 handleProfileUpdated
+const handleProfileUpdated = async (event) => {
+  console.log('收到资料更新信号:', event.detail)
+  
+  // 方案 A：如果事件传了具体数据，直接同步到 Store
+  if (event.detail && (event.detail.nickname || event.detail.avatar)) {
+    userStore.$patch({
+      nickname: event.detail.nickname || userStore.nickname,
+      avatar: event.detail.avatar || userStore.avatar
+    })
+  } else {
+    // 方案 B：如果没有明细数据，直接重新请求后端接口（最稳妥）
+    await userStore.fetchNavUser()
   }
-  userStore.fetchNavUser()
 }
 
 onMounted(() => {

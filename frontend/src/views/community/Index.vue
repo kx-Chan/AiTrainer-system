@@ -41,7 +41,7 @@
               @follow="followAuthor"
               @unfollow="unfollowAuthor"
               @toggle-like="toggleLike"
-              @toggle-favorite="toggleFavorite"
+              @favorite-changed="handleFavoriteChanged"
               @topic-click="handleTopicClick"
               @comment-added="handleCommentAdded"
               @comment-deleted="handleCommentDeleted"
@@ -254,16 +254,14 @@ const toggleLike = async (post) => {
   }
 }
 
-const toggleFavorite = async (post) => {
-  if (post.isFavorited) {
-    const data = await request.delete(`/posts/${post.id}/favorite`)
-    post.isFavorited = data?.favorited ?? false
-    post.favorites = data?.favorites ?? Math.max(0, (post.favorites || 0) - 1)
-  } else {
-    const data = await request.post(`/posts/${post.id}/favorite`)
-    post.isFavorited = data?.favorited ?? true
-    post.favorites = data?.favorites ?? (post.favorites || 0) + 1
-  }
+const handleFavoriteChanged = (payload) => {
+  const id = payload?.postId
+  if (!id) return
+  feedList.forEach(p => {
+    if (Number(p?.id) !== Number(id)) return
+    if (typeof payload?.isFavorited === 'boolean') p.isFavorited = payload.isFavorited
+    if (payload?.favorites != null) p.favorites = payload.favorites
+  })
 }
 
 const handlePublished = (newPost) => {

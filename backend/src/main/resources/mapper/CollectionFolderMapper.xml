@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aitrainer.mapper.CollectionFolderMapper">
+
+    <select id="selectFoldersWithCount" resultType="com.aitrainer.vo.FolderVO">
+        SELECT
+            f.id,
+            f.name,
+            f.description,
+            f.is_default,
+            f.is_public,
+            (
+                SELECT COUNT(1)
+                FROM collection_item i
+                WHERE i.folder_id = f.id
+                  AND i.is_deleted = 0  ) AS itemCount
+        FROM collection_folder f
+        WHERE f.user_id = #{userId}
+          AND f.is_deleted = 0
+        ORDER BY f.is_default DESC, f.create_time DESC
+    </select>
+
+</mapper>

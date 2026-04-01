@@ -2,6 +2,7 @@ package com.aitrainer.service;
 
 import com.aitrainer.dto.CreatePostDTO;
 import com.aitrainer.dto.CreateCommentDTO;
+import com.aitrainer.entity.CommunityPost;
 import com.aitrainer.vo.CommunityPostVO;
 import com.aitrainer.vo.FavoriteStatusVO;
 import com.aitrainer.vo.LikeStatusVO;
@@ -37,4 +38,5 @@ public interface PostService {
     PageResultVO<CommunityPostVO> listMyPosts(Long id, String keyword, long page, long size);
 
     void secureDeleteComment(Long id, Long commentId);
+
 }
