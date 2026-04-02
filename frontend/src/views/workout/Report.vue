@@ -2,13 +2,19 @@
   <div class="report-container">
     <div class="report-header">
       <el-button link class="back-btn" @click="$router.push('/workout')">
-        <el-icon size="20"><Back /></el-icon> 返回大厅
+        <el-icon size="20">
+          <Back />
+        </el-icon> 返回大厅
       </el-button>
       <div class="report-title">
-        <el-icon color="#E6A23C"><Trophy /></el-icon> AiTrainer 智能分析战报
+        <el-icon color="#E6A23C">
+          <Trophy />
+        </el-icon> AiTrainer 智能分析战报
       </div>
       <el-button type="primary" plain round size="small" @click="shareToCommunity">
-        <el-icon><Share /></el-icon> 一键分享到社区
+        <el-icon>
+          <Share />
+        </el-icon> 一键分享到社区
       </el-button>
     </div>
 
@@ -25,7 +31,9 @@
 
         <el-card shadow="never" class="radar-card">
           <template #header>
-            <div class="card-title"><el-icon><DataAnalysis /></el-icon> 姿态多维解析</div>
+            <div class="card-title"><el-icon>
+                <DataAnalysis />
+              </el-icon> 姿态多维解析</div>
           </template>
           <div ref="radarChartRef" class="radar-echarts"></div>
         </el-card>
@@ -62,7 +70,9 @@
         <el-card shadow="never" class="snapshot-card">
           <template #header>
             <div class="card-title">
-              <span class="warning-title"><el-icon><Warning /></el-icon> AI 纠错抓拍</span>
+              <span class="warning-title"><el-icon>
+                  <Warning />
+                </el-icon> AI 纠错抓拍</span>
             </div>
           </template>
           <div v-if="reportData.snapshots.length > 0" class="snapshot-list">
@@ -108,15 +118,15 @@ const reportData = reactive({
   // 维度评分：膝盖轨迹, 下蹲深度, 背部姿态, 核心稳定, 发力节奏
   radarScores: [95, 75, 88, 96, 85],
   snapshots: [
-    { 
-      url: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?auto=format&fit=crop&q=80&w=400', 
-      reason: '第 12 次: 膝盖轻微内扣', 
-      errorX: '45%', errorY: '70%' 
+    {
+      url: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?auto=format&fit=crop&q=80&w=400',
+      reason: '第 12 次: 膝盖轻微内扣',
+      errorX: '45%', errorY: '70%'
     },
-    { 
-      url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=400', 
-      reason: '第 28 次: 背部未完全挺直', 
-      errorX: '60%', errorY: '40%' 
+    {
+      url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=400',
+      reason: '第 28 次: 背部未完全挺直',
+      errorX: '60%', errorY: '40%'
     }
   ]
 })
@@ -125,7 +135,7 @@ const reportData = reactive({
 const initRadarChart = () => {
   if (!radarChartRef.value) return
   const myChart = echarts.init(radarChartRef.value)
-  
+
   const option = {
     radar: {
       indicator: [
@@ -186,7 +196,10 @@ onMounted(() => {
   font-size: 16px;
   color: #606266;
 }
-.back-btn:hover { color: #409EFF; }
+
+.back-btn:hover {
+  color: #409EFF;
+}
 
 .report-title {
   font-size: 20px;
@@ -248,16 +261,26 @@ onMounted(() => {
   font-weight: 900;
   font-style: italic;
   line-height: 1;
-  text-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
-.grade-S { color: #F56C6C; }
-.grade-A { color: #E6A23C; }
-.grade-B { color: #409EFF; }
+
+.grade-S {
+  color: #F56C6C;
+}
+
+.grade-A {
+  color: #E6A23C;
+}
+
+.grade-B {
+  color: #409EFF;
+}
 
 .score-number {
   font-size: 48px;
   font-weight: bold;
 }
+
 .score-unit {
   font-size: 16px;
   font-weight: normal;
@@ -269,7 +292,10 @@ onMounted(() => {
   font-style: italic;
 }
 
-.radar-card { border-radius: 16px; }
+.radar-card {
+  border-radius: 16px;
+}
+
 .card-title {
   font-weight: bold;
   font-size: 16px;
@@ -277,6 +303,7 @@ onMounted(() => {
   align-items: center;
   gap: 6px;
 }
+
 .radar-echarts {
   width: 100%;
   height: 350px;
@@ -289,35 +316,58 @@ onMounted(() => {
   padding: 10px 0;
   margin-bottom: 16px;
 }
+
 .data-label {
   font-size: 13px;
   color: #909399;
   margin-bottom: 8px;
 }
+
 .data-value {
   font-size: 28px;
   font-weight: bold;
   color: #303133;
 }
-.unit { font-size: 14px; color: #606266; font-weight: normal; }
 
-.valid-text { color: #67C23A; }
-.invalid-text { color: #F56C6C; }
-.hot-text { color: #E6A23C; }
+.unit {
+  font-size: 14px;
+  color: #606266;
+  font-weight: normal;
+}
 
-.snapshot-card { border-radius: 16px; flex: 1; }
-.warning-title { color: #F56C6C; }
+.valid-text {
+  color: #67C23A;
+}
+
+.invalid-text {
+  color: #F56C6C;
+}
+
+.hot-text {
+  color: #E6A23C;
+}
+
+.snapshot-card {
+  border-radius: 16px;
+  flex: 1;
+}
+
+.warning-title {
+  color: #F56C6C;
+}
 
 .snapshot-list {
   display: flex;
   gap: 16px;
 }
+
 .snapshot-item {
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
+
 .snapshot-img-wrapper {
   position: relative;
   width: 100%;
@@ -326,10 +376,12 @@ onMounted(() => {
   overflow: hidden;
   border: 1px solid #ebeef5;
 }
+
 .snapshot-img {
   width: 100%;
   height: 100%;
 }
+
 /* 模拟错误点标红 */
 .error-spot {
   position: absolute;
@@ -341,6 +393,7 @@ onMounted(() => {
   transform: translate(-50%, -50%);
   animation: pulse-red 1.5s infinite;
 }
+
 .snapshot-desc {
   font-size: 13px;
   color: #606266;
@@ -348,8 +401,16 @@ onMounted(() => {
 }
 
 @keyframes pulse-red {
-  0% { box-shadow: 0 0 0 0 rgba(245, 108, 108, 0.7); }
-  70% { box-shadow: 0 0 0 10px rgba(245, 108, 108, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(245, 108, 108, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(245, 108, 108, 0.7);
+  }
+
+  70% {
+    box-shadow: 0 0 0 10px rgba(245, 108, 108, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 108, 108, 0);
+  }
 }
 </style>

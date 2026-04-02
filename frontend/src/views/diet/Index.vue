@@ -33,17 +33,14 @@
       <el-col :span="8">
         <el-card shadow="never" class="ai-vision-card">
           <div class="ai-vision-header">
-            <el-icon class="ai-icon"><CameraFilled /></el-icon>
+            <el-icon class="ai-icon">
+              <CameraFilled />
+            </el-icon>
             <h3>AI 拍照识餐</h3>
             <p>上传餐盘照片，AI 自动估算热量与营养</p>
           </div>
-          
-          <el-upload
-            class="meal-uploader"
-            drag
-            action="#"
-            :auto-upload="false"
-          >
+
+          <el-upload class="meal-uploader" drag action="#" :auto-upload="false">
             <el-icon class="el-icon--upload"><upload-filled /></el-icon>
             <div class="el-upload__text">将照片拖到此处，或<em>点击上传</em></div>
           </el-upload>
@@ -73,15 +70,54 @@ const todayMeals = ref([
 </script>
 
 <style scoped>
-.diet-container { max-width: 1400px; margin: 0 auto; }
-.diet-main-card { border-radius: 16px; border: none; }
-.card-header { display: flex; justify-content: space-between; align-items: center; }
-.title { font-size: 20px; font-weight: bold; }
+.diet-container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
 
-.ai-vision-card { border-radius: 16px; border: none; background: linear-gradient(to bottom, #f0f9eb, #ffffff); text-align: center; }
-.ai-icon { font-size: 48px; color: #67C23A; margin-bottom: 10px; }
-.ai-vision-header h3 { margin: 10px 0; color: #303133; }
-.ai-vision-header p { font-size: 13px; color: #909399; margin-bottom: 20px; }
+.diet-main-card {
+  border-radius: 16px;
+  border: none;
+}
 
-.ai-analysis-result { text-align: left; font-size: 14px; color: #606266; }
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.ai-vision-card {
+  border-radius: 16px;
+  border: none;
+  background: linear-gradient(to bottom, #f0f9eb, #ffffff);
+  text-align: center;
+}
+
+.ai-icon {
+  font-size: 48px;
+  color: #67C23A;
+  margin-bottom: 10px;
+}
+
+.ai-vision-header h3 {
+  margin: 10px 0;
+  color: #303133;
+}
+
+.ai-vision-header p {
+  font-size: 13px;
+  color: #909399;
+  margin-bottom: 20px;
+}
+
+.ai-analysis-result {
+  text-align: left;
+  font-size: 14px;
+  color: #606266;
+}
 </style>

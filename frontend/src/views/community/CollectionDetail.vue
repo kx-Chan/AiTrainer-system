@@ -14,13 +14,8 @@
     </div>
 
     <div v-loading="loading" class="post-list-wrapper">
-      <el-card 
-        v-for="post in posts" 
-        :key="post.id" 
-        class="minimal-post-card clickable" 
-        shadow="hover"
-        @click="openPostInCommunity(post)"
-      >
+      <el-card v-for="post in posts" :key="post.id" class="minimal-post-card clickable" shadow="hover"
+        @click="openPostInCommunity(post)">
         <div class="card-header">
           <el-avatar :size="40" :src="post.avatar" />
           <div class="meta-info">
@@ -30,27 +25,18 @@
             </div>
           </div>
         </div>
-        
+
         <div class="card-content">
           {{ post.content }}
         </div>
-        
-        </el-card>
 
-      <el-empty 
-        v-if="!loading && posts.length === 0" 
-        description="收藏夹空空如也，快去发现好内容吧" 
-      />
+      </el-card>
+
+      <el-empty v-if="!loading && posts.length === 0" description="收藏夹空空如也，快去发现好内容吧" />
 
       <div v-if="postTotal > page.size" class="pagination-container">
-        <el-pagination
-          v-model:current-page="page.current"
-          :page-size="page.size"
-          :total="postTotal"
-          layout="prev, pager, next"
-          background
-          @current-change="loadPosts"
-        />
+        <el-pagination v-model:current-page="page.current" :page-size="page.size" :total="postTotal"
+          layout="prev, pager, next" background @current-change="loadPosts" />
       </div>
     </div>
   </div>
@@ -98,7 +84,7 @@ const loadFolderInfo = async () => {
     if (res && res.name) {
       folderName.value = res.name
     } else if (res?.data?.name) {
-        folderName.value = res.data.name
+      folderName.value = res.data.name
     }
   } catch (e) {
     console.error("获取收藏夹信息失败:", e)
@@ -161,37 +147,45 @@ onMounted(() => {
 
 <style scoped>
 .collection-detail-container {
-  max-width: 700px; /* 对齐社区主页的宽度 */
+  max-width: 700px;
+  /* 对齐社区主页的宽度 */
   margin: 0 auto;
   padding: 20px 15px;
 }
+
 .header-section {
   margin-bottom: 25px;
   background: #fff;
   padding: 15px 20px;
   border-radius: 12px;
-  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.05);
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
 }
+
 .header-content {
   display: flex;
   align-items: center;
   gap: 12px;
 }
+
 .folder-title {
   font-weight: 600;
   font-size: 18px;
   color: #303133;
 }
+
 .post-list-wrapper {
   display: flex;
   flex-direction: column;
-  gap: 16px; /* 卡片之间的呼吸感 */
+  gap: 16px;
+  /* 卡片之间的呼吸感 */
 }
 
 /* ✅ 2. 核心样式修改：像素级对齐你提供的图片 (image_10.png) */
 .minimal-post-card {
-  border-radius: 8px; /* 简洁的小圆角 */
+  border-radius: 8px;
+  /* 简洁的小圆角 */
   border: 1px solid #e4e7ed;
+
   /* 确保底部的 padding 较小，没有图标栏后更干净 */
   :deep(.el-card__body) {
     padding: 20px;
@@ -213,7 +207,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 12px; /* 头像与内容的间距 */
+  margin-bottom: 12px;
+  /* 头像与内容的间距 */
 }
 
 .meta-info {

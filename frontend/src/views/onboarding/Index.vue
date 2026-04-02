@@ -22,7 +22,7 @@
             <el-radio-button label="female">女生 (Female)</el-radio-button>
           </el-radio-group>
         </div>
-        
+
         <div v-else-if="activeStep === 1" class="step-fade">
           <h3>测量身体数据</h3>
           <p class="subtitle">请尽量提供准确的空腹数据</p>
@@ -46,26 +46,17 @@
           <h3>你的健身愿景是？</h3>
           <p class="subtitle">AI 会根据目标调整你的碳水与蛋白质比例</p>
           <div class="goal-selection">
-            <div 
-              :class="['goal-box', form.goal === 'lose' ? 'active' : '']" 
-              @click="form.goal = 'lose'"
-            >
+            <div :class="['goal-box', form.goal === 'lose' ? 'active' : '']" @click="form.goal = 'lose'">
               <div class="goal-icon">🔥</div>
               <div class="goal-name">减脂降重</div>
               <div class="goal-desc">刷脂、提高肌肉线条清晰度</div>
             </div>
-            <div 
-              :class="['goal-box', form.goal === 'gain' ? 'active' : '']" 
-              @click="form.goal = 'gain'"
-            >
+            <div :class="['goal-box', form.goal === 'gain' ? 'active' : '']" @click="form.goal = 'gain'">
               <div class="goal-icon">💪</div>
               <div class="goal-name">增肌塑形</div>
               <div class="goal-desc">增加肌肉维度、提升力量水平</div>
             </div>
-            <div 
-              :class="['goal-box', form.goal === 'maintain' ? 'active' : '']" 
-              @click="form.goal = 'maintain'"
-            >
+            <div :class="['goal-box', form.goal === 'maintain' ? 'active' : '']" @click="form.goal = 'maintain'">
               <div class="goal-icon">⚖️</div>
               <div class="goal-name">保持身材</div>
               <div class="goal-desc">维持当前体态，提高身体素质</div>
@@ -76,13 +67,7 @@
 
       <div class="actions">
         <el-button v-if="activeStep > 0" size="large" round @click="activeStep--">上一步</el-button>
-        <el-button 
-          type="primary" 
-          size="large" 
-          round 
-          :loading="isSubmitting"
-          @click="nextStep"
-        >
+        <el-button type="primary" size="large" round :loading="isSubmitting" @click="nextStep">
           {{ activeStep === 2 ? '完成配置，进入 AiTrainer' : '下一步' }}
         </el-button>
       </div>
@@ -139,7 +124,7 @@ const finishOnboarding = async () => {
 
     // 2. 更新本地标记，通知路由守卫“资料已补全”
     localStorage.setItem('is_first_login', 'false')
-    
+
     // 3. 跳转主页面
     ElMessage.success('配置完成，AI 已为你生成专属健身方案！')
     router.push('/dashboard')
@@ -165,7 +150,7 @@ const finishOnboarding = async () => {
   width: 600px;
   padding: 40px;
   border-radius: 20px;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
 }
 
 .form-content {
@@ -174,8 +159,17 @@ const finishOnboarding = async () => {
   text-align: center;
 }
 
-h3 { font-size: 24px; color: #303133; margin-bottom: 8px; }
-.subtitle { color: #909399; font-size: 14px; margin-bottom: 30px; }
+h3 {
+  font-size: 24px;
+  color: #303133;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  color: #909399;
+  font-size: 14px;
+  margin-bottom: 30px;
+}
 
 /* 目标选择框样式 */
 .goal-selection {
@@ -203,9 +197,23 @@ h3 { font-size: 24px; color: #303133; margin-bottom: 8px; }
   background-color: #ecf5ff;
 }
 
-.goal-icon { font-size: 40px; margin-bottom: 12px; }
-.goal-name { font-weight: bold; font-size: 18px; margin-bottom: 8px; color: #303133; }
-.goal-desc { font-size: 12px; color: #909399; line-height: 1.4; }
+.goal-icon {
+  font-size: 40px;
+  margin-bottom: 12px;
+}
+
+.goal-name {
+  font-weight: bold;
+  font-size: 18px;
+  margin-bottom: 8px;
+  color: #303133;
+}
+
+.goal-desc {
+  font-size: 12px;
+  color: #909399;
+  line-height: 1.4;
+}
 
 .actions {
   display: flex;
@@ -226,7 +234,10 @@ h3 { font-size: 24px; color: #303133; margin-bottom: 8px; }
   gap: 12px;
 }
 
-.label { font-size: 14px; color: #606266; }
+.label {
+  font-size: 14px;
+  color: #606266;
+}
 
 /* 简单的淡入动画 */
 .step-fade {
@@ -234,7 +245,14 @@ h3 { font-size: 24px; color: #303133; margin-bottom: 8px; }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>

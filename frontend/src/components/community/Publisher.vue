@@ -7,54 +7,30 @@
           <el-tag size="small" effect="plain" round closable @close="clearTopic">#{{ selectedTopic }}</el-tag>
         </div>
 
-        <el-input
-          v-model="newPostText"
-          type="textarea"
-          :rows="3"
-          placeholder="分享你的训练心得，或者晒出今天的 AI 战报..."
-          resize="none"
-          maxlength="200"
-          show-word-limit
-        />
+        <el-input v-model="newPostText" type="textarea" :rows="3" placeholder="分享你的训练心得，或者晒出今天的 AI 战报..." resize="none"
+          maxlength="200" show-word-limit />
 
         <div class="publisher-actions">
           <div class="action-icons">
-            <el-upload
-              class="post-uploader"
-              :http-request="handleImageUpload"
-              :on-remove="handleImageRemove"
-              :file-list="uploadedFileList"
-              :limit="9"
-              multiple
-              accept="image/*"
-              list-type="picture-card"
-            >
-              <el-icon><Picture /></el-icon>
+            <el-upload class="post-uploader" :http-request="handleImageUpload" :on-remove="handleImageRemove"
+              :file-list="uploadedFileList" :limit="9" multiple accept="image/*" list-type="picture-card">
+              <el-icon>
+                <Picture />
+              </el-icon>
             </el-upload>
 
             <el-popover v-model:visible="isTopicPopoverVisible" placement="bottom-start" :width="320" trigger="click">
               <div class="topic-popover">
                 <div class="topic-suggest-title">推荐话题</div>
                 <div class="topic-suggest-list">
-                  <el-tag
-                    v-for="name in recommendedTopics"
-                    :key="name"
-                    class="topic-suggest-tag"
-                    effect="plain"
-                    round
-                    @click="selectTopic(name)"
-                  >
+                  <el-tag v-for="name in recommendedTopics" :key="name" class="topic-suggest-tag" effect="plain" round
+                    @click="selectTopic(name)">
                     #{{ name }}
                   </el-tag>
                 </div>
                 <el-divider style="margin: 12px 0;" />
-                <el-input
-                  v-model="customTopic"
-                  placeholder="自定义话题（不需要输入#）"
-                  maxlength="20"
-                  clearable
-                  @keyup.enter="applyCustomTopic"
-                />
+                <el-input v-model="customTopic" placeholder="自定义话题（不需要输入#）" maxlength="20" clearable
+                  @keyup.enter="applyCustomTopic" />
                 <div class="topic-popover-actions">
                   <el-button size="small" @click="clearTopic">清空</el-button>
                   <el-button size="small" type="primary" @click="applyCustomTopic">使用话题</el-button>
@@ -62,20 +38,16 @@
               </div>
               <template #reference>
                 <el-button link type="primary">
-                  <el-icon size="18"><CollectionTag /></el-icon> 话题
+                  <el-icon size="18">
+                    <CollectionTag />
+                  </el-icon> 话题
                 </el-button>
               </template>
             </el-popover>
           </div>
 
-          <el-button
-            type="primary"
-            round
-            class="publish-btn"
-            :loading="isPublishing"
-            :disabled="!newPostText.trim()"
-            @click="publishPost"
-          >
+          <el-button type="primary" round class="publish-btn" :loading="isPublishing" :disabled="!newPostText.trim()"
+            @click="publishPost">
             发布动态
           </el-button>
         </div>

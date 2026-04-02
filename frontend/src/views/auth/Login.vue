@@ -10,21 +10,17 @@
       </div>
 
       <el-tabs v-model="activeTab" class="auth-tabs">
-        
+
         <el-tab-pane label="密码登录" name="login">
-          <el-form 
-            ref="loginFormRef" 
-            :model="loginForm" 
-            :rules="loginRules" 
-            size="large"
-            @keyup.enter="handleDebounceLogin"
-          >
+          <el-form ref="loginFormRef" :model="loginForm" :rules="loginRules" size="large"
+            @keyup.enter="handleDebounceLogin">
             <el-form-item prop="username">
               <el-input v-model="loginForm.username" placeholder="请输入用户名/邮箱" :prefix-icon="User" clearable />
             </el-form-item>
-            
+
             <el-form-item prop="password">
-              <el-input v-model="loginForm.password" type="password" placeholder="请输入密码" :prefix-icon="Lock" show-password />
+              <el-input v-model="loginForm.password" type="password" placeholder="请输入密码" :prefix-icon="Lock"
+                show-password />
             </el-form-item>
 
             <div class="login-options">
@@ -35,12 +31,7 @@
             </div>
 
             <el-form-item>
-              <el-button 
-                type="primary" 
-                class="submit-btn" 
-                :loading="isLoading" 
-                @click="handleDebounceLogin"
-              >
+              <el-button type="primary" class="submit-btn" :loading="isLoading" @click="handleDebounceLogin">
                 登 录
               </el-button>
             </el-form-item>
@@ -48,22 +39,12 @@
         </el-tab-pane>
 
         <el-tab-pane label="新用户注册" name="register">
-          <el-form 
-            ref="registerFormRef" 
-            :model="registerForm" 
-            :rules="registerRules" 
-            size="large"
-          >
+          <el-form ref="registerFormRef" :model="registerForm" :rules="registerRules" size="large">
             <el-form-item prop="email">
               <div class="email-input-wrapper">
                 <el-input v-model="registerForm.email" placeholder="请输入邮箱地址" :prefix-icon="Message" clearable />
-                <el-button 
-                  type="primary" 
-                  plain 
-                  class="code-btn" 
-                  :disabled="isSendingCode || countdown > 0"
-                  @click="handleSendCode"
-                >
+                <el-button type="primary" plain class="code-btn" :disabled="isSendingCode || countdown > 0"
+                  @click="handleSendCode">
                   {{ countdown > 0 ? `${countdown}s 后重发` : '获取验证码' }}
                 </el-button>
               </div>
@@ -76,22 +57,19 @@
             <el-form-item prop="username">
               <el-input v-model="registerForm.username" placeholder="设置用户名 (不可重复)" :prefix-icon="User" clearable />
             </el-form-item>
-            
+
             <el-form-item prop="password">
-              <el-input v-model="registerForm.password" type="password" placeholder="设置密码 (至少6位)" :prefix-icon="Lock" show-password />
+              <el-input v-model="registerForm.password" type="password" placeholder="设置密码 (至少6位)" :prefix-icon="Lock"
+                show-password />
             </el-form-item>
 
             <el-form-item prop="confirmPassword">
-              <el-input v-model="registerForm.confirmPassword" type="password" placeholder="请再次确认密码" :prefix-icon="Lock" show-password />
+              <el-input v-model="registerForm.confirmPassword" type="password" placeholder="请再次确认密码" :prefix-icon="Lock"
+                show-password />
             </el-form-item>
 
             <el-form-item>
-              <el-button 
-                type="success" 
-                class="submit-btn" 
-                :loading="isLoading" 
-                @click="handleRegister"
-              >
+              <el-button type="success" class="submit-btn" :loading="isLoading" @click="handleRegister">
                 立即注册
               </el-button>
             </el-form-item>
@@ -100,29 +78,14 @@
 
       </el-tabs>
     </el-card>
-    <el-dialog
-      v-model="forgetPasswordVisible"
-      title="重置密码"
-      width="400px"
-      append-to-body
-      class="forget-password-dialog"
-      @close="resetForgetForm"
-    >
-      <el-form 
-        ref="forgetFormRef" 
-        :model="forgetForm" 
-        :rules="forgetRules" 
-        label-position="top"
-      >
+    <el-dialog v-model="forgetPasswordVisible" title="重置密码" width="400px" append-to-body class="forget-password-dialog"
+      @close="resetForgetForm">
+      <el-form ref="forgetFormRef" :model="forgetForm" :rules="forgetRules" label-position="top">
         <el-form-item label="邮箱地址" prop="email">
           <div class="email-input-wrapper">
             <el-input v-model="forgetForm.email" placeholder="请输入绑定的邮箱" />
-            <el-button 
-              type="primary" 
-              plain 
-              :disabled="forgetCountdown > 0 || isSendingForgetCode"
-              @click="handleSendForgetCode"
-            >
+            <el-button type="primary" plain :disabled="forgetCountdown > 0 || isSendingForgetCode"
+              @click="handleSendForgetCode">
               {{ forgetCountdown > 0 ? `${forgetCountdown}s` : '获取' }}
             </el-button>
           </div>
@@ -191,7 +154,7 @@ const registerFormRef = ref(null)
 const validateUsernameUnique = async (rule, value, callback) => {
   if (!value) return callback()
   if (value.length < 3) return callback()
-  
+
   try {
     const isExists = await request.get(`/auth/check-username?username=${value}`)
     if (isExists) {
@@ -316,23 +279,23 @@ const debounce = (fn, delay = 500) => {
 // 真实的登录逻辑
 const executeLogin = async () => {
   if (!loginFormRef.value) return
-  
+
   try {
     // 开启表单校验
     await loginFormRef.value.validate()
-    
-    isLoading.value = true 
-    
+
+    isLoading.value = true
+
     const response = await request.post('/auth/login', {
       username: loginForm.username,
       password: loginForm.password
     })
 
     ElMessage.success('登录成功！')
-    
+
     // 1. 存储 Token
     localStorage.setItem('jwt_token', response.token)
-    
+
     // 2. 存储首次登录标记 (后端字段名为 firstLogin)
     const isFirst = !!response.firstLogin
     localStorage.setItem('is_first_login', isFirst.toString())
@@ -357,13 +320,13 @@ const handleDebounceLogin = debounce(executeLogin, 300)
 // 注册逻辑
 const handleRegister = async () => {
   if (!registerFormRef.value) return
-  
+
   try {
     // 1. 开启表单校验
     await registerFormRef.value.validate()
-    
+
     isLoading.value = true
-    
+
     // 2. 调用注册接口
     await request.post('/auth/register', {
       email: registerForm.email,
@@ -373,22 +336,22 @@ const handleRegister = async () => {
     })
 
     ElMessage.success('注册成功！请登录')
-    
+
     // 3. 注册成功后的 UI 处理
     activeTab.value = 'login'
     loginForm.username = registerForm.username
-    
+
     // 清空注册表单
     registerForm.email = ''
     registerForm.username = ''
     registerForm.password = ''
     registerForm.confirmPassword = ''
     registerForm.code = ''
-    
+
     // 重置倒计时
     if (timer) clearInterval(timer)
     countdown.value = 0
-    
+
   } catch (error) {
     console.error('Register error:', error)
   } finally {
@@ -420,13 +383,13 @@ const forgetRules = reactive({
   code: [{ required: true, len: 6, message: '请输入6位验证码', trigger: 'blur' }],
   newPassword: [{ required: true, min: 6, message: '密码至少6位', trigger: 'blur' }],
   confirmPassword: [
-    { 
-      required: true, 
+    {
+      required: true,
       validator: (rule, value, callback) => {
         if (value !== forgetForm.newPassword) callback(new Error('两次输入不一致'))
         else callback()
-      }, 
-      trigger: 'blur' 
+      },
+      trigger: 'blur'
     }
   ]
 })
@@ -440,10 +403,10 @@ const handleSendForgetCode = async () => {
     isSendingForgetCode.value = true
     await request.post(`/auth/code/reset?email=${forgetForm.email}`)
     ElMessage.success('验证码已发送')
-    
+
     // 防御性编程：如果之前有定时器，先清除
-    if (forgetTimer) clearInterval(forgetTimer) 
-    
+    if (forgetTimer) clearInterval(forgetTimer)
+
     forgetCountdown.value = 60
     forgetTimer = setInterval(() => {
       forgetCountdown.value--
@@ -492,7 +455,8 @@ const resetForgetForm = () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: #f0f4f8; /* 浅灰蓝背景 */
+  background: #f0f4f8;
+  /* 浅灰蓝背景 */
   position: relative;
   overflow: hidden;
 }
@@ -504,6 +468,7 @@ const resetForgetForm = () => {
   filter: blur(80px);
   z-index: 0;
 }
+
 .shape1 {
   width: 400px;
   height: 400px;
@@ -511,6 +476,7 @@ const resetForgetForm = () => {
   top: -100px;
   left: -100px;
 }
+
 .shape2 {
   width: 500px;
   height: 500px;

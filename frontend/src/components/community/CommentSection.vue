@@ -4,19 +4,14 @@
       <el-avatar :size="32" :src="viewerAvatar" />
       <div class="input-wrapper">
         <div v-if="replyTarget" class="reply-target-bar">
-          <span class="reply-hint">正在回复 @{{ replyTarget.author }}<span v-if="replyTarget.content">：{{ clipText(replyTarget.content, 60) }}</span></span>
+          <span class="reply-hint">正在回复 @{{ replyTarget.author }}<span v-if="replyTarget.content">：{{
+            clipText(replyTarget.content, 60) }}</span></span>
           <el-button link type="info" :icon="Close" @click="cancelReply">取消</el-button>
         </div>
-        
-        <el-input
-          v-model="input"
-          type="textarea"
-          :autosize="{ minRows: 1, maxRows: 4 }"
-          :placeholder="replyTarget ? `回复 @${replyTarget.author}...` : '友善评论，文明发言...'"
-          resize="none"
-          @keydown.enter.exact.prevent="submit"
-          class="custom-comment-input"
-        />
+
+        <el-input v-model="input" type="textarea" :autosize="{ minRows: 1, maxRows: 4 }"
+          :placeholder="replyTarget ? `回复 @${replyTarget.author}...` : '友善评论，文明发言...'" resize="none"
+          @keydown.enter.exact.prevent="submit" class="custom-comment-input" />
         <div class="input-footer">
           <span class="hint">Enter 发送 / Shift + Enter 换行</span>
           <el-button size="small" type="primary" round :loading="submitting" :disabled="!input.trim()" @click="submit">
@@ -31,16 +26,15 @@
         <el-avatar :size="36" :src="c.avatar" style="cursor: pointer;" @click="$emit('go-to-space', c.userId)" />
         <div class="comment-content-box">
           <div class="comment-meta">
-            <span class="comment-author" style="cursor: pointer;" @click="$emit('go-to-space', c.userId)">{{ c.author }}</span>
+            <span class="comment-author" style="cursor: pointer;" @click="$emit('go-to-space', c.userId)">{{ c.author
+              }}</span>
             <template v-if="c.parentId">
               <span class="reply-label">回复</span>
-              <span
-                class="reply-user"
-                :style="{ cursor: getReplyToUserId(c) ? 'pointer' : 'default' }"
-                @click="$emit('go-to-space', getReplyToUserId(c))"
-              >@{{ getReplyToUserName(c) }}</span>
+              <span class="reply-user" :style="{ cursor: getReplyToUserId(c) ? 'pointer' : 'default' }"
+                @click="$emit('go-to-space', getReplyToUserId(c))">@{{ getReplyToUserName(c) }}</span>
             </template>
-            <el-tag v-if="String(c.userId) === String(postAuthorId)" size="small" effect="plain" class="author-tag">作者</el-tag>
+            <el-tag v-if="String(c.userId) === String(postAuthorId)" size="small" effect="plain"
+              class="author-tag">作者</el-tag>
             <span class="comment-time">{{ c.time }}</span>
           </div>
           <div v-if="c.parentId && getReplyToContent(c)" class="reply-quote">
@@ -51,28 +45,23 @@
             <div class="left-interaction">
               <el-button link size="small" @click="onReply(c)">回复</el-button>
             </div>
-            
+
             <div class="right-interaction">
-              <el-button 
-                v-if="canDelete(c)" 
-                link 
-                type="danger" 
-                size="small" 
-                :icon="Delete"
-                @click="handleDelete(c.id)"
-                class="comment-delete-btn"
-              >
+              <el-button v-if="canDelete(c)" link type="danger" size="small" :icon="Delete" @click="handleDelete(c.id)"
+                class="comment-delete-btn">
                 删除
               </el-button>
             </div>
           </div>
-          
+
         </div>
       </div>
 
       <div v-if="hasMore" class="load-more-comments">
         <el-button text size="small" :loading="loadingMore" @click="loadMore">
-          查看更多评论 <el-icon><ArrowDown /></el-icon>
+          查看更多评论 <el-icon>
+            <ArrowDown />
+          </el-icon>
         </el-button>
       </div>
     </div>
@@ -213,17 +202,17 @@ const handleDelete = async (commentId) => {
       '提示',
       { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' }
     )
-    
+
     // 调用你之前写好的后端接口
     await request.delete(`/posts/comments/${commentId}`)
-    
+
     // 前端本地状态同步：从数组中滤掉这一条
     comments.value = comments.value.filter(c => c.id !== commentId)
     total.value -= 1
-    
+
     // 通知父组件（PostItem）更新评论计数
     emit('comment-deleted', postIdNum.value)
-    
+
     ElMessage.success('评论已删除')
   } catch (error) {
     if (error !== 'cancel') {
@@ -348,27 +337,32 @@ onMounted(() => {
 /* 新增：新的操作栏容器样式 */
 .comment-footer-actions {
   display: flex;
-  justify-content: space-between; /* 关键：让左侧和右侧分别对齐两端 */
+  justify-content: space-between;
+  /* 关键：让左侧和右侧分别对齐两端 */
   align-items: center;
-  margin-top: 8px; /* 保持与评论正文的距离 */
+  margin-top: 8px;
+  /* 保持与评论正文的距离 */
 }
 
 /* 左侧按钮组 */
 .comment-footer-actions .left-interaction {
   display: flex;
-  gap: 12px; /* 如果将来有多个按钮，它们之间有间距 */
+  gap: 12px;
+  /* 如果将来有多个按钮，它们之间有间距 */
   align-items: center;
 }
 
 /* 右侧删除按钮 */
 .comment-delete-btn {
   transition: all 0.3s ease;
-  font-size: 13px !important; /* 让它比正文稍小一点，不喧宾夺主 */
+  font-size: 13px !important;
+  /* 让它比正文稍小一点，不喧宾夺主 */
 }
 
 /* 增加点视觉反馈，让删除更有警示感 */
 .comment-delete-btn:hover {
-  background-color: #fef0f0; /* 悬停时淡淡的红色背景 */
+  background-color: #fef0f0;
+  /* 悬停时淡淡的红色背景 */
   border-radius: 4px;
 }
 

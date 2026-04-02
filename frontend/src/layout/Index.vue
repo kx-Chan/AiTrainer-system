@@ -1,14 +1,8 @@
 <template>
   <div class="app-wrapper">
-    
-    <el-menu 
-      v-if="route.path !== '/onboarding'"
-      mode="horizontal" 
-      :default-active="route.path" 
-      router 
-      class="custom-top-nav"
-      :ellipsis="false"
-    >
+
+    <el-menu v-if="route.path !== '/onboarding'" mode="horizontal" :default-active="route.path" router
+      class="custom-top-nav" :ellipsis="false">
       <div class="brand-logo">
         <img src="/爱健身.png" alt="AiTrainer Logo" class="logo-img" />
         <span class="logo-text">AiTrainer</span>
@@ -21,7 +15,9 @@
       <el-menu-item index="/diet">营养膳食</el-menu-item>
       <el-menu-item index="/dashboard">数据看板</el-menu-item>
       <el-menu-item index="/coach" class="ai-nav-item">
-        <el-icon><Microphone /></el-icon> AI 私教
+        <el-icon>
+          <Microphone />
+        </el-icon> AI 私教
       </el-menu-item>
       <el-menu-item index="/profile">个人主页</el-menu-item>
 
@@ -32,7 +28,9 @@
           <span class="user-dropdown-link">
             <el-avatar :size="32" :src="avatar" />
             <span class="username">{{ nickname }}</span>
-            <el-icon><ArrowDown /></el-icon>
+            <el-icon>
+              <ArrowDown />
+            </el-icon>
           </span>
           <template #dropdown>
             <el-dropdown-menu>
@@ -72,7 +70,7 @@ const { avatar, nickname } = storeToRefs(userStore)
 // App.vue 中的 handleProfileUpdated
 const handleProfileUpdated = async (event) => {
   console.log('收到资料更新信号:', event.detail)
-  
+
   // 方案 A：如果事件传了具体数据，直接同步到 Store
   if (event.detail && (event.detail.nickname || event.detail.avatar)) {
     userStore.$patch({
@@ -110,14 +108,14 @@ const handleLogout = () => {
   height: 60px;
   display: flex;
   align-items: center;
-  border-bottom: none !important; 
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04); 
+  border-bottom: none !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
   padding: 0 20px;
   position: sticky;
   top: 0;
   z-index: 1000;
   background-color: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px); 
+  backdrop-filter: blur(10px);
 }
 
 /* ================= 修改点：Logo 区域样式 ================= */
@@ -127,6 +125,7 @@ const handleLogout = () => {
   padding-left: 10px;
   /* 已经删除了 cursor: pointer 和悬浮效果 */
 }
+
 .logo-img {
   width: 32px;
   height: 32px;
@@ -134,6 +133,7 @@ const handleLogout = () => {
   margin-right: 10px;
   object-fit: contain;
 }
+
 .logo-text {
   font-size: 22px;
   font-weight: 900;
@@ -144,7 +144,9 @@ const handleLogout = () => {
 }
 
 /* 占位符弹簧 */
-.flex-grow { flex-grow: 1; }
+.flex-grow {
+  flex-grow: 1;
+}
 
 .custom-top-nav .el-menu-item {
   font-size: 15px;
@@ -153,6 +155,7 @@ const handleLogout = () => {
   border-bottom: 2px solid transparent;
   transition: all 0.3s;
 }
+
 .custom-top-nav .el-menu-item.is-active {
   font-weight: bold;
   color: #409EFF !important;
@@ -163,6 +166,7 @@ const handleLogout = () => {
 .ai-nav-item {
   color: #8a2be2 !important;
 }
+
 .ai-nav-item.is-active {
   border-bottom-color: #8a2be2 !important;
 }
@@ -173,6 +177,7 @@ const handleLogout = () => {
   margin-left: 20px;
   padding-right: 10px;
 }
+
 .user-dropdown-link {
   display: flex;
   align-items: center;
@@ -180,6 +185,7 @@ const handleLogout = () => {
   cursor: pointer;
   outline: none;
 }
+
 .username {
   font-size: 14px;
   font-weight: 500;
@@ -195,6 +201,7 @@ const handleLogout = () => {
 .fade-leave-active {
   transition: opacity 0.2s ease;
 }
+
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;

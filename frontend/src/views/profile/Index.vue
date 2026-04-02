@@ -5,16 +5,18 @@
         <div class="avatar-section">
           <el-avatar :size="100" :src="userInfo.avatar" />
         </div>
-        
+
         <div class="info-section">
           <div class="name-row">
             <h2 class="nickname">{{ userInfo.nickname }}</h2>
-            <el-tag type="warning" effect="light" round size="small" style="margin-left: 8px;">目标: {{ userInfo.goal }}</el-tag>
-            
-            <el-button type="primary" :icon="Edit" plain size="small" class="edit-btn" @click="openEditModal">编辑资料</el-button>
+            <el-tag type="warning" effect="light" round size="small" style="margin-left: 8px;">目标: {{ userInfo.goal
+            }}</el-tag>
+
+            <el-button type="primary" :icon="Edit" plain size="small" class="edit-btn"
+              @click="openEditModal">编辑资料</el-button>
           </div>
           <p class="bio">{{ userInfo.bio }}</p>
-          
+
           <div class="stats-row">
             <div class="stat-item clickable" @click="openFollowDialog('following')">
               <span class="stat-value">{{ userInfo.following }}</span>
@@ -29,10 +31,12 @@
             <div class="stat-item">
               <span class="stat-value">{{ userInfo.totalLikes }}</span>
               <span class="stat-label">
-                累计获赞 
+                累计获赞
                 <el-icon class="like-icon">
                   <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
-                    <path fill="currentColor" d="M512 896a32 32 0 0 1-22.624-9.376l-320-320a320 320 0 1 1 452.624-452.624L512 204.032l90.016-90.032a320 320 0 1 1 452.624 452.624l-320 320A32 32 0 0 1 512 896z"></path>
+                    <path fill="currentColor"
+                      d="M512 896a32 32 0 0 1-22.624-9.376l-320-320a320 320 0 1 1 452.624-452.624L512 204.032l90.016-90.032a320 320 0 1 1 452.624 452.624l-320 320A32 32 0 0 1 512 896z">
+                    </path>
                   </svg>
                 </el-icon>
               </span>
@@ -44,19 +48,16 @@
 
     <el-card class="content-card" shadow="never">
       <el-tabs v-model="activeTab" class="custom-tabs">
-        
+
         <el-tab-pane label="我的推文" name="posts">
           <div v-loading="myPostsLoading" class="post-list">
             <div class="my-posts-search-bar">
-              <el-input 
-                v-model="myPostsSearchKeyword" 
-                placeholder="输入关键字，搜索我的历史动态..." 
-                clearable
-                @keyup.enter="handleMyPostsSearch"
-                @clear="handleMyPostsSearch"
-              >
+              <el-input v-model="myPostsSearchKeyword" placeholder="输入关键字，搜索我的历史动态..." clearable
+                @keyup.enter="handleMyPostsSearch" @clear="handleMyPostsSearch">
                 <template #prefix>
-                  <el-icon><Search /></el-icon>
+                  <el-icon>
+                    <Search />
+                  </el-icon>
                 </template>
                 <template #append>
                   <el-button @click="handleMyPostsSearch">搜索</el-button>
@@ -64,20 +65,15 @@
               </el-input>
             </div>
 
-            <el-card
-              v-for="post in myPosts"
-              :key="post.id"
-              class="post-item clickable-post"
-              shadow="hover"
-              style="margin-bottom: 12px;"
-              @click="openMyPostInCommunity(post)"
-            >
+            <el-card v-for="post in myPosts" :key="post.id" class="post-item clickable-post" shadow="hover"
+              style="margin-bottom: 12px;" @click="openMyPostInCommunity(post)">
               <div style="display:flex; gap:12px; align-items:center;">
                 <el-avatar :size="32" :src="userInfo.avatar" />
                 <div style="flex:1;">
                   <div style="font-weight:600;">
-                    {{ userInfo.nickname }} 
-                    <el-tag v-if="userInfo.isPro" type="warning" size="small" effect="dark" round class="pro-tag">PRO</el-tag>
+                    {{ userInfo.nickname }}
+                    <el-tag v-if="userInfo.isPro" type="warning" size="small" effect="dark" round
+                      class="pro-tag">PRO</el-tag>
                   </div>
                   <div style="color:#909399; font-size:12px;">
                     {{ formatDate(post.time) }} · {{ post.device || '来自 AiTrainer' }}
@@ -87,13 +83,8 @@
                   <el-tag :type="post.type === 'AI战报' ? 'warning' : 'info'" size="small">
                     {{ post.type }}
                   </el-tag>
-                  <el-button
-                    link
-                    type="danger"
-                    :icon="Delete"
-                    :loading="Number(deletingMyPostId) === Number(post.id)"
-                    @click.stop="handleDeleteMyPost(post)"
-                  >删除</el-button>
+                  <el-button link type="danger" :icon="Delete" :loading="Number(deletingMyPostId) === Number(post.id)"
+                    @click.stop="handleDeleteMyPost(post)">删除</el-button>
                 </div>
               </div>
 
@@ -106,14 +97,8 @@
             <el-empty v-if="myPosts.length === 0" description="你还没有发布过动态，快去社区分享吧！" />
 
             <div style="display:flex; justify-content:center; margin-top:16px;">
-              <el-pagination
-                v-model:current-page="myPostsPage.page"
-                v-model:page-size="myPostsPage.size"
-                :total="myPostsPage.total"
-                layout="prev, pager, next"
-                small
-                @current-change="handleMyPostsPageChange"
-              />
+              <el-pagination v-model:current-page="myPostsPage.page" v-model:page-size="myPostsPage.size"
+                :total="myPostsPage.total" layout="prev, pager, next" small @current-change="handleMyPostsPageChange" />
             </div>
           </div>
         </el-tab-pane>
@@ -126,33 +111,24 @@
             </el-radio-group>
           </div>
           <div class="post-list" style="margin-top: 16px;">
-            <el-card
-              v-for="post in footprintPosts"
-              :key="post.id"
-              class="post-item clickable-post"
-              shadow="hover"
-              style="margin-bottom: 12px;"
-              @click="openFootprintPostInCommunity(post)"
-            >
+            <el-card v-for="post in footprintPosts" :key="post.id" class="post-item clickable-post" shadow="hover"
+              style="margin-bottom: 12px;" @click="openFootprintPostInCommunity(post)">
               <div style="display:flex;gap:12px;align-items:center;">
                 <el-avatar :size="32" :src="post.avatar" />
                 <div style="flex:1;">
-                  <div style="font-weight:600;">{{ post.author }} <el-tag v-if="post.isPro" type="warning" size="small" effect="dark" round class="pro-tag">PRO</el-tag></div>
+                  <div style="font-weight:600;">{{ post.author }} <el-tag v-if="post.isPro" type="warning" size="small"
+                      effect="dark" round class="pro-tag">PRO</el-tag></div>
                   <div style="color:#909399;font-size:12px;">{{ formatDate(post.time) }} · {{ post.device }}</div>
                 </div>
               </div>
               <div style="margin-top:8px;">
-                <span v-if="post.topic" style="color:#409EFF;margin-right:4px;">{{ post.topic }}</span>{{ post.content }}
+                <span v-if="post.topic" style="color:#409EFF;margin-right:4px;">{{ post.topic }}</span>{{ post.content
+                }}
               </div>
             </el-card>
             <div style="display:flex;justify-content:center;margin-top:12px;">
-              <el-pagination
-                v-model:current-page="footprintPage.page"
-                v-model:page-size="footprintPage.size"
-                :total="footprintPage.total"
-                layout="prev, pager, next"
-                @current-change="fetchFootprints"
-              />
+              <el-pagination v-model:current-page="footprintPage.page" v-model:page-size="footprintPage.size"
+                :total="footprintPage.total" layout="prev, pager, next" @current-change="fetchFootprints" />
             </div>
           </div>
         </el-tab-pane>
@@ -160,33 +136,29 @@
         <el-tab-pane label="我的收藏" name="collections">
           <div class="collection-toolbar">
             <div class="toolbar-left">
-              <el-icon class="title-icon"><FolderOpened /></el-icon>
+              <el-icon class="title-icon">
+                <FolderOpened />
+              </el-icon>
               <span class="toolbar-title">我的收藏夹</span>
             </div>
 
             <div class="toolbar-right">
-              <el-input 
-                v-model="folderSearchKeyword" 
-                placeholder="输入名称搜索..." 
-                class="search-input-group"
-                clearable
-                @keyup.enter="handleFolderSearch"
-                @clear="handleFolderSearch"
-              >
+              <el-input v-model="folderSearchKeyword" placeholder="输入名称搜索..." class="search-input-group" clearable
+                @keyup.enter="handleFolderSearch" @clear="handleFolderSearch">
                 <template #prefix>
-                  <el-icon><Search /></el-icon>
+                  <el-icon>
+                    <Search />
+                  </el-icon>
                 </template>
                 <template #append>
                   <el-button :icon="Search" @click="handleFolderSearch">搜索</el-button>
                 </template>
               </el-input>
 
-              <el-button 
-                type="primary" 
-                class="create-btn"
-                @click="startCreateFolder"
-              >
-                <el-icon style="margin-right: 4px;"><Plus /></el-icon>
+              <el-button type="primary" class="create-btn" @click="startCreateFolder">
+                <el-icon style="margin-right: 4px;">
+                  <Plus />
+                </el-icon>
                 新建收藏夹
               </el-button>
             </div>
@@ -195,7 +167,7 @@
           <el-row :gutter="20" class="collection-grid">
             <el-col :span="8" v-for="folder in collectionFolders" :key="folder.id">
               <el-card class="folder-card" shadow="hover" @click="goToFolderDetail(folder)">
-                
+
                 <div class="folder-tags">
                   <el-tag v-if="folder.isDefault === 1" size="small" type="warning" effect="dark" round>默认</el-tag>
                   <el-tag :type="folder.isPublic === 1 ? 'success' : 'info'" size="small" effect="plain" round>
@@ -204,7 +176,9 @@
                 </div>
 
                 <div class="folder-visual">
-                  <el-icon class="folder-main-icon"><FolderOpened /></el-icon>
+                  <el-icon class="folder-main-icon">
+                    <FolderOpened />
+                  </el-icon>
                 </div>
 
                 <div class="folder-info">
@@ -214,7 +188,7 @@
 
                 <div class="folder-footer" @click.stop>
                   <el-button link type="primary" @click.stop="handleEditFolder(folder)">编辑</el-button>
-                  
+
                   <template v-if="folder.isDefault !== 1">
                     <el-divider direction="vertical" />
                     <el-button link type="warning" @click.stop="handleSetDefault(folder)">设为默认</el-button>
@@ -233,18 +207,16 @@
       </el-tabs>
     </el-card>
 
-    <el-dialog v-model="isEditVisible" title="编辑个人资料" width="450px" destroy-on-close class="edit-dialog" @close="cancelEdit">
+    <el-dialog v-model="isEditVisible" title="编辑个人资料" width="450px" destroy-on-close class="edit-dialog"
+      @close="cancelEdit">
       <el-form label-width="80px" :model="editForm">
         <el-form-item label="用户头像">
-          <el-upload
-            class="avatar-uploader"
-            action="#"
-            :show-file-list="false"
-            :auto-upload="false"
-            :on-change="handleAvatarChange"
-          >
+          <el-upload class="avatar-uploader" action="#" :show-file-list="false" :auto-upload="false"
+            :on-change="handleAvatarChange">
             <img v-if="editForm.avatar" :src="editForm.avatar" class="uploaded-avatar" />
-            <el-icon v-else class="avatar-uploader-icon"><Plus /></el-icon>
+            <el-icon v-else class="avatar-uploader-icon">
+              <Plus />
+            </el-icon>
           </el-upload>
           <div class="upload-tip">点击头像可重新上传本地图片 (支持 jpg/png)</div>
         </el-form-item>
@@ -268,14 +240,8 @@
           <el-input-number v-model="editForm.bodyFat" :min="1" :max="50" :precision="1" :step="0.5" />
         </el-form-item>
         <el-form-item label="个性签名">
-          <el-input 
-            v-model="editForm.bio" 
-            type="textarea" 
-            :rows="3" 
-            placeholder="写一句激励自己的话吧..." 
-            maxlength="100" 
-            show-word-limit 
-          />
+          <el-input v-model="editForm.bio" type="textarea" :rows="3" placeholder="写一句激励自己的话吧..." maxlength="100"
+            show-word-limit />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -296,31 +262,20 @@
             <div class="follow-name" @click="handleUserClick(user.id)">{{ user.name }}</div>
             <div v-if="user.bio" class="follow-bio">{{ user.bio }}</div>
           </div>
-          <el-button
-            :type="user.isFollowing ? 'default' : 'primary'"
-            size="small"
-            plain
-            round
-            :loading="followActionLoadingId === user.id"
-            @click="toggleFollow(user)"
-          >
+          <el-button :type="user.isFollowing ? 'default' : 'primary'" size="small" plain round
+            :loading="followActionLoadingId === user.id" @click="toggleFollow(user)">
             {{ user.isFollowing ? '已关注' : '+ 关注' }}
           </el-button>
         </div>
       </div>
       <div style="display: flex; justify-content: center; margin-top: 16px;">
-        <el-pagination
-          v-model:current-page="followPage.page"
-          v-model:page-size="followPage.size"
-          :total="followPage.total"
-          :pager-count="5"
-          layout="prev, pager, next"
-          @current-change="fetchFollowList"
-        />
+        <el-pagination v-model:current-page="followPage.page" v-model:page-size="followPage.size"
+          :total="followPage.total" :pager-count="5" layout="prev, pager, next" @current-change="fetchFollowList" />
       </div>
     </el-dialog>
 
-    <el-dialog v-model="folderDialogVisible" :title="folderDialogMode === 'create' ? '新建收藏夹' : '编辑收藏夹'" width="420px" destroy-on-close>
+    <el-dialog v-model="folderDialogVisible" :title="folderDialogMode === 'create' ? '新建收藏夹' : '编辑收藏夹'" width="420px"
+      destroy-on-close>
       <el-form label-width="90px" :model="folderForm">
         <el-form-item label="收藏夹名称">
           <el-input v-model="folderForm.name" placeholder="请输入名称" maxlength="20" show-word-limit />
@@ -348,14 +303,14 @@
 <script setup>
 import { ref, reactive, onMounted, onUnmounted, watch } from 'vue'
 import { Edit, FolderOpened, Plus, Search, Delete } from '@element-plus/icons-vue'
-import { ElMessage, ElMessageBox } from 'element-plus' 
+import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 import { useRouter, useRoute } from 'vue-router'
 import { folderApi } from '@/api/collection'
 
 // ================= 1. 核心状态定义 =================
 // 关键点：因为这是“我的”页面，isMe 永远为 true
-const isMe = true 
+const isMe = true
 
 const router = useRouter()
 const route = useRoute()
@@ -437,14 +392,14 @@ const handleUserClick = (userId) => {
   // 计科细节：获取当前登录用户的 ID（假设你在 store 里存了）
   // 如果点的是自己，直接关闭弹窗即可，或者跳到个人主页
   // 这里我们统一走跳转逻辑，路由会自动处理
-  
+
   // 1. 先关闭当前的关注/粉丝弹窗，防止遮挡跳转后的页面
   isFollowVisible.value = false
-  
+
   // 2. 执行跳转
-  router.push({ 
+  router.push({
     name: 'UserSpace', // 确保你的路由表中这个页面的 name 叫 UserSpace
-    params: { id: String(userId) } 
+    params: { id: String(userId) }
   })
 }
 
@@ -462,10 +417,10 @@ const fetchMyPosts = async () => {
     const keywordParam = myPostsSearchKeyword.value ? myPostsSearchKeyword.value.trim() : ''
     const data = await request.get('/posts/me', {
       params: {
-      page: myPostsPage.page,
-      size: myPostsPage.size,
-      keyword: keywordParam // 传给后端的干净的字符串
-    }
+        page: myPostsPage.page,
+        size: myPostsPage.size,
+        keyword: keywordParam // 传给后端的干净的字符串
+      }
     })
     myPostsPage.total = data?.total ?? 0
     myPosts.value = data?.records || []
@@ -560,7 +515,7 @@ const saveProfile = async () => {
 
     // 1. 发送更新请求
     await request.post('/profile/update', editForm)
-    
+
     // 2. ✅ 核心修改：手动通知 App.vue (导航栏) 更新
     window.dispatchEvent(new CustomEvent('profile:updated', {
       detail: {
@@ -638,7 +593,7 @@ const handleSetDefault = async (folder) => {
     await folderApi.setDefault(folder.id)
     ElMessage.success('已更改默认收藏夹')
     fetchFolders() // 刷新列表，看到“默认”标签转移
-  } catch (e) {  }
+  } catch (e) { }
 }
 
 const startCreateFolder = () => {
@@ -698,7 +653,7 @@ const goToFolderDetail = (folder) => {
   if (!folder?.id) return
   try {
     sessionStorage.setItem('profile:returnTo', 'collections')
-  } catch (e) {}
+  } catch (e) { }
   router.push({ name: 'CollectionDetail', params: { id: String(folder.id) }, query: { from: 'profile', tab: 'collections' } })
 }
 
@@ -714,15 +669,15 @@ onMounted(() => {
   const queryTab = String(route.query?.tab || '').trim()
   if (queryTab) {
     activeTab.value = queryTab
-    try { sessionStorage.setItem('profile:lastTab', queryTab) } catch (e) {}
+    try { sessionStorage.setItem('profile:lastTab', queryTab) } catch (e) { }
   } else {
     let fallback = ''
     try {
       fallback = sessionStorage.getItem('profile:returnTo') || sessionStorage.getItem('profile:lastTab') || ''
-    } catch (e) {}
+    } catch (e) { }
     if (fallback) {
       activeTab.value = fallback
-      try { sessionStorage.removeItem('profile:returnTo') } catch (e) {}
+      try { sessionStorage.removeItem('profile:returnTo') } catch (e) { }
     }
   }
   const handlePopState = () => {
@@ -730,15 +685,15 @@ onMounted(() => {
     let tab = ''
     try {
       tab = sessionStorage.getItem('profile:returnTo') || sessionStorage.getItem('profile:lastTab') || ''
-    } catch (e) {}
+    } catch (e) { }
     if (tab) {
       activeTab.value = tab
-      try { sessionStorage.removeItem('profile:returnTo') } catch (e) {}
+      try { sessionStorage.removeItem('profile:returnTo') } catch (e) { }
     }
   }
   window.addEventListener('popstate', handlePopState)
-  // 存到实例上以便卸载时移除
-  ;(window).__profile_popstate_handler__ = handlePopState
+    // 存到实例上以便卸载时移除
+    ; (window).__profile_popstate_handler__ = handlePopState
 })
 
 onUnmounted(() => {
@@ -750,12 +705,12 @@ watch(() => route.query?.tab, (val) => {
   const tab = String(val || '').trim()
   if (tab) {
     activeTab.value = tab
-    try { sessionStorage.setItem('profile:lastTab', tab) } catch (e) {}
+    try { sessionStorage.setItem('profile:lastTab', tab) } catch (e) { }
   }
 })
 
 watch(activeTab, (n) => {
-  try { sessionStorage.setItem('profile:lastTab', String(n || '')) } catch (e) {}
+  try { sessionStorage.setItem('profile:lastTab', String(n || '')) } catch (e) { }
   if (route.name === 'Profile') {
     const nextQuery = { ...(route.query || {}), tab: String(n || '') }
     router.replace({ name: 'Profile', query: nextQuery })
@@ -766,92 +721,131 @@ watch(activeTab, (n) => {
 
 <style scoped>
 /* ================= 1. 基础布局与动画 ================= */
-.profile-container { 
-  max-width: 1000px; 
-  margin: 0 auto; 
-  animation: fadeIn 0.5s ease; 
+.profile-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  animation: fadeIn 0.5s ease;
 }
 
-@keyframes fadeIn { 
-  from { opacity: 0; transform: translateY(10px); } 
-  to { opacity: 1; transform: translateY(0); } 
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ================= 2. 个人信息头部卡片 ================= */
-.profile-header-card { 
-  border-radius: 16px; 
-  background: linear-gradient(135deg, #ffffff 0%, #f8faff 100%); 
-  margin-bottom: 30px; 
+.profile-header-card {
+  border-radius: 16px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8faff 100%);
+  margin-bottom: 30px;
   border: none;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-.user-info-wrapper { 
-  display: flex; 
-  align-items: center; 
-  gap: 30px; 
-  padding: 10px; 
+.user-info-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  padding: 10px;
 }
 
-.avatar-section .el-avatar { 
-  border: 4px solid #fff; 
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); 
+.avatar-section .el-avatar {
+  border: 4px solid #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.info-section { flex: 1; }
-
-.name-row { 
-  display: flex; 
-  align-items: center; 
-  gap: 12px; 
-  margin-bottom: 8px; 
+.info-section {
+  flex: 1;
 }
 
-.nickname { 
-  margin: 0; 
-  font-size: 24px; 
+.name-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.nickname {
+  margin: 0;
+  font-size: 24px;
   font-weight: 600;
-  color: #303133; 
+  color: #303133;
 }
 
-.edit-btn { 
-  margin-left: auto; 
-  border-radius: 20px; 
+.edit-btn {
+  margin-left: auto;
+  border-radius: 20px;
 }
 
-.bio { 
-  color: #606266; 
-  font-size: 14px; 
-  margin-top: 0; 
-  margin-bottom: 20px; 
+.bio {
+  color: #606266;
+  font-size: 14px;
+  margin-top: 0;
+  margin-bottom: 20px;
 }
 
 /* 数据统计栏 */
-.stats-row { display: flex; align-items: center; gap: 20px; }
-.stat-item { 
-  display: flex; 
-  flex-direction: column; 
-  align-items: center; 
-  padding: 8px 16px; 
-  border-radius: 8px; 
-  transition: background-color 0.3s; 
+.stats-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
 }
-.stat-item.clickable { cursor: pointer; }
-.stat-item.clickable:hover { background-color: #f0f4f8; }
-.stat-value { font-size: 20px; font-weight: bold; color: #303133; }
-.stat-label { 
-  font-size: 12px; 
-  color: #909399; 
-  margin-top: 4px; 
-  display: flex; 
-  align-items: center; 
-  gap: 4px; 
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 16px;
+  border-radius: 8px;
+  transition: background-color 0.3s;
 }
-.stat-divider { width: 1px; height: 30px; background-color: #ebeef5; }
+
+.stat-item.clickable {
+  cursor: pointer;
+}
+
+.stat-item.clickable:hover {
+  background-color: #f0f4f8;
+}
+
+.stat-value {
+  font-size: 20px;
+  font-weight: bold;
+  color: #303133;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.stat-divider {
+  width: 1px;
+  height: 30px;
+  background-color: #ebeef5;
+}
 
 /* ================= 3. 内容区与足迹过滤器 ================= */
-.content-card { border-radius: 16px; min-height: 400px; border: none; }
-.custom-tabs :deep(.el-tabs__item) { font-size: 16px; font-weight: 500; }
+.content-card {
+  border-radius: 16px;
+  min-height: 400px;
+  border: none;
+}
+
+.custom-tabs :deep(.el-tabs__item) {
+  font-size: 16px;
+  font-weight: 500;
+}
 
 .clickable-post {
   cursor: pointer;
@@ -872,7 +866,7 @@ watch(activeTab, (n) => {
   transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
 }
 
-.follow-item + .follow-item {
+.follow-item+.follow-item {
   margin-top: 12px;
 }
 
@@ -934,8 +928,16 @@ watch(activeTab, (n) => {
   gap: 10px;
 }
 
-.title-icon { font-size: 20px; color: #409EFF; }
-.toolbar-title { font-size: 18px; font-weight: 600; color: #303133; }
+.title-icon {
+  font-size: 20px;
+  color: #409EFF;
+}
+
+.toolbar-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #303133;
+}
 
 .toolbar-right {
   display: flex;
@@ -952,7 +954,8 @@ watch(activeTab, (n) => {
 .search-input-group :deep(.el-input-group__append) {
   background-color: #409EFF !important;
   border: none;
-  padding: 0; /* 必须清空 padding */
+  padding: 0;
+  /* 必须清空 padding */
   overflow: hidden;
 }
 
@@ -962,9 +965,11 @@ watch(activeTab, (n) => {
   color: white !important;
   border: none;
   margin: 0;
-  height: 40px; /* 强制对齐 Element Plus 默认高度 */
+  height: 40px;
+  /* 强制对齐 Element Plus 默认高度 */
   padding: 0 20px;
-  border-radius: 0; /* 消除左侧圆角 */
+  border-radius: 0;
+  /* 消除左侧圆角 */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1009,8 +1014,16 @@ watch(activeTab, (n) => {
   transform-origin: right center;
 }
 
-.folder-visual { margin-top: 25px; margin-bottom: 10px; }
-.folder-main-icon { font-size: 52px; color: #409EFF; opacity: 0.7; }
+.folder-visual {
+  margin-top: 25px;
+  margin-bottom: 10px;
+}
+
+.folder-main-icon {
+  font-size: 52px;
+  color: #409EFF;
+  opacity: 0.7;
+}
 
 .folder-name {
   font-size: 16px;
@@ -1020,7 +1033,10 @@ watch(activeTab, (n) => {
   padding: 0 15px;
 }
 
-.folder-count { font-size: 13px; color: #909399; }
+.folder-count {
+  font-size: 13px;
+  color: #909399;
+}
 
 .folder-footer {
   margin-top: 20px;
@@ -1035,22 +1051,26 @@ watch(activeTab, (n) => {
 }
 
 .folder-card {
-  cursor: pointer; /* 鼠标悬停变小手 */
+  cursor: pointer;
+  /* 鼠标悬停变小手 */
   transition: all 0.3s;
 }
 
 .folder-card:hover {
-  transform: translateY(-5px); /* 悬停时稍微往上浮动，增加交互感 */
+  transform: translateY(-5px);
+  /* 悬停时稍微往上浮动，增加交互感 */
   border-color: #a0cfff;
 }
 
 /* 确保页脚按钮区域不要让用户觉得那是背景点击区 */
 .folder-footer {
-  cursor: default; /* 按钮区域恢复默认指针 */
+  cursor: default;
+  /* 按钮区域恢复默认指针 */
 }
 
 .like-icon {
-  color: #f56c6c; /* 漂亮的爱心红 */
+  color: #f56c6c;
+  /* 漂亮的爱心红 */
   vertical-align: middle;
   margin-left: 4px;
 }
@@ -1065,7 +1085,23 @@ watch(activeTab, (n) => {
   transition: 0.3s;
 }
 
-.avatar-uploader :deep(.el-upload:hover) { border-color: #409EFF; }
-.avatar-uploader-icon { font-size: 28px; color: #8c939d; width: 80px; height: 80px; line-height: 80px; text-align: center; }
-.uploaded-avatar { width: 80px; height: 80px; display: block; object-fit: cover; }
+.avatar-uploader :deep(.el-upload:hover) {
+  border-color: #409EFF;
+}
+
+.avatar-uploader-icon {
+  font-size: 28px;
+  color: #8c939d;
+  width: 80px;
+  height: 80px;
+  line-height: 80px;
+  text-align: center;
+}
+
+.uploaded-avatar {
+  width: 80px;
+  height: 80px;
+  display: block;
+  object-fit: cover;
+}
 </style>

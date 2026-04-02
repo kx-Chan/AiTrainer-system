@@ -2,39 +2,49 @@
   <div class="settings-wrapper">
     <el-card shadow="never" class="settings-card">
       <el-tabs tab-position="left" class="custom-tabs">
-        
+
         <el-tab-pane>
           <template #label>
             <span class="custom-tab-label">
-              <el-icon><Lock /></el-icon> 安全设置
+              <el-icon>
+                <Lock />
+              </el-icon> 安全设置
             </span>
           </template>
-          
+
           <div class="tab-content">
             <h2 class="section-title">修改密码</h2>
             <p class="section-desc">为了您的账号安全，请定期更换密码。</p>
-            
-            <el-form ref="passwordFormRef" label-position="top" :model="passwordForm" :rules="passwordRules" status-icon class="password-form">
+
+            <el-form ref="passwordFormRef" label-position="top" :model="passwordForm" :rules="passwordRules" status-icon
+              class="password-form">
               <el-form-item label="当前密码" prop="oldPassword">
                 <el-input v-model="passwordForm.oldPassword" type="password" show-password placeholder="请输入当前使用的密码">
-                  <template #prefix><el-icon><Key /></el-icon></template>
+                  <template #prefix><el-icon>
+                      <Key />
+                    </el-icon></template>
                 </el-input>
               </el-form-item>
-              
+
               <el-form-item label="新密码" prop="newPassword">
                 <el-input v-model="passwordForm.newPassword" type="password" show-password placeholder="请输入 6-16 位新密码">
-                  <template #prefix><el-icon><Lock /></el-icon></template>
+                  <template #prefix><el-icon>
+                      <Lock />
+                    </el-icon></template>
                 </el-input>
               </el-form-item>
-              
+
               <el-form-item label="确认新密码" prop="confirmPassword">
                 <el-input v-model="passwordForm.confirmPassword" type="password" show-password placeholder="请再次输入新密码">
-                  <template #prefix><el-icon><CircleCheck /></el-icon></template>
+                  <template #prefix><el-icon>
+                      <CircleCheck />
+                    </el-icon></template>
                 </el-input>
               </el-form-item>
-              
+
               <el-form-item class="form-actions">
-                <el-button type="primary" class="full-width-btn" :loading="isUpdatingPassword" @click="handleUpdatePassword">更新密码</el-button>
+                <el-button type="primary" class="full-width-btn" :loading="isUpdatingPassword"
+                  @click="handleUpdatePassword">更新密码</el-button>
               </el-form-item>
             </el-form>
           </div>
@@ -43,7 +53,9 @@
         <el-tab-pane>
           <template #label>
             <span class="custom-tab-label">
-              <el-icon><View /></el-icon> 隐私偏好
+              <el-icon>
+                <View />
+              </el-icon> 隐私偏好
             </span>
           </template>
           <div class="tab-content">
@@ -56,13 +68,15 @@
               <el-switch v-model="privacyForm.publicProfile" />
             </div>
             <el-divider />
-            </div>
+          </div>
         </el-tab-pane>
 
         <el-tab-pane>
           <template #label>
             <span class="custom-tab-label">
-              <el-icon><DArrowRight /></el-icon> 高级选项
+              <el-icon>
+                <DArrowRight />
+              </el-icon> 高级选项
             </span>
           </template>
           <div class="tab-content danger-zone">
@@ -146,35 +160,41 @@ const privacyForm = reactive({
 <style scoped>
 /* ================= 修改点2：核心居中逻辑 ================= */
 .settings-wrapper {
-  max-width: 960px; /* 限制最大宽度，防​​止在大屏下铺得太开 */
-  margin: 40px auto; /* 上下留白，左右自动居中 */
+  max-width: 960px;
+  /* 限制最大宽度，防​​止在大屏下铺得太开 */
+  margin: 40px auto;
+  /* 上下留白，左右自动居中 */
   padding: 0 20px;
 }
 
 .settings-card {
-  border-radius: 16px; /* 更现代的圆角 */
+  border-radius: 16px;
+  /* 更现代的圆角 */
   border: none !important;
   /* 添加柔和阴影，增加层次感 */
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05) !important; 
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05) !important;
 }
 
 /* Tab 样式微调 */
 .custom-tabs {
-  min-height: 480px; /* 设定一个最小高度，保证页面饱满 */
+  min-height: 480px;
+  /* 设定一个最小高度，保证页面饱满 */
 }
 
 /* Tab 标签页加上图标 */
 .custom-tab-label {
   display: flex;
   align-items: center;
-  gap: 8px; /* 图标和文字的间距 */
+  gap: 8px;
+  /* 图标和文字的间距 */
   font-size: 15px;
   padding: 10px 0;
 }
 
 /* 内容区域样式 */
 .tab-content {
-  padding: 20px 50px 20px 40px; /* 右侧留多点空隙 */
+  padding: 20px 50px 20px 40px;
+  /* 右侧留多点空隙 */
 }
 
 .section-title {
@@ -192,7 +212,8 @@ const privacyForm = reactive({
 
 /* 表单样式 */
 .password-form {
-  max-width: 380px; /* 表单不建议拉得太长，不利于阅读 */
+  max-width: 380px;
+  /* 表单不建议拉得太长，不利于阅读 */
 }
 
 .form-actions {
@@ -206,7 +227,8 @@ const privacyForm = reactive({
 }
 
 /* 隐私和危险区域样式 */
-.privacy-item, .danger-item {
+.privacy-item,
+.danger-item {
   display: flex;
   justify-content: space-between;
   align-items: center;

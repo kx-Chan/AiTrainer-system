@@ -12,23 +12,17 @@
       </div>
 
       <template v-if="Number(post.authorId) !== Number(viewerUserId)">
-        <el-button
-          v-if="!post.isFollowing"
-          size="small"
-          round
-          plain
-          type="primary"
-          class="follow-btn"
-          :loading="Number(followLoadingId) === Number(post.authorId)"
-          @click="$emit('follow', post)"
-        >
+        <el-button v-if="!post.isFollowing" size="small" round plain type="primary" class="follow-btn"
+          :loading="Number(followLoadingId) === Number(post.authorId)" @click="$emit('follow', post)">
           + 关注
         </el-button>
 
         <el-dropdown v-else trigger="click" popper-class="custom-unfollow-dropdown">
           <el-button size="small" round class="follow-btn" :loading="Number(followLoadingId) === Number(post.authorId)">
             已关注
-            <el-icon style="margin-left: 4px;"><ArrowDown /></el-icon>
+            <el-icon style="margin-left: 4px;">
+              <ArrowDown />
+            </el-icon>
           </el-button>
           <template #dropdown>
             <el-dropdown-menu>
@@ -45,35 +39,30 @@
         {{ post.content }}
       </p>
 
-      <div
-        v-if="post.images && post.images.length"
-        :class="{
-          'post-images-dynamic-v2': true,
-          'is-single': post.images.length === 1,
-          'is-grid-2': post.images.length === 2,
-          'is-grid-multi': post.images.length >= 3
-        }"
-      >
+      <div v-if="post.images && post.images.length" :class="{
+        'post-images-dynamic-v2': true,
+        'is-single': post.images.length === 1,
+        'is-grid-2': post.images.length === 2,
+        'is-grid-multi': post.images.length >= 3
+      }">
         <template v-if="post.images.length === 1">
-          <el-image :src="post.images[0]" fit="contain" :preview-src-list="post.images" class="post-image-item-dynamic-v2-single" />
+          <el-image :src="post.images[0]" fit="contain" :preview-src-list="post.images"
+            class="post-image-item-dynamic-v2-single" />
         </template>
 
         <template v-else>
           <div v-for="(img, idx) in post.images" :key="idx" class="image-wrapper-ratio-square">
-            <el-image
-              :src="img"
-              fit="cover"
-              :preview-src-list="post.images"
-              :initial-index="idx"
-              class="post-image-item-dynamic-v2-grid"
-            />
+            <el-image :src="img" fit="cover" :preview-src-list="post.images" :initial-index="idx"
+              class="post-image-item-dynamic-v2-grid" />
           </div>
         </template>
       </div>
 
       <div v-if="post.aiReport" class="ai-report-embed">
         <div class="report-header">
-          <el-icon color="#E6A23C" size="18"><Trophy /></el-icon>
+          <el-icon color="#E6A23C" size="18">
+            <Trophy />
+          </el-icon>
           <span>AiTrainer 智能评测战报</span>
         </div>
         <div class="report-body">
@@ -90,21 +79,11 @@
     <div class="post-footer">
       <el-tooltip content="点赞" placement="top" :show-after="500">
         <div class="interaction-btn" :class="{ 'is-liked': post.isLiked }" @click="$emit('toggle-like', post)">
-          <svg
-            t="1711545600"
-            class="icon heart-icon"
-            viewBox="0 0 1024 1024"
-            version="1.1"
-            xmlns="http://www.w3.org/2000/svg"
-            p-id="4245"
-            width="20"
-            height="20"
-          >
+          <svg t="1711545600" class="icon heart-icon" viewBox="0 0 1024 1024" version="1.1"
+            xmlns="http://www.w3.org/2000/svg" p-id="4245" width="20" height="20">
             <path
               d="M512 896a42.667 42.667 0 0 1-30.293-12.373l-306.347-306.347c-80-80-80-210.347 0-290.347a205.333 205.333 0 0 1 290.347 0l46.293 46.293 46.293-46.293a205.333 205.333 0 0 1 290.347 0c80 80 80 210.347 0 290.347l-306.347 306.347A42.667 42.667 0 0 1 512 896z"
-              :fill="post.isLiked ? '#f56c6c' : 'currentColor'"
-              p-id="4246"
-            ></path>
+              :fill="post.isLiked ? '#f56c6c' : 'currentColor'" p-id="4246"></path>
           </svg>
           <span :style="{ color: post.isLiked ? '#f56c6c' : '' }">{{ post.likes }}</span>
         </div>
@@ -121,7 +100,9 @@
 
       <el-tooltip content="查看评论" placement="top" :show-after="500">
         <div class="interaction-btn" @click="toggleComments">
-          <el-icon size="20"><ChatDotRound /></el-icon>
+          <el-icon size="20">
+            <ChatDotRound />
+          </el-icon>
           <span>{{ post.comments }}</span>
         </div>
       </el-tooltip>
@@ -130,15 +111,12 @@
     <el-dialog v-model="favoriteDialogVisible" title="添加到收藏夹" width="420px" @open="loadFoldersAndSelection">
       <div class="favorite-dialog-body" v-loading="foldersLoading">
         <div v-if="folders.length" class="folder-list">
-          <div
-            v-for="f in folders"
-            :key="f.id"
-            class="folder-item"
-            :class="{ 'is-selected': selectedFolderIdSet.has(String(f.id)) }"
-            @click="togglePostInFolder(f)"
-          >
+          <div v-for="f in folders" :key="f.id" class="folder-item"
+            :class="{ 'is-selected': selectedFolderIdSet.has(String(f.id)) }" @click="togglePostInFolder(f)">
             <div class="folder-left">
-              <el-icon size="18"><Folder /></el-icon>
+              <el-icon size="18">
+                <Folder />
+              </el-icon>
               <div class="folder-meta">
                 <div class="folder-name">
                   <span>{{ f.name }}</span>
@@ -147,32 +125,22 @@
                 <div class="folder-desc">{{ Number(f.isPublic) === 1 ? '公开' : '私密' }}</div>
               </div>
             </div>
-            <el-icon v-if="selectedFolderIdSet.has(String(f.id))" size="18" color="#67C23A"><CircleCheckFilled /></el-icon>
+            <el-icon v-if="selectedFolderIdSet.has(String(f.id))" size="18" color="#67C23A">
+              <CircleCheckFilled />
+            </el-icon>
           </div>
         </div>
         <el-empty v-else description="你还没有收藏夹" />
 
         <div class="folder-create">
           <template v-if="isCreatingFolder">
-            <el-input
-              v-model="newFolderName"
-              placeholder="请输入收藏夹名称"
-              maxlength="20"
-              show-word-limit
-              @keyup.enter="createFolder"
-              style="margin-bottom: 12px;"
-            />
-            
+            <el-input v-model="newFolderName" placeholder="请输入收藏夹名称" maxlength="20" show-word-limit
+              @keyup.enter="createFolder" style="margin-bottom: 12px;" />
+
             <div style="margin-bottom: 15px; display: flex; align-items: center; justify-content: space-between;">
               <span style="font-size: 13px; color: #606266;">是否公开：</span>
-              <el-switch
-                v-model="newFolderIsPublic"
-                :active-value="1"
-                :inactive-value="0"
-                active-text="公开"
-                inactive-text="私密"
-                inline-prompt
-              />
+              <el-switch v-model="newFolderIsPublic" :active-value="1" :inactive-value="0" active-text="公开"
+                inactive-text="私密" inline-prompt />
             </div>
 
             <div class="create-actions">
@@ -185,16 +153,9 @@
       </div>
     </el-dialog>
 
-    <CommentSection
-      v-if="showComments"
-      :post-id="post.id"
-      :post-author-id="post.authorId"
-      :viewer-user-id="viewerUserId"
-      :viewer-avatar="viewerAvatar"
-      @comment-added="$emit('comment-added', $event)"
-      @comment-deleted="$emit('comment-deleted', $event)"
-      @go-to-space="$emit('go-to-space', $event)"
-    />
+    <CommentSection v-if="showComments" :post-id="post.id" :post-author-id="post.authorId"
+      :viewer-user-id="viewerUserId" :viewer-avatar="viewerAvatar" @comment-added="$emit('comment-added', $event)"
+      @comment-deleted="$emit('comment-deleted', $event)" @go-to-space="$emit('go-to-space', $event)" />
   </el-card>
 </template>
 
@@ -205,7 +166,7 @@ import { ArrowDown, ChatDotRound, Folder, Plus, Trophy, CircleCheckFilled } from
 import CommentSection from './CommentSection.vue'
 
 // ✅ 1. 导入封装好的 API
-import { folderApi, itemApi } from '@/api/collection' 
+import { folderApi, itemApi } from '@/api/collection'
 
 const props = defineProps({
   post: { type: Object, required: true },
@@ -344,9 +305,9 @@ const createFolder = async () => {
   creatingFolderLoading.value = true
   try {
     // 1. 发送请求，带上公开性参数
-    const created = await folderApi.create({ 
-      name, 
-      isPublic: newFolderIsPublic.value 
+    const created = await folderApi.create({
+      name,
+      isPublic: newFolderIsPublic.value
     })
 
     if (created) {
