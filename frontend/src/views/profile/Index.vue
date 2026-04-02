@@ -83,9 +83,18 @@
                     {{ formatDate(post.time) }} · {{ post.device || '来自 AiTrainer' }}
                   </div>
                 </div>
-                <el-tag :type="post.type === 'AI战报' ? 'warning' : 'info'" size="small">
-                  {{ post.type }}
-                </el-tag>
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <el-tag :type="post.type === 'AI战报' ? 'warning' : 'info'" size="small">
+                    {{ post.type }}
+                  </el-tag>
+                  <el-button
+                    link
+                    type="danger"
+                    :icon="Delete"
+                    :loading="Number(deletingMyPostId) === Number(post.id)"
+                    @click.stop="handleDeleteMyPost(post)"
+                  >删除</el-button>
+                </div>
               </div>
 
               <div style="margin-top:12px; font-size:14px; color:#303133; line-height:1.6;">
@@ -337,8 +346,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch } from 'vue'
-import { Edit, FolderOpened, Plus, Search  } from '@element-plus/icons-vue'
+import { ref, reactive, onMounted, onUnmounted, watch } from 'vue'
+import { Edit, FolderOpened, Plus, Search, Delete } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus' 
 import request from '@/utils/request'
 import { useRouter, useRoute } from 'vue-router'
@@ -364,6 +373,7 @@ const activeTab = ref('posts')
 const myPosts = ref([])
 const myPostsLoading = ref(false)
 const myPostsPage = reactive({ page: 1, size: 10, total: 0 })
+const deletingMyPostId = ref(null)
 
 // 我的足迹
 const footprintFilter = ref('liked')
@@ -498,6 +508,28 @@ const handleMyPostsSearch = () => {
 const handleMyPostsPageChange = (val) => {
   myPostsPage.page = val
   fetchMyPosts()
+}
+
+const handleDeleteMyPost = async (post) => {
+  if (!post?.id) return
+  try {
+    await ElMessageBox.confirm('确定要删除这条推文吗？删除后无法恢复', '删除确认', {
+      type: 'warning',
+      confirmButtonText: '删除',
+      cancelButtonText: '取消'
+    })
+    deletingMyPostId.value = post.id
+    await request.delete(`/posts/${post.id}`)
+    ElMessage.success('删除成功')
+
+    if (myPosts.value.length <= 1 && myPostsPage.page > 1) {
+      myPostsPage.page -= 1
+    }
+    await fetchMyPosts()
+  } catch (e) {
+  } finally {
+    deletingMyPostId.value = null
+  }
 }
 
 const openEditModal = () => {
@@ -664,6 +696,9 @@ const handleDeleteFolder = async (folder) => {
 // 跳转收藏夹详情页（带回退所需的标记）
 const goToFolderDetail = (folder) => {
   if (!folder?.id) return
+  try {
+    sessionStorage.setItem('profile:returnTo', 'collections')
+  } catch (e) {}
   router.push({ name: 'CollectionDetail', params: { id: String(folder.id) }, query: { from: 'profile', tab: 'collections' } })
 }
 
@@ -676,10 +711,56 @@ onMounted(() => {
   fetchMyPosts()
   fetchFootprints()
   fetchFolders()
-  const tab = String(route.query?.tab || '').trim()
-  if (tab) activeTab.value = tab
+  const queryTab = String(route.query?.tab || '').trim()
+  if (queryTab) {
+    activeTab.value = queryTab
+    try { sessionStorage.setItem('profile:lastTab', queryTab) } catch (e) {}
+  } else {
+    let fallback = ''
+    try {
+      fallback = sessionStorage.getItem('profile:returnTo') || sessionStorage.getItem('profile:lastTab') || ''
+    } catch (e) {}
+    if (fallback) {
+      activeTab.value = fallback
+      try { sessionStorage.removeItem('profile:returnTo') } catch (e) {}
+    }
+  }
+  const handlePopState = () => {
+    if (route.name !== 'Profile') return
+    let tab = ''
+    try {
+      tab = sessionStorage.getItem('profile:returnTo') || sessionStorage.getItem('profile:lastTab') || ''
+    } catch (e) {}
+    if (tab) {
+      activeTab.value = tab
+      try { sessionStorage.removeItem('profile:returnTo') } catch (e) {}
+    }
+  }
+  window.addEventListener('popstate', handlePopState)
+  // 存到实例上以便卸载时移除
+  ;(window).__profile_popstate_handler__ = handlePopState
 })
 
+onUnmounted(() => {
+  const handler = (window).__profile_popstate_handler__
+  if (handler) window.removeEventListener('popstate', handler)
+})
+
+watch(() => route.query?.tab, (val) => {
+  const tab = String(val || '').trim()
+  if (tab) {
+    activeTab.value = tab
+    try { sessionStorage.setItem('profile:lastTab', tab) } catch (e) {}
+  }
+})
+
+watch(activeTab, (n) => {
+  try { sessionStorage.setItem('profile:lastTab', String(n || '')) } catch (e) {}
+  if (route.name === 'Profile') {
+    const nextQuery = { ...(route.query || {}), tab: String(n || '') }
+    router.replace({ name: 'Profile', query: nextQuery })
+  }
+})
 
 </script>
 
@@ -960,7 +1041,7 @@ onMounted(() => {
 
 .folder-card:hover {
   transform: translateY(-5px); /* 悬停时稍微往上浮动，增加交互感 */
-  border-color: var(--el-color-primary-light-3);
+  border-color: #a0cfff;
 }
 
 /* 确保页脚按钮区域不要让用户觉得那是背景点击区 */

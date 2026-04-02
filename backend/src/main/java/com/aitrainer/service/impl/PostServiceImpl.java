@@ -740,6 +740,30 @@ public class PostServiceImpl implements PostService {
         return buildPageVO(userId, tempPage);
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deletePost(Long userId, Long postId) {
+        // 1. 先查出该推文（用于权限校验和数据统计）
+        CommunityPost post = communityPostMapper.selectById(postId);
+
+        // 2. 权限校验：防止用户 A 删掉用户 B 的推文
+        if (post == null || !post.getUserId().equals(userId)) {
+            throw BusinessException.unauthorized(MessageConstant.POST_NOT_FOUND);
+        }
+
+        // 3. 执行逻辑删除
+        int rows = communityPostMapper.deleteById(postId);
+
+        if (rows > 0) {
+            // 4. 数据一致性维护：如果推文有赞，删除推文时应扣除作者的总获赞数
+            Integer likeCount = post.getLikeCount();
+            if (likeCount != null && likeCount > 0) {
+                // 这里可以直接传入要扣减的数量，或者循环调用 decrementTotalLikes
+                userProfileMapper.decreaseTotalLikesByCount(userId, Long.valueOf(likeCount));
+            }
+        }
+    }
+
     /**
      * 统一话题格式，便于搜索热门话题
      * @param raw

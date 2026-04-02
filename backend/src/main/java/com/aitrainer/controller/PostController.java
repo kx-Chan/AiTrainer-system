@@ -169,4 +169,16 @@ public class PostController {
         postService.secureDeleteComment(user.getId(), commentId);
         return Result.success();
     }
+
+    @Operation(summary = "删除推文")
+    @DeleteMapping("/{id}")
+    public Result<Void> deletePost(
+            final Authentication authentication,
+            @PathVariable("id") final Long postId) {
+        final CustomUser user = (CustomUser) authentication.getPrincipal();
+        // 调用 Service，只需传入当前登录用户 ID 和要删除的推文 ID
+        postService.deletePost(user.getId(), postId);
+
+        return Result.success();
+    }
 }

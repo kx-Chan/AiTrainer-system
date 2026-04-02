@@ -3,6 +3,7 @@ package com.aitrainer.mapper;
 import com.aitrainer.entity.UserProfile;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Update;
 
 /**
@@ -21,4 +22,8 @@ public interface UserProfileMapper extends BaseMapper<UserProfile> {
      */
     @Update("UPDATE user_profiles SET total_likes = GREATEST(0, total_likes - 1) WHERE user_id = #{userId}")
     void decrementTotalLikes(Long userId);
+
+    @Update("UPDATE user_profiles SET total_likes = GREATEST(0, CAST(total_likes AS SIGNED) - #{count}) " +
+            "WHERE user_id = #{userId}")
+    void decreaseTotalLikesByCount(@Param("userId") Long userId, @Param("count") Long count);
 }
