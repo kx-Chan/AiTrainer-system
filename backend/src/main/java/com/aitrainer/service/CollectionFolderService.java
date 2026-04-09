@@ -26,9 +26,33 @@ public interface CollectionFolderService {
      */
     boolean deleteFolder(Long folderId, Long userId);
 
+    /**
+     * 设置默认收藏夹
+     * @param id
+     * @param id1
+     */
     void setDefaultFolder(Long id, Long id1);
 
+    /**
+     * 编辑收藏夹
+     * @param id
+     * @param id1
+     * @param dto
+     */
     void updateFolder(Long id, Long id1, UpdateFolderDTO dto);
 
-    public FolderVO getFolderById(final Long folderId, final Long userId);
+    /**
+     * 根据收藏夹id获取收藏夹
+     * @param folderId
+     * @param userId
+     * @return
+     */
+    FolderVO getFolderById(final Long folderId, final Long userId);
+
+    /**
+     * 获取某个用户公开的收藏夹列表
+     * @param targetUserId
+     * @return
+     */
+    List<FolderVO> listPublicFoldersByUserId(Long targetUserId);
 }

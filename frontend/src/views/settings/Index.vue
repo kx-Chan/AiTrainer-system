@@ -60,14 +60,19 @@
           </template>
           <div class="tab-content">
             <h2 class="section-title">隐私设置</h2>
-            <div class="privacy-item">
-              <div class="info">
-                <span class="title">公开训练动态</span>
-                <span class="desc">允许其他用户在健身社区看到您的训练记录。</span>
+            <div v-loading="isLoadingPrivacy">
+              <div class="privacy-item">
+                <div class="info">
+                  <span class="title">公开 AI 战报</span>
+                  <span class="desc">关闭后：训练结束自动生成的 AI 战报仅自己可见；开启后：他人可在你的动态中看到。</span>
+                </div>
+                <el-switch v-model="privacyForm.publicAiWorkoutReport" />
               </div>
-              <el-switch v-model="privacyForm.publicProfile" />
+
+              <div style="display:flex; justify-content:flex-end; margin-top: 18px;">
+                <el-button type="primary" :loading="isSavingPrivacy" @click="savePrivacySettings">保存设置</el-button>
+              </div>
             </div>
-            <el-divider />
           </div>
         </el-tab-pane>
 
@@ -96,11 +101,12 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { reactive, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Lock, Key, CircleCheck, View, DArrowRight } from '@element-plus/icons-vue'
 import request from '@/utils/request'
+import { privacyApi } from '@/api/userSpace'
 
 const router = useRouter()
 
@@ -153,7 +159,59 @@ const handleUpdatePassword = async () => {
 }
 
 const privacyForm = reactive({
-  publicProfile: true
+  publicAiWorkoutReport: true
+})
+
+const isLoadingPrivacy = ref(false)
+const isSavingPrivacy = ref(false)
+
+const fetchPrivacySettings = async () => {
+  try {
+    isLoadingPrivacy.value = true
+    // 1. 获取响应
+    const res = await privacyApi.getMySettings()
+
+    // 2. 根据你的 Result 结构取值
+    // 如果拦截器没处理，就用 res.data；处理了就直接用 res
+    const actualData = res.data || res
+
+    // 3. 对齐字段名并强制转换类型
+    if (actualData && actualData.publicAiReport !== undefined) {
+      // 确保后端给的 0/1 或 false 都能准确转为 Boolean
+      privacyForm.publicAiWorkoutReport = !!actualData.publicAiReport
+    } else {
+      privacyForm.publicAiWorkoutReport = true
+    }
+
+    console.log("最终赋值给表单的值:", privacyForm.publicAiWorkoutReport)
+
+  } catch (error) {
+    console.error("获取隐私设置失败:", error)
+  } finally {
+    isLoadingPrivacy.value = false
+  }
+}
+
+const savePrivacySettings = async () => {
+  try {
+    isSavingPrivacy.value = true
+
+    // 修改点：1. 字段名去掉 Workout  2. 布尔值转为 1/0
+    await privacyApi.updateMySettings({
+      publicAiReport: privacyForm.publicAiWorkoutReport ? 1 : 0
+    })
+
+    ElMessage.success('隐私设置已保存')
+  } catch (error) {
+    // 建议加上错误捕获，这样后端校验失败时前端会有提示
+    console.error('保存隐私设置失败:', error)
+  } finally {
+    isSavingPrivacy.value = false
+  }
+}
+
+onMounted(() => {
+  fetchPrivacySettings()
 })
 </script>
 

@@ -23,5 +23,17 @@ public class PageResultVO<T> {
     private long page;
     @Schema(description = "每页条数")
     private long size;
+
+    /**
+     * 返回空的分页结果
+     */
+    public static <T> PageResultVO<T> empty(long page, long size) {
+        return PageResultVO.<T>builder()
+                .records(java.util.Collections.emptyList())
+                .total(0L)
+                .page(page)
+                .size(size)
+                .build();
+    }
 }
 

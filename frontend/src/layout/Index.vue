@@ -35,6 +35,7 @@
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item @click="router.push('/profile')">进入主页</el-dropdown-item>
+              <el-dropdown-item @click="goToMySpace">我的空间</el-dropdown-item>
               <el-dropdown-item @click="router.push('/settings')">账号设置</el-dropdown-item>
               <el-dropdown-item divided @click="handleLogout">退出登录</el-dropdown-item>
             </el-dropdown-menu>
@@ -66,6 +67,14 @@ const router = useRouter()
 
 const userStore = useUserStore()
 const { avatar, nickname } = storeToRefs(userStore)
+
+const goToMySpace = async () => {
+  if (!userStore.userId) {
+    await userStore.fetchNavUser()
+  }
+  if (!userStore.userId) return
+  router.push({ name: 'UserSpace', params: { id: String(userStore.userId) } })
+}
 
 // App.vue 中的 handleProfileUpdated
 const handleProfileUpdated = async (event) => {

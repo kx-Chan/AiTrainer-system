@@ -1,0 +1,29 @@
+package com.aitrainer.entity;
+
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@TableName("workout_session_likes")
+public class WorkoutSessionLike {
+
+    @TableId(type = IdType.AUTO)
+    private Long id;
+
+    private Long sessionId;
+
+    private Long userId;
+
+    private LocalDateTime createdAt;
+}
+

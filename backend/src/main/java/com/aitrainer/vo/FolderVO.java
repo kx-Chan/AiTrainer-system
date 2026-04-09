@@ -2,7 +2,6 @@ package com.aitrainer.vo;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
-import java.util.List;
 
 @Data
 @Builder
@@ -24,4 +23,7 @@ public class FolderVO {
 
     @Schema(description = "是否是公开收藏夹")
     private Integer isPublic;
+
+    @Schema(description = "所有者用户ID")
+    private Long userId;
 }

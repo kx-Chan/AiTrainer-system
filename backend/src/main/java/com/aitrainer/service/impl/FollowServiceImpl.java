@@ -220,6 +220,27 @@ public class FollowServiceImpl implements FollowService {
                 .toList();
     }
 
+    @Override
+    public Boolean checkIfFollowing(Long currentUserId, Long targetUserId) {
+        // 1. 防御性编程：如果 ID 为空，直接返回 false
+        if (currentUserId == null || targetUserId == null) {
+            return false;
+        }
+
+        // 2. 逻辑细节：如果两个 ID 相同（自己看自己），通常不计为关注
+        if (currentUserId.equals(targetUserId)) {
+            return false;
+        }
+
+        // 3. 数据库查询：统计符合条件的记录数
+        Long count = userFollowsMapper.selectCount(new LambdaQueryWrapper<UserFollows>()
+                .eq(UserFollows::getFollowerId, currentUserId)   // 粉丝是“我”
+                .eq(UserFollows::getFollowedId, targetUserId)); // 被关注者是“他”
+
+        // 4. 返回结果：count > 0 说明关系存在
+        return count != null && count > 0;
+    }
+
     // 构建关注用户VO列表
     private List<FollowUserVO> buildUsers(final List<Long> userIds, final Set<Long> followingSet, final boolean followingList) {
         if (userIds == null || userIds.isEmpty()) {

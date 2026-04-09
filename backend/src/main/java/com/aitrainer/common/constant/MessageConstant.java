@@ -39,8 +39,18 @@ public final class MessageConstant {
     public static final String COMMENT_DELETE_FORBIDDEN = "权限不足，只有作者或推文主人可以删除评论";
     public static final String POST_NOT_FOUND = "推文不存在或无权操作";
     public static final String COMMENT_REPLY_FAILED = "回复评论失败，原评论可能已被删除";
+    public static final String WORKOUT_REPORT_NOT_FOUND = "战报不存在或无权操作";
 
     public static final String FOLDER_NAME_EMPTY = "收藏夹名称为空";
     public static final String FOLDER_NUMS_LIMITS = "收藏夹数量已达上限，请删除不常用的再试";
     public static final String FOLDER_NOT_FOUND = "收藏夹不存在或无权操作";
+
+    public static final String USER_PROFILE_NOT_FOUND = "该用户资料不存在";
+
+    // --- 留言板相关 ---
+    public static final String GUESTBOOK_NOT_FOUND = "留言不存在或已被删除";
+    public static final String GUESTBOOK_REPLY_FORBIDDEN = "只有空间主人可以回复留言";
+    public static final String GUESTBOOK_DELETE_FORBIDDEN = "权限不足，无法删除该留言";
+    public static final String GUESTBOOK_WITHDRAW_FORBIDDEN = "只有空间主人可以撤回回复";
+    public static final String CANNOT_LEAVE_MSG_TO_SELF = "不能给自己留言哦，去社区发推文吧！";
 }

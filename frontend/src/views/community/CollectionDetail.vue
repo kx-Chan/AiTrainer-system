@@ -1,7 +1,7 @@
 <template>
   <div class="collection-detail-container">
     <div class="header-section">
-      <el-page-header @back="$router.back()">
+      <el-page-header @back="handleBack">
         <template #content>
           <div class="header-content">
             <span class="folder-title">{{ folderName }}</span>
@@ -133,6 +133,22 @@ const openPostInCommunity = (post) => {
     name: 'Community',
     query: { postId: String(post.id), from: 'collectionDetail', folderId: String(folderId), tab: 'collections' }
   })
+}
+
+const handleBack = () => {
+  const from = String(route.query?.from || '').trim()
+  if (from === 'profile') {
+    router.push({ name: 'Profile', query: { tab: String(route.query?.tab || 'collections') } })
+    return
+  }
+  if (from === 'userSpace') {
+    const userId = String(route.query?.userId || '').trim()
+    if (userId) {
+      router.push({ name: 'UserSpace', params: { id: userId }, query: { tab: 'favorites' } })
+      return
+    }
+  }
+  router.back()
 }
 
 // ❌ 移除旧的交互处理 handleUnfavoriteDetail, handleLike 等逻辑

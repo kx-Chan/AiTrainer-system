@@ -42,4 +42,6 @@ public interface PostService {
     public PageResultVO<CommunityPostVO> getFolderPosts(final Long userId, final Long folderId, final long page, final long size);
 
     void deletePost(Long id, Long postId);
+
+    CommunityPostVO getPostDetail(Long id, Long viewerId);
 }

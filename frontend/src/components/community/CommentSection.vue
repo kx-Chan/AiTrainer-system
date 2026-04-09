@@ -177,7 +177,7 @@ const submit = async () => {
       c.replyToUserName = replyTarget.value.author
       c.replyToContent = replyTarget.value.content
     }
-    comments.value = [c, ...comments.value]
+    comments.value = [...comments.value, c]
     total.value += 1
     input.value = ''
     emit('comment-added', postIdNum.value)

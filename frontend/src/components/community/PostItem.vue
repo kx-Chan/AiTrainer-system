@@ -8,7 +8,7 @@
           {{ post.author }}
           <el-tag v-if="post.isPro" type="warning" size="small" effect="dark" round class="pro-tag">PRO</el-tag>
         </div>
-        <div class="post-time">{{ formattedTime }} · 来自 {{ post.device }}</div>
+        <div class="post-time">{{ post.time?.substring(0, 10) }} · 来自 {{ post.device }}</div>
       </div>
 
       <template v-if="Number(post.authorId) !== Number(viewerUserId)">
@@ -68,8 +68,13 @@
         <div class="report-body">
           <div class="report-score"><span class="score-num">{{ post.aiReport.score }}</span>分</div>
           <div class="report-details">
-            <div>动作：<strong>{{ post.aiReport.action }}</strong></div>
-            <div>消耗：🔥 {{ post.aiReport.calories }} kcal</div>
+            <div>动作：<strong>{{ reportActionText }}</strong></div>
+            <div>次数：有效 <strong>{{ post.aiReport.validReps ?? 0 }}</strong> / 异常 <strong>{{ post.aiReport.invalidReps ??
+                0
+                }}</strong></div>
+            <div>时长：<strong>{{ post.aiReport.durationSeconds ?? 0 }}</strong> 秒 · 消耗：🔥 {{ post.aiReport.caloriesBurned
+              ?? 0
+              }} kcal</div>
             <div class="report-comment">AI点评：{{ post.aiReport.comment }}</div>
           </div>
         </div>
@@ -89,7 +94,7 @@
         </div>
       </el-tooltip>
 
-      <el-tooltip content="添加到收藏夹" placement="top" :show-after="500">
+      <el-tooltip v-if="!isReportOnly" content="添加到收藏夹" placement="top" :show-after="500">
         <div class="interaction-btn" :class="{ 'is-favorited': post.isFavorited }" @click="openFavoriteDialog">
           <el-icon size="20">
             <component :is="post.isFavorited ? 'StarFilled' : 'Star'" :color="post.isFavorited ? '#ff9900' : ''" />
@@ -98,7 +103,7 @@
         </div>
       </el-tooltip>
 
-      <el-tooltip content="查看评论" placement="top" :show-after="500">
+      <el-tooltip v-if="!isReportOnly" content="查看评论" placement="top" :show-after="500">
         <div class="interaction-btn" @click="toggleComments">
           <el-icon size="20">
             <ChatDotRound />
@@ -108,7 +113,8 @@
       </el-tooltip>
     </div>
 
-    <el-dialog v-model="favoriteDialogVisible" title="添加到收藏夹" width="420px" @open="loadFoldersAndSelection">
+    <el-dialog v-if="!isReportOnly" v-model="favoriteDialogVisible" title="添加到收藏夹" width="420px"
+      @open="loadFoldersAndSelection">
       <div class="favorite-dialog-body" v-loading="foldersLoading">
         <div v-if="folders.length" class="folder-list">
           <div v-for="f in folders" :key="f.id" class="folder-item"
@@ -153,7 +159,7 @@
       </div>
     </el-dialog>
 
-    <CommentSection v-if="showComments" :post-id="post.id" :post-author-id="post.authorId"
+    <CommentSection v-if="showComments && !isReportOnly" :post-id="post.id" :post-author-id="post.authorId"
       :viewer-user-id="viewerUserId" :viewer-avatar="viewerAvatar" @comment-added="$emit('comment-added', $event)"
       @comment-deleted="$emit('comment-deleted', $event)" @go-to-space="$emit('go-to-space', $event)" />
   </el-card>
@@ -179,11 +185,29 @@ const emit = defineEmits(['go-to-space', 'follow', 'unfollow', 'toggle-like', 't
 
 const showComments = ref(false)
 
+const isReportOnly = computed(() => String(props.post?.sourceType || '') === 'workout_report')
+
 const formattedTime = computed(() => {
   const t = props.post?.time
   if (!t) return ''
   const s = String(t)
   return s.length > 16 ? s.slice(0, 16) : s
+})
+
+const WORKOUT_NAME_MAP = Object.freeze({
+  squat: '深蹲',
+  pushup: '俯卧撑',
+  plank: '平板支撑',
+  situp: '卷腹',
+  lunge: '弓步蹲'
+})
+
+const reportActionText = computed(() => {
+  const direct = String(props.post?.aiReport?.action || '').trim()
+  if (direct) return direct
+  const workoutId = String(props.post?.aiReport?.workoutId || '').trim()
+  if (!workoutId) return '未知动作'
+  return WORKOUT_NAME_MAP[workoutId] ? `${WORKOUT_NAME_MAP[workoutId]}（${workoutId}）` : workoutId
 })
 
 const onTopicClick = () => {
@@ -211,11 +235,13 @@ const userId = computed(() => props.viewerUserId)
 const newFolderIsPublic = ref(0) // 0 表示私密，1 表示公开
 
 const openFavoriteDialog = () => {
+  if (isReportOnly.value) return
   favoriteDialogVisible.value = true
 }
 
 // ✅ 2. 加载逻辑
 const loadFoldersAndSelection = async () => {
+  if (isReportOnly.value) return
   if (!postId.value) return
   foldersLoading.value = true
   try {
@@ -235,6 +261,7 @@ const loadFoldersAndSelection = async () => {
 
 // ✅ 3. 同步状态逻辑
 const syncFavoritedState = async () => {
+  if (isReportOnly.value) return
   if (!postId.value) return
   try {
     const isFavorited = await itemApi.checkFavorited(postId.value)
@@ -246,6 +273,7 @@ const syncFavoritedState = async () => {
 
 // ✅ 4. 收藏切换逻辑
 const togglePostInFolder = async (folder) => {
+  if (isReportOnly.value) return
   const folderId = folder?.id
   if (!folderId || !postId.value) return
 
@@ -296,6 +324,7 @@ const cancelCreateFolder = () => {
 
 // ✅ 5. 核心创建逻辑（只保留这一份，带自动收藏功能）
 const createFolder = async () => {
+  if (isReportOnly.value) return
   const name = String(newFolderName.value || '').trim()
   if (!name) {
     ElMessage.warning('收藏夹名称不能为空')
@@ -339,11 +368,11 @@ const createFolder = async () => {
 }
 
 onMounted(() => {
-  syncFavoritedState()
+  if (!isReportOnly.value) syncFavoritedState()
 })
 
 watch([postId, userId], () => {
-  syncFavoritedState()
+  if (!isReportOnly.value) syncFavoritedState()
 })
 </script>
 

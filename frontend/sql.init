@@ -64,17 +64,6 @@ CREATE TABLE IF NOT EXISTS `user_follows` (
     INDEX `idx_followed` (`followed_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户关注关系表';
 
--- Table: user_footprints
-CREATE TABLE IF NOT EXISTS `user_footprints` (
-    `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
-    `user_id` INT NOT NULL COMMENT '用户ID',
-    `target_type` ENUM('POST', 'WORKOUT', 'COACH', 'DIET') NOT NULL COMMENT '对象类型',
-    `target_id` VARCHAR(50) NOT NULL COMMENT '对象ID',
-    `viewed_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
-    INDEX `idx_user_viewed` (`user_id`, `viewed_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
 -- ----------------------------
 -- 3. Collections
 -- ----------------------------
@@ -143,7 +132,18 @@ CREATE TABLE IF NOT EXISTS `workout_sessions` (
     FOREIGN KEY (`workout_id`) REFERENCES `workouts`(`id`),
     INDEX `idx_user_workouts` (`user_id`, `created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+ALTER TABLE workout_sessions ADD COLUMN is_deleted TINYINT DEFAULT 0;
+ALTER TABLE workout_sessions 
+ADD COLUMN like_count INT DEFAULT 0 COMMENT '获赞总数' AFTER calories_burned;
 
+CREATE TABLE `workout_session_likes` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `session_id` bigint NOT NULL COMMENT '战报ID',
+  `user_id` bigint NOT NULL COMMENT '点赞用户ID',
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '点赞时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_session_user` (`session_id`,`user_id`) COMMENT '唯一索引，防止重复点赞'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='战报点赞关联表';
 -- ----------------------------
 -- 5. Community Interactions
 -- ----------------------------
@@ -252,3 +252,31 @@ INSERT INTO `workouts` (`id`, `name`, `en_name`, `difficulty`, `tags`, `descript
 ('good_morning', '早安式体前屈', 'Good Morning', 4, '["核心", "腘绳肌"]', '强化下背部与核心稳定，极度依赖动作标准度，AI 严苛监测脊柱中立位。', '#E6A23C');
 
 SET FOREIGN_KEY_CHECKS = 1;
+
+CREATE TABLE `community_guestbook` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `from_user_id` bigint(20) NOT NULL COMMENT '留言者ID',
+  `to_user_id` bigint(20) NOT NULL COMMENT '被留言者（空间主人）ID',
+  `content` varchar(500) NOT NULL COMMENT '留言内容',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '留言时间',
+
+  -- 回复部分：直接冗余在表中，实现“只能回复一次”
+  `reply_content` varchar(500) DEFAULT NULL COMMENT '主人回复内容',
+  `reply_time` datetime DEFAULT NULL COMMENT '回复时间',
+
+  -- 逻辑删除与审计
+  `is_deleted` tinyint(1) NOT NULL DEFAULT '0' COMMENT '逻辑删除 (0:未删, 1:已删)',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+
+  PRIMARY KEY (`id`),
+  KEY `idx_to_user` (`to_user_id`), -- 空间访问频率高，给宿主加索引
+  KEY `idx_from_user` (`from_user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户空间留言板';
+
+
+CREATE TABLE `user_privacy_settings` (
+  `user_id` bigint(20) NOT NULL COMMENT '用户ID',
+  `public_ai_report` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否公开展示AI战报 (1:公开, 0:私密)',
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户隐私设置表';

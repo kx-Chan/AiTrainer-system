@@ -311,6 +311,7 @@ const unfollowAuthor = async (post) => {
 }
 
 const toggleLike = async (post) => {
+  if (String(post?.sourceType || '') === 'workout_report') return
   if (post.isLiked) {
     const data = await request.delete(`/posts/${post.id}/like`)
     post.isLiked = data?.liked ?? false

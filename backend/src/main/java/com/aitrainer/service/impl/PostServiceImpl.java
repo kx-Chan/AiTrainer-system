@@ -5,12 +5,8 @@ import com.aitrainer.common.exception.BusinessException;
 import com.aitrainer.dto.CreatePostDTO;
 import com.aitrainer.entity.*;
 import com.aitrainer.mapper.*;
-import com.aitrainer.service.PostService;
-import com.aitrainer.service.ProfileService;
-import com.aitrainer.service.UserService;
-import com.aitrainer.service.OssService;
-import com.aitrainer.vo.CommunityPostVO;
-import com.aitrainer.vo.UserProfileVO;
+import com.aitrainer.service.*;
+import com.aitrainer.vo.*;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,12 +17,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.aitrainer.vo.PageResultVO;
-import com.aitrainer.service.FollowService;
-import com.aitrainer.vo.LikeStatusVO;
-import com.aitrainer.vo.FavoriteStatusVO;
 import com.aitrainer.dto.CreateCommentDTO;
-import com.aitrainer.vo.PostCommentVO;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
@@ -47,6 +38,7 @@ public class PostServiceImpl implements PostService {
     private final PostCommentMapper postCommentMapper;
     private final CollectionItemMapper collectionItemMapper;
     private final UserProfileMapper userProfileMapper;
+    private final WorkoutSessionService workoutSessionService;
 
     /**
      * 发送推文
@@ -762,6 +754,83 @@ public class PostServiceImpl implements PostService {
                 userProfileMapper.decreaseTotalLikesByCount(userId, Long.valueOf(likeCount));
             }
         }
+    }
+
+    /**
+     * 动态/详情页：获取推文详情（包含 AI 战报嵌套）
+     * @param id 推文 ID
+     * @param viewerId 访客 ID（用于判定点赞、关注等状态）
+     * @return 完整的推文 VO
+     */
+    @Override
+    public CommunityPostVO getPostDetail(Long id, Long viewerId) {
+        // 1. 核心查询：获取推文主体
+        final CommunityPost post = communityPostMapper.selectById(id);
+        if (post == null || (post.getIsDeleted() != null && post.getIsDeleted() == 1)) {
+            return null;
+        }
+
+        // 2. 获取作者基础信息
+        final User author = userService.getById(post.getUserId());
+        final UserProfileVO prof = profileService.getUserProfile(post.getUserId());
+        final String authorName = normalizeAuthor(prof == null ? null : prof.getNickname(), author == null ? null : author.getUsername());
+        final String avatar = author == null ? null : ossService.generateAvatarUrl(author.getAvatar());
+
+        // 3. 获取图片列表（并进行 OSS 签名转换）
+        final List<String> imageUrls = postImageMapper.selectList(new LambdaQueryWrapper<PostImage>()
+                        .eq(PostImage::getPostId, id)
+                        .orderByAsc(PostImage::getSortOrder))
+                .stream()
+                .map(img -> ossService.generatePostImageUrl(img.getObjectKey()))
+                .filter(Objects::nonNull)
+                .toList();
+
+        // 4. 关键点：获取关联的 AI 战报详情
+        // 假设你的实体类字段名是 aiReportId 或 workoutSessionId
+        WorkoutSessionVO aiReportVO = null;
+        if (post.getAiReportId() != null) {
+            // 这里调用你刚才实现的战报详情获取接口
+            aiReportVO = workoutSessionService.getReportDetail(post.getAiReportId(), viewerId);
+        }
+
+        // 5. 组装基础 VO 结构
+        final CommunityPostVO.CommunityPostVOBuilder builder = CommunityPostVO.builder()
+                .id(post.getId())
+                .author(authorName)
+                .authorId(post.getUserId())
+                .avatar(avatar)
+                .isPro(author != null && Boolean.TRUE.equals(author.isPro()))
+                .time(post.getCreatedAt())
+                .device(post.getDevice())
+                .topic(post.getTopic() == null || post.getTopic().isBlank() ? "" : "#" + post.getTopic())
+                .content(post.getContent())
+                .likes(post.getLikeCount())
+                .comments(post.getCommentCount())
+                .favorites(post.getFavoriteCount())
+                .images(imageUrls)
+                .workoutSessionId(post.getAiReportId()) // 关联 ID
+                .aiReport(aiReportVO); // 嵌套战报对象
+
+        // 6. 注入访客交互状态（如果是登录用户访问）
+        if (viewerId != null) {
+            // 是否点赞过
+            final Long likeCount = postLikeMapper.selectCount(new LambdaQueryWrapper<PostLike>()
+                    .eq(PostLike::getUserId, viewerId).eq(PostLike::getPostId, id));
+            builder.isLiked(likeCount != null && likeCount > 0);
+
+            // 是否收藏过
+            final Long favCount = postFavoriteMapper.selectCount(new LambdaQueryWrapper<PostFavorite>()
+                    .eq(PostFavorite::getUserId, viewerId).eq(PostFavorite::getPostId, id));
+            builder.isFavorited(favCount != null && favCount > 0);
+
+            // 是否关注了作者
+            builder.isFollowing(followService.checkIfFollowing(viewerId, post.getUserId()));
+        } else {
+            // 游客访问，状态均为 false
+            builder.isLiked(false).isFavorited(false).isFollowing(false);
+        }
+
+        return builder.build();
     }
 
     /**

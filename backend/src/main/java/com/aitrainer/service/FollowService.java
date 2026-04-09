@@ -42,4 +42,12 @@ public interface FollowService {
      * @return 关注的用户ID列表
      */
     java.util.List<Long> listFollowingIds(Long userId);
+
+    /**
+     * 判断用户是否关注某个用户
+     * @param currentUserId
+     * @param targetUserId
+     * @return
+     */
+    Boolean checkIfFollowing(Long currentUserId, Long targetUserId);
 }

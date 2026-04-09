@@ -63,4 +63,10 @@ public class CommunityPostVO {
 
     @Schema(description = "帖子图片临时访问 URL 列表")
     private List<String> images;
+
+    @Schema(description = "关联的 AI 战报详情（如果不带战报发帖则为 null）")
+    private WorkoutSessionVO aiReport;
+
+    @Schema(description = "关联的战报 ID（可选，方便前端逻辑判断）")
+    private Long workoutSessionId;
 }

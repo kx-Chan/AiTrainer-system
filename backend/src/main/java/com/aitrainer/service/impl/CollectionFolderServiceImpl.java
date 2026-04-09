@@ -9,6 +9,7 @@ import com.aitrainer.entity.CollectionItem;
 import com.aitrainer.mapper.CollectionFolderMapper;
 import com.aitrainer.mapper.CollectionItemMapper;
 import com.aitrainer.service.CollectionFolderService;
+import com.aitrainer.service.CollectionItemService;
 import com.aitrainer.vo.FolderVO;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -32,6 +33,7 @@ public class CollectionFolderServiceImpl implements CollectionFolderService {
 
     private final CollectionFolderMapper folderMapper;
     private final CollectionItemMapper itemMapper;
+    private final CollectionItemService collectionItemService;
 
     /**
      * 初始化一个默认收藏夹
@@ -126,6 +128,7 @@ public class CollectionFolderServiceImpl implements CollectionFolderService {
         return folders.stream().map(f -> FolderVO.builder()
                 .id(f.getId())
                 .name(f.getName())
+                .userId(userId)
                 .isDefault(f.getIsDefault())
                 .isPublic(f.getIsPublic())
                 .itemCount(countMap.getOrDefault(f.getId(), 0))
@@ -223,44 +226,92 @@ public class CollectionFolderServiceImpl implements CollectionFolderService {
     /**
      * 根据 ID 获取单个收藏夹详情
      * @param folderId 收藏夹ID
-     * @param userId 当前登录用户ID（用于安全校验）
+     * @param currentUserId 当前登录用户ID（用于安全校验）
      * @return FolderVO
      */
     @Override
-    public FolderVO getFolderById(final Long folderId, final Long userId) {
-        log.info("用户 {} 正在获取收藏夹 {} 的详情", userId, folderId);
+    public FolderVO getFolderById(final Long folderId, final Long currentUserId) {
+        log.info("用户 {} 正在尝试获取收藏夹 {} 的详情", currentUserId, folderId);
 
-        // 1. 获取基本信息并进行所有权校验
-        // 核心安全逻辑：必须同时满足 ID 和 UserId 匹配
-        final CollectionFolder folder = folderMapper.selectOne(
-                new LambdaQueryWrapper<CollectionFolder>()
-                        .eq(CollectionFolder::getId, folderId)
-                        .eq(CollectionFolder::getUserId, userId)
-                        .eq(CollectionFolder::getIsDeleted, 0) // 确保没被删除
-        );
+        // 1. 扩权查询：先只根据 ID 查出收藏夹实体（不带 UserId 过滤）
+        final CollectionFolder folder = folderMapper.selectById(folderId);
 
-        if (folder == null) {
-            log.warn("用户 {} 尝试访问不存在或不属于自己的收藏夹 {}", userId, folderId);
-            // 抛出业务异常，让全局异常处理器捕获
+        // 2. 存在性检查
+        if (folder == null || folder.getIsDeleted() == 1) {
+            log.warn("收藏夹 {} 不存在或已被删除", folderId);
+            throw BusinessException.notFound(MessageConstant.FOLDER_NOT_FOUND);
+        }
+
+        // 3. 核心可见性逻辑校验 (Visibility Check)
+        boolean isOwner = folder.getUserId().equals(currentUserId);
+        boolean isPublic = folder.getIsPublic() == 1; // 1 为公开
+
+        // 如果“我不是主人”且“它不是公开的”，则无权访问
+        if (!isOwner && !isPublic) {
+            log.warn("用户 {} 越权尝试访问私密收藏夹 {}", currentUserId, folderId);
+            // 计科细节：在这种情况下，抛出“未找到”通常比“无权访问”更安全，防止黑客通过 ID 探测私密文件夹的存在
             throw BusinessException.unauthorized(MessageConstant.FOLDER_NOT_FOUND);
         }
 
-        // 2. 获取该文件夹内的推文总数
-        // 这里不需要用 batchFetchItemCounts，直接查单个更高效
+        // 4. 获取推文总数 (既然可见，就可以查数量)
         final Long count = itemMapper.selectCount(
                 new LambdaQueryWrapper<CollectionItem>()
                         .eq(CollectionItem::getFolderId, folderId)
                         .eq(CollectionItem::getIsDeleted, 0)
         );
 
-        // 3. 组装并返回 VO
+        // 5. 组装返回
         return FolderVO.builder()
                 .id(folder.getId())
                 .name(folder.getName())
                 .isDefault(folder.getIsDefault())
                 .isPublic(folder.getIsPublic())
                 .itemCount(count.intValue())
+                .userId(folder.getUserId()) // 返回真正的作者 ID
                 .build();
+    }
+
+    @Override
+    public List<FolderVO> listPublicFoldersByUserId(Long targetUserId) {
+        // 1. 防御性检查
+        if (targetUserId == null) {
+            return Collections.emptyList();
+        }
+
+        // 2. 构造查询条件：指定用户 + 必须公开 + 逻辑删除过滤（MP自动处理）
+        List<CollectionFolder> folders = folderMapper.selectList(
+                new LambdaQueryWrapper<CollectionFolder>()
+                        .eq(CollectionFolder::getUserId, targetUserId)
+                        .eq(CollectionFolder::getIsPublic, 1) // 强制过滤私密文件夹
+                        .orderByDesc(CollectionFolder::getIsDefault) // 默认文件夹排前面
+                        .orderByDesc(CollectionFolder::getCreateTime) // 最近创建的排前面
+        );
+
+        if (folders.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // 3. 提取 ID 列表用于批量查询
+        final List<Long> folderIds = folders.stream()
+                .map(CollectionFolder::getId)
+                .collect(Collectors.toList());
+
+        // 4. 直接通过私有方法调 Mapper 获取计数 Map
+        final Map<Long, Integer> countMap = this.batchFetchItemCounts(folderIds);
+
+
+        // 5. 转换为 FolderVO 列表
+        return folders.stream().map(folder -> {
+            FolderVO vo = new FolderVO();
+            vo.setId(folder.getId());
+            vo.setUserId(folder.getUserId());
+            vo.setName(folder.getName());
+            vo.setIsDefault(folder.getIsDefault());
+            vo.setIsPublic(folder.getIsPublic());
+            vo.setItemCount(countMap.getOrDefault(folder.getId(), 0));
+
+            return vo;
+        }).collect(Collectors.toList());
     }
 
     /**

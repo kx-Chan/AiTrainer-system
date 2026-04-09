@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aitrainer.mapper.UserDynamicsMapper">
+
+    <resultMap id="DynamicBasicMap" type="com.aitrainer.dto.DynamicBasicDTO">
+        <constructor>
+            <arg column="id" javaType="java.lang.Long" />
+            <arg column="type" javaType="java.lang.String" />
+            <arg column="create_time" javaType="java.time.LocalDateTime" />
+        </constructor>
+    </resultMap>
+
+    <select id="selectMergedDynamics" resultMap="DynamicBasicMap">
+        SELECT * FROM (
+        <choose>
+            <when test="category == 'post'">
+                SELECT id, 'post' AS type, created_at AS create_time
+                FROM community_posts
+                WHERE user_id = #{ownerId} AND is_deleted = 0
+            </when>
+
+            <when test="category == 'workout_report'">
+                SELECT id, 'workout_report' AS type, created_at AS create_time
+                FROM workout_sessions
+                WHERE user_id = #{ownerId} AND is_deleted = 0
+                <if test="!showPrivate">
+                    AND 1=0 </if>
+            </when>
+
+            <otherwise>
+                SELECT id, 'post' AS type, created_at AS create_time
+                FROM community_posts
+                WHERE user_id = #{ownerId} AND is_deleted = 0
+
+                UNION ALL
+
+                SELECT id, 'workout_report' AS type, created_at AS create_time
+                FROM workout_sessions
+                WHERE user_id = #{ownerId} AND is_deleted = 0
+                <if test="!showPrivate">
+                    AND 1=0
+                </if>
+            </otherwise>
+        </choose>
+        ) AS merged
+        ORDER BY create_time DESC
+    </select>
+
+</mapper>
