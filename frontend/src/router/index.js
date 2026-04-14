@@ -73,6 +73,12 @@ const routes = [
   },
   // 独立全屏显示的 AI 战报页 (也可以选择放在 Layout 下，看你想要全屏还是带导航的沉浸感)
   {
+    path: "/workout/train/:workoutId",
+    name: "WorkoutTraining",
+    component: () => import("../views/workout/Training.vue"),
+    meta: { title: "AI 训练中" },
+  },
+  {
     path: "/workout/report/:id",
     name: "WorkoutReport",
     component: () => import("../views/workout/Report.vue"),

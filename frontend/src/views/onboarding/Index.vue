@@ -10,11 +10,15 @@
       <div class="form-content">
         <div v-if="activeStep === 0" class="step-fade">
           <h3>告诉 AI 你的基础情况</h3>
-          <p class="subtitle">设置一个响亮的昵称，并选择你的性别</p>
+          <p class="subtitle">设置一个响亮的昵称，填写年龄并选择你的性别</p>
           <div class="input-group" style="margin-bottom: 20px;">
             <div class="input-item" style="justify-content: center;">
               <span class="label" style="margin-right: 10px;">昵称</span>
               <el-input v-model="form.nickname" placeholder="请输入昵称" style="width: 200px;" />
+            </div>
+            <div class="input-item" style="justify-content: center;">
+              <span class="label" style="margin-right: 10px;">年龄</span>
+              <el-input-number v-model="form.age" :min="10" :max="120" placeholder="请输入年龄" style="width: 200px;" />
             </div>
           </div>
           <el-radio-group v-model="form.gender" size="large">
@@ -89,6 +93,7 @@ const isSubmitting = ref(false)
 const form = reactive({
   nickname: '',
   gender: 'male',
+  age: 25,
   height: 170,
   weight: 65,
   bodyFat: 20,
@@ -116,6 +121,7 @@ const finishOnboarding = async () => {
     await request.post('/profile/onboarding', {
       nickname: form.nickname,
       gender: form.gender,
+      age: form.age,
       goal: form.goal,
       height: form.height,
       weight: form.weight,

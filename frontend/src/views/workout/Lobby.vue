@@ -30,11 +30,12 @@
         </el-radio-group>
       </div>
 
-      <el-row :gutter="24" class="workout-grid">
-        <el-col :span="8" v-for="workout in workoutList" :key="workout.id">
+      <el-row :gutter="24" class="workout-grid" v-loading="isLoadingWorkouts">
+        <el-col :span="8" v-for="workout in filteredWorkouts" :key="workout.id">
           <el-card class="workout-card" shadow="hover" :style="{ '--theme-color': workout.color }">
 
-            <div class="card-visual" :class="workout.id">
+            <div class="card-visual" :class="workout.id"
+              :style="workout.coverUrl ? { backgroundImage: `url(${workout.coverUrl})` } : undefined">
               <div class="overlay-gradient"></div>
               <div class="visual-tags">
                 <el-tag size="small" effect="dark" :color="workout.color" style="border: none;">
@@ -75,46 +76,71 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage, ElLoading, ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { VideoCamera, Aim, Lightning, VideoPlay } from '@element-plus/icons-vue'
+import { workoutApi } from '@/api/workout'
 
 const router = useRouter()
 const filterType = ref('all')
 
-// ================= AI 健身项目数据 =================
-const workoutList = reactive([
-  {
-    id: 'squat',
-    name: 'AI 杠铃深蹲',
-    enName: 'Barbell Squat',
-    difficulty: 3,
-    tags: ['臀腿', '力量'],
-    desc: '全面激活下肢力量，AI 实时监测膝盖轨迹、髋部深度与背部角度。',
-    color: '#409EFF' // 科技蓝
-  },
-  {
-    id: 'lunge',
-    name: 'AI 箭步蹲',
-    enName: 'Lunge',
-    difficulty: 2,
-    tags: ['单边控制', '塑形'],
-    desc: '改善左右发力不均，精准打击臀大肌下沿，AI 严控前膝过伸问题。',
-    color: '#67C23A' // 活力绿
-  },
-  {
-    id: 'good_morning',
-    name: '早安式体前屈',
-    enName: 'Good Morning',
-    difficulty: 4,
-    tags: ['核心', '腘绳肌'],
-    desc: '强化下背部与核心稳定，极度依赖动作标准度，AI 严苛监测脊柱中立位。',
-    color: '#E6A23C' // 警告橙
-  }
-])
+const workoutList = ref([])
+const isLoadingWorkouts = ref(false)
 
-// ================= 启动训练逻辑 (模拟调用底层黑盒) =================
+const WORKOUT_COVER_MAP = Object.freeze({
+  squat: 'https://images.unsplash.com/photo-1517964603305-11c0f6f66012?auto=format&fit=crop&q=80&w=1200',
+  lunge: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&q=80&w=1200',
+  good_morning: 'https://images.unsplash.com/photo-1534367610401-9f5ed68180aa?auto=format&fit=crop&q=80&w=1200'
+})
+
+const normalizeWorkout = (raw) => {
+  const tags = Array.isArray(raw?.tags)
+    ? raw.tags
+    : typeof raw?.tags === 'string'
+      ? (() => {
+        try { return JSON.parse(raw.tags) } catch (e) { return [] }
+      })()
+      : []
+  const id = String(raw?.id || '').trim()
+  return {
+    id,
+    name: raw?.name || '',
+    enName: raw?.enName || raw?.en_name || '',
+    difficulty: Number(raw?.difficulty ?? 1),
+    tags,
+    desc: raw?.desc || raw?.description || '',
+    color: raw?.color || raw?.themeColor || raw?.theme_color || '#409EFF',
+    coverUrl: raw?.coverUrl || raw?.cover_url || WORKOUT_COVER_MAP[id] || ''
+  }
+}
+
+const filteredWorkouts = computed(() => {
+  const list = Array.isArray(workoutList.value) ? workoutList.value : []
+  const t = String(filterType.value || 'all')
+  if (t === 'all') return list
+  if (t === 'leg') {
+    return list.filter(w => (w.tags || []).some(x => ['臀腿', '核心', '腘绳肌', '单边控制'].includes(String(x))))
+  }
+  if (t === 'back') {
+    return list.filter(w => (w.tags || []).some(x => String(x).includes('背') || String(x).includes('下背')))
+  }
+  return list
+})
+
+const fetchWorkouts = async () => {
+  isLoadingWorkouts.value = true
+  try {
+    const data = await workoutApi.listWorkouts()
+    const records = Array.isArray(data?.records) ? data.records : (Array.isArray(data) ? data : [])
+    workoutList.value = records.map(normalizeWorkout).filter(w => w.id)
+  } catch (e) {
+    workoutList.value = []
+  } finally {
+    isLoadingWorkouts.value = false
+  }
+}
+
 const handleStartWorkout = (workout) => {
   ElMessageBox.confirm(
     `即将开启【${workout.name}】模式。请确保您已穿着运动服，且全身处于摄像头画面内。`,
@@ -126,37 +152,15 @@ const handleStartWorkout = (workout) => {
       center: true
     }
   ).then(() => {
-    // 模拟开启摄像头的加载过程
-    const loading = ElLoading.service({
-      lock: true,
-      text: '正在调起本地系统摄像头...',
-      background: 'rgba(0, 0, 0, 0.8)',
-    })
-
-    setTimeout(() => {
-      loading.setText('正在加载骨骼关键点识别模型 (Pose Estimation)...')
-
-      setTimeout(() => {
-        loading.close()
-        ElMessage.success({ message: '引擎就绪！开始您的训练！', duration: 3000 })
-
-        // -------------------------------------------------------------
-        // 【重要说明】：由于你的真实 CV 训练界面是不开源的底层黑盒
-        // 在实际开发中，这里可能会触发一个本地协议，或者直接弹出一个不可见的组件。
-        // 为了演示完整闭环，我们在这里模拟用户训练了 20 分钟后，
-        // 算法将数据返回，并自动跳转到了我们规划好的“AI 训练结算报告页”。
-        // -------------------------------------------------------------
-
-        // 假设算法返回了一个本次训练的流水号 ID (例如 9527)
-        const mockReportId = 9527
-        router.push(`/workout/report/${mockReportId}`)
-
-      }, 1500)
-    }, 1000)
+    router.push({ name: 'WorkoutTraining', params: { workoutId: String(workout?.id || '') } })
   }).catch(() => {
     ElMessage.info('训练已取消')
   })
 }
+
+onMounted(() => {
+  fetchWorkouts()
+})
 </script>
 
 <style scoped>
@@ -273,6 +277,8 @@ const handleStartWorkout = (workout) => {
   background-color: #f5f7fa;
   position: relative;
   overflow: hidden;
+  background-size: cover;
+  background-position: center;
 }
 
 .card-visual.squat {

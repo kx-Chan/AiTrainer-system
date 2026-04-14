@@ -23,6 +23,9 @@ public class WorkoutSessionVO {
     @Schema(description = "项目 ID (如: squat, pushup)")
     private String workoutId;
 
+    @Schema(description = "训练项目名称 (如: 深蹲, 俯卧撑)")
+    private String workoutName;
+
     @Schema(description = "综合评分 (0-100)")
     private Integer score;
 

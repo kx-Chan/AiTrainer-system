@@ -41,6 +41,11 @@ public record OnboardingProfileDTO(
         @Schema(description = "体脂率 (%)", example = "22.5")
         @DecimalMin(value = "1.0", message = "体脂率必须在 1 到 50 % 之间")
         @DecimalMax(value = "50.0", message = "体脂率必须在 1 到 50 % 之间")
-        BigDecimal bodyFat
+        BigDecimal bodyFat,
+
+        @Schema(description = "年龄", example = "25")
+        @Min(value = 10, message = "年龄必须在 10 到 120 岁之间")
+        @Max(value = 120, message = "年龄必须在 10 到 120 岁之间")
+        Integer age
 ) {
 }

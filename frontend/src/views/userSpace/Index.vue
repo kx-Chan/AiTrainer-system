@@ -10,7 +10,8 @@
         <div class="user-details">
           <div class="name-row">
             <h2 class="user-name">{{ userInfo.nickname || '用户' }}</h2>
-            <el-tag v-if="userInfo.goal" type="warning" effect="light" round size="small">目标: {{ userInfo.goal }}</el-tag>
+            <el-tag v-if="userInfo.goal" type="warning" effect="light" round size="small">目标: {{ userInfo.goal
+              }}</el-tag>
             <el-tag v-if="userInfo.isPro" type="warning" size="small" effect="dark" round>PRO</el-tag>
 
             <div class="action-btns">
@@ -74,7 +75,8 @@
         <el-tab-pane label="收藏夹" name="favorites">
           <el-empty v-if="visibleFavoriteFolders.length === 0" :description="isMe ? '暂无收藏夹' : '暂无公开收藏夹'" />
           <div v-else class="favorites-grid">
-            <div v-for="folder in visibleFavoriteFolders" :key="folder.id" class="fav-folder-card" @click="goToFolderDetail(folder)">
+            <div v-for="folder in visibleFavoriteFolders" :key="folder.id" class="fav-folder-card"
+              @click="goToFolderDetail(folder)">
               <el-icon size="40">
                 <FolderOpened />
               </el-icon>
@@ -122,7 +124,8 @@
                 <el-avatar v-else :size="40" :src="userInfo.avatar" />
                 <div class="message-body">
                   <div class="message-info">
-                    <span class="user-name">{{ guestbookMode === 'received' ? (msg.fromUserName || '用户') : ('留言给：' + (msg.toUserName || '用户')) }}</span>
+                    <span class="user-name">{{ guestbookMode === 'received' ? (msg.fromUserName || '用户') : ('留言给：' +
+                      (msg.toUserName || '用户')) }}</span>
                     <span class="message-time">#{{ msg.id }} · {{ msg.createTime?.substring(0, 10) }}</span>
                   </div>
                   <p class="message-text">{{ msg.content }}</p>
@@ -176,6 +179,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { followApi, guestbookApi, userSpaceApi, dynamicsApi, privacyApi } from '@/api/userSpace'
 import PostItem from '@/components/community/PostItem.vue'
 import request from '@/utils/request'
+import { workoutApi } from '@/api/workout'
 
 const route = useRoute()
 const router = useRouter()
@@ -313,6 +317,21 @@ const fetchDynamics = async () => {
     dynamicsPage.total = Number(data?.total || 0)
     const records = Array.isArray(data?.records) ? data.records : []
     dynamicsList.value = records.map(normalizeDynamicsItem).filter(Boolean).filter(canShowItem)
+    const targets = dynamicsList.value
+      .map(it => ({
+        post: it?.post,
+        id: it?.post?.aiReportId ?? it?.post?.ai_report_id ?? it?.post?.aiReportID ?? it?.post?.ai_reportId ?? it?.post?.workoutSessionId
+      }))
+      .filter(x => x.post && !x.post.aiReport && x.id != null)
+
+    if (targets.length) {
+      await Promise.all(targets.map(async ({ post, id }) => {
+        try {
+          const data = await workoutApi.getSession(String(id))
+          post.aiReport = data || null
+        } catch (e) { }
+      }))
+    }
     dynamicsList.value.forEach((it) => {
       if (!it?.post) return
       it.post.time = String(it.post.time || '').slice(0, 10)
@@ -384,8 +403,8 @@ const toggleLike = async (post) => {
   if (isReportOnly) {
     const beforeLiked = Boolean(post.isLiked)
     const data = beforeLiked
-      ? await request.delete(`/reports/${post.id}/like`)
-      : await request.post(`/reports/${post.id}/like`)
+      ? await workoutApi.unlikeSession(post.id)
+      : await workoutApi.likeSession(post.id)
     post.isLiked = data?.liked ?? !beforeLiked
     post.likes = data?.likes ?? Math.max(0, Number(post.likes || 0) + (beforeLiked ? -1 : 1))
     const delta = beforeLiked ? -1 : 1

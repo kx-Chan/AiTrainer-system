@@ -53,4 +53,19 @@ public final class MessageConstant {
     public static final String GUESTBOOK_DELETE_FORBIDDEN = "权限不足，无法删除该留言";
     public static final String GUESTBOOK_WITHDRAW_FORBIDDEN = "只有空间主人可以撤回回复";
     public static final String CANNOT_LEAVE_MSG_TO_SELF = "不能给自己留言哦，去社区发推文吧！";
+
+    // ai战报相关
+    public static final String WORKOUT_NOT_FOUND = "健身项目不存在";
+
+    // --- 饮食记录相关 ---
+    public static final String MEAL_NOT_FOUND = "饮食记录不存在或已被删除";
+    public static final String MEAL_DELETE_FORBIDDEN = "权限不足，无法删除该饮食记录";
+    public static final String MEAL_UPDATE_FORBIDDEN = "权限不足，无法编辑该饮食记录";
+    public static final String MEAL_TYPE_ALREADY_EXISTS = "该餐次今日已添加，请先删除后再添加";
+
+    // --- 额外运动记录相关 ---
+    public static final String EXTRA_EXERCISE_NOT_FOUND = "额外运动记录不存在";
+    public static final String EXTRA_EXERCISE_UPDATE_FORBIDDEN = "权限不足，无法编辑该额外运动记录";
+    public static final String EXTRA_EXERCISE_DELETE_FORBIDDEN = "权限不足，无法删除该额外运动记录";
+
 }

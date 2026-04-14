@@ -17,6 +17,9 @@ public record CreatePostDTO(
         String device,
 
         @Schema(description = "帖子图片对象 Key 列表")
-        List<String> imageKeys
+        List<String> imageKeys,
+
+        @Schema(description = "关联的 AI 战报 ID（可选）")
+        Long aiReportId
 ) {
 }

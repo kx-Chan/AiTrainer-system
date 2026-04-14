@@ -63,6 +63,11 @@ public class UserProfile {
     private BigDecimal bodyFat;
 
     /**
+     * 年龄。
+     */
+    private Integer age;
+
+    /**
      * 记录更新时间。
      */
     private LocalDateTime updatedAt;

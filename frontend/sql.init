@@ -39,6 +39,8 @@ CREATE TABLE IF NOT EXISTS `user_profiles` (
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 ALTER TABLE user_profiles ADD COLUMN total_likes INT UNSIGNED DEFAULT 0;
+ALTER TABLE user_profiles ADD COLUMN age INT DEFAULT NULL COMMENT '用户年龄';
+ALTER TABLE user_profiles ADD COLUMN nickname VARCHAR(50) DEFAULT NULL COMMENT '用户昵称';
 -- ----------------------------
 -- 2. Social & Tracking
 -- ----------------------------
@@ -237,8 +239,9 @@ CREATE TABLE IF NOT EXISTS `meals` (
     `food_name` TEXT NOT NULL COMMENT '食物名称',
     `calories` INT DEFAULT 0 COMMENT '热量',
     `tag_type` VARCHAR(20) DEFAULT 'info' COMMENT '标签样式',
+    `weight` INT DEFAULT 0 COMMENT '食物重量(g)',
+    `is_deleted` TINYINT DEFAULT 0 COMMENT '逻辑删除(0:正常,1:已删除)',
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `deleted_at` TIMESTAMP NULL DEFAULT NULL,
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
     INDEX `idx_user_meals` (`user_id`, `meal_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -250,6 +253,22 @@ INSERT INTO `workouts` (`id`, `name`, `en_name`, `difficulty`, `tags`, `descript
 ('squat', 'AI 杠铃深蹲', 'Barbell Squat', 3, '["臀腿", "力量"]', '全面激活下肢力量，AI 实时监测膝盖轨迹、髋部深度与背部角度。', '#409EFF'),
 ('lunge', 'AI 箭步蹲', 'Lunge', 2, '["单边控制", "塑形"]', '改善左右发力不均，精准打击臀大肌下沿，AI 严控前膝过伸问题。', '#67C23A'),
 ('good_morning', '早安式体前屈', 'Good Morning', 4, '["核心", "腘绳肌"]', '强化下背部与核心稳定，极度依赖动作标准度，AI 严苛监测脊柱中立位。', '#E6A23C');
+
+-- ----------------------------
+-- 7. Extra Exercise (用户自行添加的项目外运动消耗)
+-- ----------------------------
+CREATE TABLE IF NOT EXISTS `extra_exercises` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT NOT NULL COMMENT '用户ID',
+    `exercise_name` VARCHAR(100) NOT NULL COMMENT '运动名称',
+    `calories_burned` INT DEFAULT 0 COMMENT '消耗热量(kcal)',
+    `duration_minutes` INT DEFAULT 0 COMMENT '运动时长(分钟)',
+    `exercise_date` DATE NOT NULL COMMENT '运动日期',
+    `is_deleted` TINYINT DEFAULT 0 COMMENT '逻辑删除(0:正常,1:已删除)',
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    INDEX `idx_user_exercise_date` (`user_id`, `exercise_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户额外运动消耗记录';
 
 SET FOREIGN_KEY_CHECKS = 1;
 

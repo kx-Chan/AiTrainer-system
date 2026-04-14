@@ -64,7 +64,7 @@ public class PostServiceImpl implements PostService {
                 .content(content)
                 .topic(topic)
                 .device(device)
-                .aiReportId(null)
+                .aiReportId(dto.aiReportId())
                 .build();
 
         communityPostMapper.insert(post);
@@ -245,6 +245,7 @@ public class PostServiceImpl implements PostService {
                             .isFavorited(favoritedByViewer.contains(p.getId()))
                             .isFollowing(followingSet.contains(p.getUserId()))
                             .images(postImages.getOrDefault(p.getId(), List.of()))
+                            .workoutSessionId(p.getAiReportId())
                             .build();
                 })
                 .collect(Collectors.toList());
@@ -790,7 +791,7 @@ public class PostServiceImpl implements PostService {
         WorkoutSessionVO aiReportVO = null;
         if (post.getAiReportId() != null) {
             // 这里调用你刚才实现的战报详情获取接口
-            aiReportVO = workoutSessionService.getReportDetail(post.getAiReportId(), viewerId);
+            aiReportVO = workoutSessionService.getWorkoutSessionDetail(post.getAiReportId(), viewerId);
         }
 
         // 5. 组装基础 VO 结构

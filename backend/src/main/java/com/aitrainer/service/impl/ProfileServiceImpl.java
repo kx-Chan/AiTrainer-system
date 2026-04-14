@@ -54,6 +54,7 @@ public class ProfileServiceImpl implements ProfileService {
                 .height(dto.height())
                 .weight(dto.weight())
                 .bodyFat(dto.bodyFat())
+                .age(dto.age())
                 .updatedAt(LocalDateTime.now())
                 .build();
 
@@ -102,6 +103,7 @@ public class ProfileServiceImpl implements ProfileService {
                 .height(profile.getHeight())
                 .weight(profile.getWeight())
                 .bodyFat(profile.getBodyFat())
+                .age(profile.getAge())
                 .avatar(avatarUrl)
                 .following(followingCount)
                 .followers(followerCount)
@@ -134,6 +136,7 @@ public class ProfileServiceImpl implements ProfileService {
         profile.setHeight(vo.getHeight());
         profile.setWeight(vo.getWeight());
         profile.setBodyFat(vo.getBodyFat());
+        profile.setAge(vo.getAge());
         profile.setUpdatedAt(LocalDateTime.now());
 
         // 使用 saveOrUpdate 方法或判断后操作

@@ -58,7 +58,7 @@
         </template>
       </div>
 
-      <div v-if="post.aiReport" class="ai-report-embed">
+      <div v-if="post.aiReport || aiReportId" class="ai-report-embed">
         <div class="report-header">
           <el-icon color="#E6A23C" size="18">
             <Trophy />
@@ -66,17 +66,27 @@
           <span>AiTrainer 智能评测战报</span>
         </div>
         <div class="report-body">
-          <div class="report-score"><span class="score-num">{{ post.aiReport.score }}</span>分</div>
-          <div class="report-details">
-            <div>动作：<strong>{{ reportActionText }}</strong></div>
-            <div>次数：有效 <strong>{{ post.aiReport.validReps ?? 0 }}</strong> / 异常 <strong>{{ post.aiReport.invalidReps ??
+          <template v-if="post.aiReport">
+            <div class="report-score"><span class="score-num">{{ post.aiReport.score }}</span>分</div>
+            <div class="report-details">
+              <div>动作：<strong>{{ reportActionText }}</strong></div>
+              <div>次数：有效 <strong>{{ post.aiReport.validReps ?? 0 }}</strong> / 异常 <strong>{{ post.aiReport.invalidReps ??
                 0
-                }}</strong></div>
-            <div>时长：<strong>{{ post.aiReport.durationSeconds ?? 0 }}</strong> 秒 · 消耗：🔥 {{ post.aiReport.caloriesBurned
-              ?? 0
-              }} kcal</div>
-            <div class="report-comment">AI点评：{{ post.aiReport.comment }}</div>
-          </div>
+              }}</strong></div>
+              <div>时长：<strong>{{ reportDurationText }}</strong> · 消耗：🔥 {{ reportCaloriesText }}</div>
+              <div class="report-comment">AI点评：{{ post.aiReport.comment }}</div>
+            </div>
+          </template>
+          <template v-else>
+            <el-skeleton v-if="aiReportLoading" animated :rows="3" />
+            <div v-else class="report-details">
+              <div v-if="aiReportLoadFailed">
+                战报加载失败
+                <el-button link type="primary" @click="loadAiReport">重试</el-button>
+              </div>
+              <div v-else>战报加载中...</div>
+            </div>
+          </template>
         </div>
       </div>
     </div>
@@ -173,6 +183,7 @@ import CommentSection from './CommentSection.vue'
 
 // ✅ 1. 导入封装好的 API
 import { folderApi, itemApi } from '@/api/collection'
+import { workoutApi } from '@/api/workout'
 
 const props = defineProps({
   post: { type: Object, required: true },
@@ -187,6 +198,46 @@ const showComments = ref(false)
 
 const isReportOnly = computed(() => String(props.post?.sourceType || '') === 'workout_report')
 
+const aiReportId = computed(() => {
+  const p = props.post || {}
+  return p?.aiReportId ?? p?.ai_report_id ?? p?.aiReportID ?? p?.ai_reportId ?? p?.workoutSessionId ?? null
+})
+
+const aiReportLoading = ref(false)
+const aiReportLoadFailed = ref(false)
+
+const normalizeAiReport = (raw) => ({
+  id: raw?.id,
+  workoutId: raw?.workoutId ?? raw?.workout_id ?? '',
+  action: raw?.action ?? raw?.type ?? '',
+  score: Number(raw?.score ?? 0),
+  validReps: Number(raw?.validReps ?? raw?.valid_reps ?? 0),
+  invalidReps: Number(raw?.invalidReps ?? raw?.invalid_reps ?? 0),
+  durationSeconds: Number(raw?.durationSeconds ?? raw?.duration_seconds ?? 0),
+  durationMinutes: Number(raw?.durationMinutes ?? raw?.duration_minutes ?? 0),
+  caloriesBurned: Number(raw?.caloriesBurned ?? raw?.calories_burned ?? raw?.calories ?? 0),
+  comment: raw?.comment || ''
+})
+
+const loadAiReport = async () => {
+  if (isReportOnly.value) return
+  if (props.post?.aiReport) return
+  const id = aiReportId.value
+  if (id == null || String(id).trim() === '') return
+  if (aiReportLoading.value) return
+
+  aiReportLoading.value = true
+  aiReportLoadFailed.value = false
+  try {
+    const data = await workoutApi.getSession(String(id))
+    props.post.aiReport = data ? normalizeAiReport(data) : null
+  } catch (e) {
+    aiReportLoadFailed.value = true
+  } finally {
+    aiReportLoading.value = false
+  }
+}
+
 const formattedTime = computed(() => {
   const t = props.post?.time
   if (!t) return ''
@@ -199,7 +250,8 @@ const WORKOUT_NAME_MAP = Object.freeze({
   pushup: '俯卧撑',
   plank: '平板支撑',
   situp: '卷腹',
-  lunge: '弓步蹲'
+  lunge: '弓步蹲',
+  good_morning: '早安式体前屈'
 })
 
 const reportActionText = computed(() => {
@@ -210,11 +262,32 @@ const reportActionText = computed(() => {
   return WORKOUT_NAME_MAP[workoutId] ? `${WORKOUT_NAME_MAP[workoutId]}（${workoutId}）` : workoutId
 })
 
+const reportDurationText = computed(() => {
+  const r = props.post?.aiReport || {}
+  const seconds = Number(r?.durationSeconds ?? r?.duration_seconds ?? 0)
+  if (seconds > 0) return `${seconds} 秒`
+  const minutes = Number(r?.durationMinutes ?? r?.duration_minutes ?? 0)
+  if (minutes > 0) return `${minutes} min`
+  return '0'
+})
+
+const reportCaloriesText = computed(() => {
+  const r = props.post?.aiReport || {}
+  const kcal = Number(r?.caloriesBurned ?? r?.calories_burned ?? r?.calories ?? 0)
+  return `${kcal} kcal`
+})
+
 const onTopicClick = () => {
   const topic = props.post?.topic
   if (!topic) return
   emit('topic-click', topic)
 }
+
+watch(aiReportId, () => {
+  if (props.post?.aiReport) return
+  if (aiReportId.value == null) return
+  loadAiReport()
+}, { immediate: true })
 
 const toggleComments = () => {
   showComments.value = !showComments.value

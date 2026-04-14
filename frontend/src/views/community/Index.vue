@@ -130,6 +130,7 @@ import request from '@/utils/request'
 import { useUserStore } from '@/store/userStore'
 import Publisher from '@/components/community/Publisher.vue'
 import PostItem from '@/components/community/PostItem.vue'
+import { workoutApi } from '@/api/workout'
 
 const router = useRouter()
 const route = useRoute()
@@ -379,6 +380,22 @@ const trendingTags = reactive([
 
 const recommendedTopicNames = computed(() => trendingTags.map(tag => tag.name))
 
+const hydrateAiReports = async (posts) => {
+  const list = Array.isArray(posts) ? posts : []
+  const targets = list
+    .map(p => ({ post: p, id: p?.aiReportId ?? p?.ai_report_id ?? p?.aiReportID ?? p?.ai_reportId ?? p?.workoutSessionId }))
+    .filter(x => x.post && !x.post.aiReport && x.id != null)
+
+  if (!targets.length) return
+
+  await Promise.all(targets.map(async ({ post, id }) => {
+    try {
+      const data = await workoutApi.getSession(String(id))
+      post.aiReport = data || null
+    } catch (e) { }
+  }))
+}
+
 // ================= 后端分页数据加载 =================
 const fetchDiscover = async () => {
   loadingMore.value = true
@@ -391,6 +408,7 @@ const fetchDiscover = async () => {
   }
   total.value = data?.total ?? 0
   const records = data?.records ?? []
+  await hydrateAiReports(records)
   records.forEach(r => feedList.push(r))
   loadingMore.value = false
 }
@@ -400,6 +418,7 @@ const fetchFollowing = async () => {
   const data = await request.get('/posts/following', { params: { page: page.value, size: size.value } })
   total.value = data?.total ?? 0
   const records = data?.records ?? []
+  await hydrateAiReports(records)
   records.forEach(r => feedList.push(r))
   loadingMore.value = false
 }

@@ -67,7 +67,7 @@ public class UserDynamicsServiceImpl implements UserDynamicsService {
             if ("post".equals(basic.type())) {
                 vo.setPost(postService.getPostDetail(basic.id(), viewerId));
             } else if ("workout_report".equals(basic.type())) {
-                vo.setAiReport(workoutService.getReportDetail(basic.id(), viewerId));
+                vo.setAiReport(workoutService.getWorkoutSessionDetail(basic.id(), viewerId));
             }
             return vo;
         }).collect(Collectors.toList());

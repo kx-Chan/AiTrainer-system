@@ -108,11 +108,11 @@ public class UserServiceImpl implements UserService {
                 .followingCount(0) // 关注数量初始化为0
                 .followerCount(0) // 粉丝数量初始化为0
                 .build();
+        userMapper.insert(user);
 
         // 5. 创建默认收藏夹
         collectionFolderService.initDefaultFolder(user.getId());
 
-        userMapper.insert(user);
         log.info("用户 {} 注册成功，ID: {}", request.username(), user.getId());
 
         // 注册成功后，消耗验证码

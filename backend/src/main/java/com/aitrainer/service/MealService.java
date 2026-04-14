@@ -1,0 +1,78 @@
+package com.aitrainer.service;
+
+import com.aitrainer.dto.AddExtraExerciseDTO;
+import com.aitrainer.dto.AddMealDTO;
+import com.aitrainer.dto.UpdateExtraExerciseDTO;
+import com.aitrainer.dto.UpdateMealDTO;
+import com.aitrainer.vo.DietSummaryVO;
+import com.aitrainer.vo.ExtraExerciseVO;
+import com.aitrainer.vo.MealVO;
+
+/**
+ * 饮食记录服务接口。
+ */
+public interface MealService {
+
+    /**
+     * 获取指定日期的饮食汇总（含热量统计）。
+     *
+     * @param userId 用户 ID
+     * @param date   日期字符串 (yyyy-MM-dd)，为 null 则默认今天
+     * @return 饮食汇总 VO
+     */
+    DietSummaryVO getDietSummary(Long userId, String date);
+
+    /**
+     * 添加一条饮食记录。
+     *
+     * @param userId 用户 ID
+     * @param dto    添加参数
+     * @return 新增记录 VO
+     */
+    MealVO addMeal(Long userId, AddMealDTO dto);
+
+    /**
+     * 编辑一条饮食记录。
+     *
+     * @param userId 用户 ID（用于鉴权）
+     * @param mealId 记录 ID
+     * @param dto    编辑参数
+     * @return 更新后的记录 VO
+     */
+    MealVO updateMeal(Long userId, Long mealId, UpdateMealDTO dto);
+
+    /**
+     * 逻辑删除一条饮食记录。
+     *
+     * @param userId 用户 ID（用于鉴权）
+     * @param mealId 记录 ID
+     */
+    void deleteMeal(Long userId, Long mealId);
+
+    /**
+     * 添加一条额外运动消耗记录。
+     *
+     * @param userId 用户 ID
+     * @param dto    添加参数
+     * @return 新增记录 VO
+     */
+    ExtraExerciseVO addExtraExercise(Long userId, AddExtraExerciseDTO dto);
+
+    /**
+     * 编辑一条额外运动消耗记录。
+     *
+     * @param userId     用户 ID（用于鉴权）
+     * @param exerciseId 记录 ID
+     * @param dto        编辑参数
+     * @return 更新后的记录 VO
+     */
+    ExtraExerciseVO updateExtraExercise(Long userId, Long exerciseId, UpdateExtraExerciseDTO dto);
+
+    /**
+     * 逻辑删除一条额外运动消耗记录。
+     *
+     * @param userId     用户 ID（用于鉴权）
+     * @param exerciseId 记录 ID
+     */
+    void deleteExtraExercise(Long userId, Long exerciseId);
+}

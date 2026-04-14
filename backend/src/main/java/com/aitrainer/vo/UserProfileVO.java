@@ -68,6 +68,12 @@ public class UserProfileVO {
     private BigDecimal bodyFat;
 
     /**
+     * 年龄。
+     */
+    @Schema(description = "用户年龄")
+    private Integer age;
+
+    /**
      * 用户头像 URL 。
      */
     @Schema(description = "用户头像 URL")

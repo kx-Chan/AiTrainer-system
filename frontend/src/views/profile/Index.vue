@@ -9,8 +9,9 @@
         <div class="info-section">
           <div class="name-row">
             <h2 class="nickname">{{ userInfo.nickname }}</h2>
-            <el-tag type="warning" effect="light" round size="small" style="margin-left: 8px;">目标: {{ userInfo.goal
-            }}</el-tag>
+            <el-tag type="warning" effect="light" round size="small" style="margin-left: 8px;">
+              目标: {{ GOAL_LABELS[userInfo.goal] || userInfo.goal || '未设置' }}
+            </el-tag>
 
             <el-button type="primary" :icon="Edit" plain size="small" class="edit-btn"
               @click="openEditModal">编辑资料</el-button>
@@ -225,9 +226,9 @@
         </el-form-item>
         <el-form-item label="健身目标">
           <el-radio-group v-model="editForm.goal">
-            <el-radio-button label="减脂">减脂</el-radio-button>
-            <el-radio-button label="增肌">增肌</el-radio-button>
-            <el-radio-button label="保持">保持</el-radio-button>
+            <el-radio-button label="lose">减脂</el-radio-button>
+            <el-radio-button label="gain">增肌</el-radio-button>
+            <el-radio-button label="maintain">保持</el-radio-button>
           </el-radio-group>
         </el-form-item>
         <el-form-item label="身高 (cm)">
@@ -238,6 +239,9 @@
         </el-form-item>
         <el-form-item label="体脂率 (%)">
           <el-input-number v-model="editForm.bodyFat" :min="1" :max="50" :precision="1" :step="0.5" />
+        </el-form-item>
+        <el-form-item label="年龄">
+          <el-input-number v-model="editForm.age" :min="10" :max="120" />
         </el-form-item>
         <el-form-item label="个性签名">
           <el-input v-model="editForm.bio" type="textarea" :rows="3" placeholder="写一句激励自己的话吧..." maxlength="100"
@@ -308,9 +312,14 @@ import request from '@/utils/request'
 import { useRouter, useRoute } from 'vue-router'
 import { folderApi } from '@/api/collection'
 
+
+// Profile.vue
+const GOAL_LABELS = {
+  lose: '减脂降重',
+  gain: '增肌塑形',
+  maintain: '保持身材'
+}
 // ================= 1. 核心状态定义 =================
-// 关键点：因为这是“我的”页面，isMe 永远为 true
-const isMe = true
 
 const router = useRouter()
 const route = useRoute()
@@ -340,7 +349,7 @@ const isEditVisible = ref(false)
 const isFollowVisible = ref(false)
 
 // 编辑表单与头像上传
-const editForm = reactive({ avatar: '', nickname: '', gender: '', goal: '', bio: '', height: null, weight: null, bodyFat: null })
+const editForm = reactive({ avatar: '', nickname: '', gender: '', goal: '', bio: '', height: null, weight: null, bodyFat: null, age: null })
 const pendingAvatarFile = ref(null)
 const pendingAvatarPreviewUrl = ref('')
 const isAvatarUploading = ref(false)

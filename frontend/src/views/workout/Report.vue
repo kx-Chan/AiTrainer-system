@@ -11,14 +11,17 @@
           <Trophy />
         </el-icon> AiTrainer 智能分析战报
       </div>
-      <el-button type="primary" plain round size="small" @click="shareToCommunity">
-        <el-icon>
-          <Share />
-        </el-icon> 一键分享到社区
-      </el-button>
+      <div class="header-actions">
+        <el-button type="primary" plain round size="small" @click="shareToCommunity">
+          <el-icon>
+            <Share />
+          </el-icon> 一键分享到社区
+        </el-button>
+        <el-button round size="small" @click="$router.push('/workout')">结束训练</el-button>
+      </div>
     </div>
 
-    <div class="report-content">
+    <div class="report-content" v-loading="isLoading">
       <div class="left-panel">
         <el-card shadow="never" class="score-card dark-tech-card">
           <div class="score-header">本次综合表现</div>
@@ -93,85 +96,153 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, nextTick } from 'vue'
+import { ref, reactive, onBeforeUnmount, onMounted, nextTick, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
 import { Back, Trophy, Share, DataAnalysis, Warning } from '@element-plus/icons-vue'
+import { workoutApi } from '@/api/workout'
 
 const router = useRouter()
 const route = useRoute()
 const radarChartRef = ref(null)
+const isLoading = ref(false)
+const chartInstance = ref(null)
 
-// 模拟从后端获取的战报数据 (根据 URL 里的 :id 动态拉取)
 const reportData = reactive({
   id: route.params.id,
-  type: '深蹲',
-  score: 88,
-  grade: 'A',
-  gradeLevel: 'grade-A',
-  comment: '核心极其稳定，但下蹲深度有待加强。',
-  validReps: 45,
-  invalidReps: 3,
-  duration: 15,
-  calories: 120,
-  // 维度评分：膝盖轨迹, 下蹲深度, 背部姿态, 核心稳定, 发力节奏
-  radarScores: [95, 75, 88, 96, 85],
-  snapshots: [
-    {
-      url: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?auto=format&fit=crop&q=80&w=400',
-      reason: '第 12 次: 膝盖轻微内扣',
-      errorX: '45%', errorY: '70%'
-    },
-    {
-      url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=400',
-      reason: '第 28 次: 背部未完全挺直',
-      errorX: '60%', errorY: '40%'
-    }
-  ]
+  workoutId: '',
+  type: '',
+  score: 0,
+  grade: '',
+  gradeLevel: '',
+  comment: '',
+  validReps: 0,
+  invalidReps: 0,
+  duration: 0,
+  calories: 0,
+  radarScores: [],
+  snapshots: []
 })
 
-// 初始化 ECharts 雷达图
+const normalizeSession = (raw) => {
+  const radarScores = Array.isArray(raw?.radarScores)
+    ? raw.radarScores
+    : typeof raw?.radarScores === 'string'
+      ? (() => { try { return JSON.parse(raw.radarScores) } catch (e) { return [] } })()
+      : Array.isArray(raw?.radar_scores)
+        ? raw.radar_scores
+        : typeof raw?.radar_scores === 'string'
+          ? (() => { try { return JSON.parse(raw.radar_scores) } catch (e) { return [] } })()
+          : []
+
+  const snapshots = Array.isArray(raw?.snapshots)
+    ? raw.snapshots
+    : typeof raw?.snapshots === 'string'
+      ? (() => { try { return JSON.parse(raw.snapshots) } catch (e) { return [] } })()
+      : Array.isArray(raw?.snapshotList)
+        ? raw.snapshotList
+        : []
+
+  const duration = Number(raw?.durationMinutes ?? raw?.duration_minutes ?? raw?.duration ?? 0)
+  const calories = Number(raw?.caloriesBurned ?? raw?.calories_burned ?? raw?.calories ?? 0)
+
+  return {
+    id: raw?.id ?? reportData.id,
+    workoutId: raw?.workoutId ?? raw?.workout_id ?? '',
+    type: raw?.workoutName || raw?.type || raw?.name || '',
+    score: Number(raw?.score ?? 0),
+    grade: raw?.grade || '',
+    gradeLevel: raw?.gradeLevel || raw?.grade_level || '',
+    comment: raw?.comment || '',
+    validReps: Number(raw?.validReps ?? raw?.valid_reps ?? 0),
+    invalidReps: Number(raw?.invalidReps ?? raw?.invalid_reps ?? 0),
+    duration,
+    calories,
+    radarScores,
+    snapshots
+  }
+}
+
+const fetchReport = async () => {
+  const id = String(route.params.id || '').trim()
+  if (!id) return
+  isLoading.value = true
+  try {
+    const data = await workoutApi.getSession(id)
+    Object.assign(reportData, normalizeSession(data || {}))
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const buildRadarOption = () => ({
+  radar: {
+    indicator: [
+      { name: '膝盖轨迹', max: 100 },
+      { name: '下蹲深度', max: 100 },
+      { name: '背部姿态', max: 100 },
+      { name: '核心稳定', max: 100 },
+      { name: '发力节奏', max: 100 }
+    ],
+    axisName: { color: '#606266', fontWeight: 'bold' },
+    splitArea: { areaStyle: { color: ['#f8f9fa', '#f1f3f5', '#e9ecef', '#dee2e6'] } }
+  },
+  series: [{
+    type: 'radar',
+    data: [{
+      value: Array.isArray(reportData.radarScores) ? reportData.radarScores : [],
+      name: '本次评分',
+      itemStyle: { color: '#409EFF' },
+      areaStyle: { color: 'rgba(64,158,255,0.3)' }
+    }]
+  }]
+})
+
 const initRadarChart = () => {
   if (!radarChartRef.value) return
-  const myChart = echarts.init(radarChartRef.value)
-
-  const option = {
-    radar: {
-      indicator: [
-        { name: '膝盖轨迹', max: 100 },
-        { name: '下蹲深度', max: 100 },
-        { name: '背部姿态', max: 100 },
-        { name: '核心稳定', max: 100 },
-        { name: '发力节奏', max: 100 }
-      ],
-      axisName: { color: '#606266', fontWeight: 'bold' },
-      splitArea: { areaStyle: { color: ['#f8f9fa', '#f1f3f5', '#e9ecef', '#dee2e6'] } }
-    },
-    series: [{
-      type: 'radar',
-      data: [{
-        value: reportData.radarScores,
-        name: '本次评分',
-        itemStyle: { color: '#409EFF' },
-        areaStyle: { color: 'rgba(64,158,255,0.3)' }
-      }]
-    }]
+  if (chartInstance.value) {
+    try { chartInstance.value.dispose() } catch (e) { }
   }
-  myChart.setOption(option)
+  chartInstance.value = echarts.init(radarChartRef.value)
+  chartInstance.value.setOption(buildRadarOption())
 }
 
 const shareToCommunity = () => {
   ElMessage.success('战报已生成社交卡片，即将跳转到社区发布页！')
   setTimeout(() => {
-    router.push('/community')
+    router.push({ path: '/community', query: { shareReportId: String(reportData.id || '') } })
   }, 1000)
 }
 
 onMounted(() => {
-  nextTick(() => {
-    initRadarChart()
+  fetchReport().then(() => {
+    nextTick(() => {
+      initRadarChart()
+    })
   })
+})
+
+const handleResize = () => {
+  if (!chartInstance.value) return
+  try { chartInstance.value.resize() } catch (e) { }
+}
+
+watch(() => reportData.radarScores, () => {
+  if (!chartInstance.value) return
+  try { chartInstance.value.setOption(buildRadarOption(), true) } catch (e) { }
+}, { deep: true })
+
+onMounted(() => {
+  window.addEventListener('resize', handleResize)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', handleResize)
+  if (chartInstance.value) {
+    try { chartInstance.value.dispose() } catch (e) { }
+    chartInstance.value = null
+  }
 })
 </script>
 
@@ -208,6 +279,12 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 /* 核心内容网格布局 */
