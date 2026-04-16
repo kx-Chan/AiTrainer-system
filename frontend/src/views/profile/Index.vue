@@ -107,8 +107,8 @@
         <el-tab-pane label="我的足迹" name="footprints">
           <div class="footprint-filters">
             <el-radio-group v-model="footprintFilter" size="medium">
-              <el-radio-button label="liked">我赞过的</el-radio-button>
-              <el-radio-button label="commented">我评论的</el-radio-button>
+              <el-radio-button value="liked">我赞过的</el-radio-button>
+              <el-radio-button value="commented">我评论的</el-radio-button>
             </el-radio-group>
           </div>
           <div class="post-list" style="margin-top: 16px;">
@@ -226,9 +226,9 @@
         </el-form-item>
         <el-form-item label="健身目标">
           <el-radio-group v-model="editForm.goal">
-            <el-radio-button label="lose">减脂</el-radio-button>
-            <el-radio-button label="gain">增肌</el-radio-button>
-            <el-radio-button label="maintain">保持</el-radio-button>
+            <el-radio-button value="lose">减脂</el-radio-button>
+            <el-radio-button value="gain">增肌</el-radio-button>
+            <el-radio-button value="maintain">保持</el-radio-button>
           </el-radio-group>
         </el-form-item>
         <el-form-item label="身高 (cm)">
@@ -286,8 +286,8 @@
         </el-form-item>
         <el-form-item label="可见性">
           <el-radio-group v-model="folderForm.isPublic">
-            <el-radio-button :label="0">私密</el-radio-button>
-            <el-radio-button :label="1">公开</el-radio-button>
+            <el-radio-button :value="0">私密</el-radio-button>
+            <el-radio-button :value="1">公开</el-radio-button>
           </el-radio-group>
         </el-form-item>
       </el-form>

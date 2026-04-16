@@ -147,22 +147,7 @@ public class MealServiceImpl implements MealService {
         final LocalTime localTime = LocalTime.parse(dto.mealTime(), DateTimeFormatter.ofPattern("HH:mm"));
         final LocalDateTime mealTime = LocalDateTime.of(localDate, localTime);
 
-        // 早餐、午餐、晚餐每天只能添加一次，加餐不限制
-        if (!"snack".equals(dto.mealType())) {
-            final LocalDateTime dayStart = localDate.atStartOfDay();
-            final LocalDateTime dayEnd = localDate.atTime(LocalTime.MAX);
-            final boolean exists = mealMapper.exists(
-                    new LambdaQueryWrapper<Meal>()
-                            .eq(Meal::getUserId, userId)
-                            .eq(Meal::getMealType, dto.mealType())
-                            .ge(Meal::getMealTime, dayStart)
-                            .le(Meal::getMealTime, dayEnd)
-            );
-            if (exists) {
-                throw BusinessException.badRequest(MessageConstant.MEAL_TYPE_ALREADY_EXISTS);
-            }
-        }
-
+        // 允许同一餐次添加多条菜品记录（前端会合并显示）
         final Meal meal = Meal.builder()
                 .userId(userId)
                 .mealTime(mealTime)

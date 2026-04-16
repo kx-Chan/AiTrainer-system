@@ -1,47 +1,35 @@
 <template>
   <div class="dashboard-container">
-
     <div class="page-header">
       <h2 class="page-title">数据看板 Dashboard</h2>
-      <el-button type="primary" size="large" round class="report-btn" @click="generateWeeklyReport"
-        :loading="isGenerating">
-        <el-icon>
-          <Document />
-        </el-icon> {{ isGenerating ? '正在生成...' : '生成本周健康周报' }}
+      <el-button type="primary" size="large" round class="report-btn" @click="generateWeeklyReport" :loading="isGenerating">
+        <el-icon><Document /></el-icon> {{ isGenerating ? '正在生成...' : '生成本周健康周报' }}
       </el-button>
     </div>
 
     <el-row :gutter="24" class="metric-row">
       <el-col :span="6">
         <el-card shadow="hover" class="metric-card">
-          <div class="metric-title"><el-icon>
-              <Trophy />
-            </el-icon> AI 训练总时长</div>
-          <div class="metric-value">1,240 <span class="unit">分钟</span></div>
+          <div class="metric-title"><el-icon><Timer /></el-icon> 近7天总消耗</div>
+          <div class="metric-value">{{ total7Days }} <span class="unit">kcal</span></div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card shadow="hover" class="metric-card workout-metric">
+          <div class="metric-title"><el-icon><DataLine /></el-icon> 项目训练消耗</div>
+          <div class="metric-value">{{ workoutCal }} <span class="unit">kcal</span></div>
+        </el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card shadow="hover" class="metric-card extra-metric">
+          <div class="metric-title"><el-icon><Promotion /></el-icon> 额外运动消耗</div>
+          <div class="metric-value">{{ extraCal }} <span class="unit">kcal</span></div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card shadow="hover" class="metric-card">
-          <div class="metric-title"><el-icon>
-              <DataLine />
-            </el-icon> 动作达标率</div>
-          <div class="metric-value">92 <span class="unit">%</span></div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card shadow="hover" class="metric-card diet-metric">
-          <div class="metric-title"><el-icon>
-              <Food />
-            </el-icon> 今日热量摄入</div>
-          <div class="metric-value">1,850 <span class="unit">kcal</span></div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card shadow="hover" class="metric-card diet-metric">
-          <div class="metric-title"><el-icon>
-              <Odometer />
-            </el-icon> 蛋白质缺口</div>
-          <div class="metric-value">15 <span class="unit">g</span></div>
+          <div class="metric-title"><el-icon><Odometer /></el-icon> 训练次数</div>
+          <div class="metric-value">{{ workoutLogs.length + extraExerciseLogs.length }} <span class="unit">次</span></div>
         </el-card>
       </el-col>
     </el-row>
@@ -51,21 +39,16 @@
         <el-card shadow="never" class="split-card workout-card">
           <template #header>
             <div class="card-header">
-              <span class="header-title"><el-icon>
-                  <Timer />
-                </el-icon> 运动与消耗趋势</span>
+              <span class="header-title"><el-icon><Timer /></el-icon> 近7天卡路里消耗趋势</span>
               <el-button type="warning" plain size="small" round @click="goToAICoach">✨ AI 瓶颈分析</el-button>
             </div>
           </template>
-
-          <div class="chart-placeholder">
-            <div class="bar-chart">
-              <div class="bar" style="height: 60%;" title="周一"></div>
-              <div class="bar" style="height: 80%;" title="周二"></div>
-              <div class="bar" style="height: 40%;" title="周三"></div>
-              <div class="bar" style="height: 90%; background-color: #409EFF;" title="今日"></div>
-            </div>
-            <div class="chart-desc">近 7 天卡路里消耗趋势 (kcal)</div>
+          <div class="chart-container">
+            <div ref="calorieChartRef" class="calorie-chart"></div>
+          </div>
+          <div class="chart-legend">
+            <span class="legend-item"><span class="legend-dot workout"></span>项目训练</span>
+            <span class="legend-item"><span class="legend-dot extra"></span>额外运动</span>
           </div>
         </el-card>
       </el-col>
@@ -74,468 +57,498 @@
         <el-card shadow="never" class="split-card diet-card">
           <template #header>
             <div class="card-header">
-              <span class="header-title"><el-icon>
-                  <PieChart />
-                </el-icon> 营养摄入配比</span>
-              <el-button type="success" plain size="small" round>📸 拍餐盘</el-button>
+              <span class="header-title"><el-icon><PieChart /></el-icon> 今日营养摄入配比</span>
+              <span class="total-cal">总热量: {{ nutritionData.totalCalories || 0 }} kcal</span>
             </div>
           </template>
+          <div class="nutrition-container" v-if="nutritionData.totalCalories > 0">
+            <div class="nutrition-item">
+              <div class="nutrition-label">
+                <span class="label-text">碳水化合物</span>
+                <span class="label-percent">{{ nutritionData.carbsPercent || 0 }}% / {{ nutritionData.carbsTargetPercent || 50 }}%</span>
+              </div>
+              <div class="progress-bar-container">
+                <div class="progress-bar carbs" :style="{ width: (nutritionData.carbsPercent || 0) + '%' }"></div>
+                <div class="target-line" :style="{ left: (nutritionData.carbsTargetPercent || 50) + '%' }"></div>
+              </div>
+              <div class="nutrition-detail">
+                <span>{{ nutritionData.carbsGrams || 0 }}g</span>
+                <span class="status" :class="getNutritionStatus(nutritionData.carbsPercent, nutritionData.carbsTargetPercent)">
+                  {{ getNutritionText(nutritionData.carbsPercent, nutritionData.carbsTargetPercent) }}
+                </span>
+              </div>
+            </div>
 
-          <div class="macro-container">
-            <div class="macro-item">
-              <div class="macro-label">碳水化合物 (50%)</div>
-              <el-progress :percentage="85" color="#E6A23C" :stroke-width="12" />
-              <div class="macro-text">已摄入 180g / 目标 210g</div>
+            <div class="nutrition-item">
+              <div class="nutrition-label">
+                <span class="label-text">蛋白质</span>
+                <span class="label-percent">{{ nutritionData.proteinPercent || 0 }}% / {{ nutritionData.proteinTargetPercent || 30 }}%</span>
+              </div>
+              <div class="progress-bar-container">
+                <div class="progress-bar protein" :style="{ width: (nutritionData.proteinPercent || 0) + '%' }"></div>
+                <div class="target-line" :style="{ left: (nutritionData.proteinTargetPercent || 30) + '%' }"></div>
+              </div>
+              <div class="nutrition-detail">
+                <span>{{ nutritionData.proteinGrams || 0 }}g</span>
+                <span class="status" :class="getNutritionStatus(nutritionData.proteinPercent, nutritionData.proteinTargetPercent)">
+                  {{ getNutritionText(nutritionData.proteinPercent, nutritionData.proteinTargetPercent) }}
+                </span>
+              </div>
             </div>
-            <div class="macro-item">
-              <div class="macro-label">蛋白质 (30%)</div>
-              <el-progress :percentage="90" color="#F56C6C" :stroke-width="12" />
-              <div class="macro-text">已摄入 120g / 目标 135g</div>
-            </div>
-            <div class="macro-item">
-              <div class="macro-label">脂肪 (20%)</div>
-              <el-progress :percentage="60" color="#67C23A" :stroke-width="12" />
-              <div class="macro-text">已摄入 45g / 目标 75g</div>
+
+            <div class="nutrition-item">
+              <div class="nutrition-label">
+                <span class="label-text">脂肪</span>
+                <span class="label-percent">{{ nutritionData.fatPercent || 0 }}% / {{ nutritionData.fatTargetPercent || 20 }}%</span>
+              </div>
+              <div class="progress-bar-container">
+                <div class="progress-bar fat" :style="{ width: (nutritionData.fatPercent || 0) + '%' }"></div>
+                <div class="target-line" :style="{ left: (nutritionData.fatTargetPercent || 20) + '%' }"></div>
+              </div>
+              <div class="nutrition-detail">
+                <span>{{ nutritionData.fatGrams || 0 }}g</span>
+                <span class="status" :class="getNutritionStatus(nutritionData.fatPercent, nutritionData.fatTargetPercent)">
+                  {{ getNutritionText(nutritionData.fatPercent, nutritionData.fatTargetPercent) }}
+                </span>
+              </div>
             </div>
           </div>
+          <el-empty v-else description="今日暂无饮食记录" :image-size="60" />
         </el-card>
       </el-col>
     </el-row>
 
+    <!-- 日志区域 - 三列布局 -->
     <el-row :gutter="24" class="log-row">
-      <el-col :span="12">
+      <!-- 项目训练日志 -->
+      <el-col :span="8">
         <el-card shadow="never" class="log-card">
           <template #header>
             <div class="card-header">
-              <span class="header-title"><el-icon>
-                  <Calendar />
-                </el-icon> 详细训练日志</span>
-              <el-button link type="primary">查看全部</el-button>
+              <span class="header-title"><el-icon><Calendar /></el-icon> 项目训练日志</span>
+              <span class="log-count">共 {{ workoutLogs.length }} 条</span>
+            </div>
+            <div class="date-filter">
+              <el-date-picker
+                v-model="workoutDateRange"
+                type="daterange"
+                range-separator="至"
+                start-placeholder="开始日期"
+                end-placeholder="结束日期"
+                size="small"
+                value-format="YYYY-MM-DD"
+                @change="handleWorkoutDateChange"
+                style="width: 100%;"
+              />
             </div>
           </template>
-          <el-timeline>
-            <el-timeline-item timestamp="今天 10:30" type="primary" hollow>
+          <el-timeline v-if="workoutLogs.length > 0">
+            <el-timeline-item v-for="log in workoutLogs" :key="log.id" :timestamp="formatDate(log.createdAt)" :type="getGradeType(log.grade)" hollow>
               <div class="log-content">
-                <strong>杠铃深蹲 (Squat)</strong> - 5组x8次
-                <el-tag size="small" type="success" style="margin-left: 8px;">AI 战报 96 分</el-tag>
-                <div class="log-detail">🔥 消耗 320 kcal · 核心稳定性极佳</div>
-              </div>
-            </el-timeline-item>
-            <el-timeline-item timestamp="昨天 18:00" type="info" hollow>
-              <div class="log-content">
-                <strong>早安式体前屈</strong> - 4组x12次
-                <div class="log-detail">🔥 消耗 150 kcal · 后侧链发力标准</div>
-              </div>
-            </el-timeline-item>
-            <el-timeline-item timestamp="周三 20:00" type="warning" hollow>
-              <div class="log-content">
-                <strong>高强度 HIIT 循环</strong> - 20 分钟
-                <div class="log-detail">🔥 消耗 300 kcal · 平均心率 155 bpm</div>
+                <strong>{{ log.workoutName }}</strong>
+                <el-tag v-if="log.score" size="small" :type="getGradeType(log.grade)" style="margin-left: 8px;">AI 战报 {{ log.score }} 分</el-tag>
+                <div class="log-detail">
+                  <span>🔥 {{ log.caloriesBurned || 0 }} kcal</span>
+                  <span v-if="log.durationMinutes" style="margin-left: 12px;">⏱️ {{ log.durationMinutes }} 分钟</span>
+                  <span v-if="log.validReps" style="margin-left: 12px;">✅ {{ log.validReps }} 次</span>
+                </div>
+                <div v-if="log.comment" class="log-comment">{{ log.comment }}</div>
               </div>
             </el-timeline-item>
           </el-timeline>
+          <el-empty v-else description="暂无项目训练记录" :image-size="60" />
         </el-card>
       </el-col>
 
-      <el-col :span="12">
-        <el-card shadow="never" class="log-card">
+      <!-- 额外运动日志 -->
+      <el-col :span="8">
+        <el-card shadow="never" class="log-card extra-log-card">
           <template #header>
             <div class="card-header">
-              <span class="header-title"><el-icon>
-                  <Dish />
-                </el-icon> 详细饮食日志</span>
-              <el-button link type="success">查看全部</el-button>
+              <span class="header-title"><el-icon><Promotion /></el-icon> 额外运动日志</span>
+              <span class="log-count">共 {{ extraExerciseLogs.length }} 条</span>
+            </div>
+            <div class="date-filter">
+              <el-date-picker
+                v-model="extraDateRange"
+                type="daterange"
+                range-separator="至"
+                start-placeholder="开始日期"
+                end-placeholder="结束日期"
+                size="small"
+                value-format="YYYY-MM-DD"
+                @change="handleExtraDateChange"
+                style="width: 100%;"
+              />
             </div>
           </template>
-          <el-timeline>
-            <el-timeline-item timestamp="今天 12:30 (午餐)" color="#67C23A" hollow>
-              <div class="log-content">
-                <strong>紫薯鸡胸肉减脂餐</strong>
-                <el-tag size="small" type="warning" effect="plain" style="margin-left: 8px;">蛋白质丰富</el-tag>
-                <div class="log-detail">🍚 摄入 650 kcal · 蛋白质 35g</div>
-              </div>
-            </el-timeline-item>
-            <el-timeline-item timestamp="今天 08:00 (早餐)" color="#67C23A" hollow>
-              <div class="log-content">
-                <strong>脱脂牛奶 + 全麦面包</strong>
-                <div class="log-detail">🍞 摄入 350 kcal · 碳水化合物优质</div>
-              </div>
-            </el-timeline-item>
-            <el-timeline-item timestamp="昨天 20:00 (晚餐)" color="#909399" hollow>
-              <div class="log-content">
-                <strong>宿舍简易荞麦面</strong>
-                <div class="log-detail">🍜 摄入 400 kcal · 钠含量略高</div>
+          <el-timeline v-if="extraExerciseLogs.length > 0">
+            <el-timeline-item v-for="log in extraExerciseLogs" :key="log.id" :timestamp="formatDate(log.exerciseDate)" color="#67C23A" hollow>
+              <div class="log-content extra-log-content">
+                <strong>{{ log.exerciseName }}</strong>
+                <div class="log-detail">
+                  <span>🔥 {{ log.caloriesBurned || 0 }} kcal</span>
+                  <span v-if="log.durationMinutes" style="margin-left: 12px;">⏱️ {{ log.durationMinutes }} 分钟</span>
+                </div>
               </div>
             </el-timeline-item>
           </el-timeline>
+          <el-empty v-else description="暂无额外运动记录" :image-size="60" />
+        </el-card>
+      </el-col>
+
+      <!-- 饮食日志 -->
+      <el-col :span="8">
+        <el-card shadow="never" class="log-card diet-log-card">
+          <template #header>
+            <div class="card-header">
+              <span class="header-title"><el-icon><Food /></el-icon> 饮食记录日志</span>
+              <span class="log-count">共 {{ dietLogs.length }} 条</span>
+            </div>
+            <div class="date-filter">
+              <el-date-picker
+                v-model="dietDateRange"
+                type="daterange"
+                range-separator="至"
+                start-placeholder="开始日期"
+                end-placeholder="结束日期"
+                size="small"
+                value-format="YYYY-MM-DD"
+                @change="handleDietDateChange"
+                style="width: 100%;"
+              />
+            </div>
+          </template>
+          <el-timeline v-if="dietLogs.length > 0">
+            <el-timeline-item v-for="log in dietLogs" :key="log.mealDate + '-' + log.mealType" :timestamp="formatDate(log.mealDate)" color="#E6A23C" hollow>
+              <div class="log-content diet-log-content">
+                <strong>{{ log.mealTypeName }}</strong>
+                <span class="meal-total-cal">🔥 {{ log.totalCalories || 0 }} kcal</span>
+                <div class="food-list">
+                  <div v-for="(food, idx) in log.foods" :key="idx" class="food-item">
+                    <span>{{ food.foodName }}</span>
+                    <span class="food-cal">{{ food.calories || 0 }}kcal</span>
+                    <span v-if="food.mealTime" class="food-time">{{ food.mealTime }}</span>
+                  </div>
+                </div>
+              </div>
+            </el-timeline-item>
+          </el-timeline>
+          <el-empty v-else description="暂无饮食记录" :image-size="60" />
         </el-card>
       </el-col>
     </el-row>
 
     <el-tooltip content="更新体征 (建议每周1次，早晨空腹最佳)" placement="left" effect="dark">
       <el-button type="warning" circle class="floating-record-btn" @click="isRecordVisible = true">
-        <el-icon>
-          <DataBoard />
-        </el-icon>
+        <el-icon><DataBoard /></el-icon>
       </el-button>
     </el-tooltip>
 
     <el-dialog v-model="isRecordVisible" title="📊 阶段性体征复盘" width="450px" destroy-on-close>
-      <el-alert title="💡 健身先健脑：体重受水分影响波动极大，切勿每天称重制造焦虑。建议每周固定时间（如周末早晨空腹）记录一次即可，让 AI 捕捉长期趋势。" type="warning"
-        :closable="false" style="margin-bottom: 20px;" />
-
+      <el-alert title="💡 健身先健脑：体重受水分影响波动极大，切勿每天称重制造焦虑。" type="warning" :closable="false" style="margin-bottom: 20px;" />
       <el-form label-width="100px" :model="dailyRecord" label-position="left">
-        <el-form-item label="复盘日期">
-          <el-date-picker v-model="dailyRecord.date" type="date" placeholder="选择日期" style="width: 100%" />
-        </el-form-item>
-
         <el-form-item label="当前体重(kg)">
-          <el-input-number v-model="dailyRecord.weight" :precision="1" :step="0.5" :min="30" :max="200"
-            style="width: 100%" />
+          <el-input-number v-model="dailyRecord.weight" :precision="1" :step="0.5" :min="30" :max="200" style="width: 100%" />
         </el-form-item>
-
         <el-form-item label="预估体脂(%)">
-          <div style="display: flex; gap: 10px; width: 100%;">
-            <el-input-number v-model="dailyRecord.bodyFat" :precision="1" :step="0.5" :min="1" :max="50"
-              style="flex: 1;" />
-            <el-tooltip content="如果没有体脂秤，可根据镜子里的腹肌清晰度粗略估算">
-              <el-button plain><el-icon>
-                  <QuestionFilled />
-                </el-icon></el-button>
-            </el-tooltip>
-          </div>
-        </el-form-item>
-
-        <el-form-item label="形体记录">
-          <el-upload class="progress-uploader" action="#" :auto-upload="false" :show-file-list="false">
-            <div class="upload-trigger">
-              <el-icon class="upload-icon">
-                <Camera />
-              </el-icon>
-              <span class="upload-text">点击上传本周身材照<br />(仅自己可见)</span>
-            </div>
-          </el-upload>
+          <el-input-number v-model="dailyRecord.bodyFat" :precision="1" :step="0.5" :min="1" :max="50" style="width: 100%" />
         </el-form-item>
       </el-form>
-
       <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="isRecordVisible = false">暂不更新</el-button>
-          <el-button type="warning" @click="saveDailyRecord">保存并同步给 AI</el-button>
-        </span>
+        <el-button @click="isRecordVisible = false">暂不更新</el-button>
+        <el-button type="warning" @click="saveDailyRecord">保存并同步给 AI</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { DataBoard, QuestionFilled, Camera } from '@element-plus/icons-vue'
-// 确保引入了所有的图标
-import { Trophy, DataLine, Food, Odometer, Timer, PieChart, Document, Calendar, Dish } from '@element-plus/icons-vue'
+import { DataBoard, QuestionFilled, Camera, Trophy, DataLine, Food, Odometer, Timer, PieChart, Document, Calendar, Dish, Promotion } from '@element-plus/icons-vue'
+import * as echarts from 'echarts'
+import { getLast7DaysCalories, getTrainingLogs, getNutritionRatio } from '@/api/dashboard'
 
-// ================= 体征记录弹窗逻辑 =================
-const isRecordVisible = ref(false)
-const dailyRecord = reactive({
-  date: new Date(), // 默认今天
-  weight: 65.5,
-  bodyFat: 18.5
+const calorieChartRef = ref(null)
+let calorieChart = null
+
+const dashboardData = reactive({
+  dates: [],
+  workoutCalories: [],
+  extraExerciseCalories: [],
+  totalCalories: [],
+  totalWorkoutCalories: 0,
+  totalExtraExerciseCalories: 0,
+  totalCalories7Days: 0
 })
 
+const nutritionData = reactive({
+  totalCalories: 0,
+  carbsGrams: 0,
+  proteinGrams: 0,
+  fatGrams: 0,
+  carbsPercent: 0,
+  proteinPercent: 0,
+  fatPercent: 0,
+  carbsTargetPercent: 50,
+  proteinTargetPercent: 30,
+  fatTargetPercent: 20
+})
+
+// 原始数据（未过滤）
+const allWorkoutLogs = ref([])
+const allExtraExerciseLogs = ref([])
+const allDietLogs = ref([])
+
+// 日期范围选择
+const workoutDateRange = ref([])
+const extraDateRange = ref([])
+const dietDateRange = ref([])
+
+// 计算属性：根据日期范围过滤后的日志
+const workoutLogs = computed(() => filterByDateRange(allWorkoutLogs.value, workoutDateRange.value, 'createdAt'))
+const extraExerciseLogs = computed(() => filterByDateRange(allExtraExerciseLogs.value, extraDateRange.value, 'exerciseDate'))
+const dietLogs = computed(() => filterByDateRange(allDietLogs.value, dietDateRange.value, 'mealDate'))
+
+function filterByDateRange(logs, dateRange, dateField) {
+  if (!dateRange || dateRange.length !== 2) return logs
+  const [startDate, endDate] = dateRange
+  if (!startDate || !endDate) return logs
+  return logs.filter(log => {
+    const logDate = log[dateField]
+    if (!logDate) return false
+    return logDate >= startDate && logDate <= endDate
+  })
+}
+
+const total7Days = computed(() => dashboardData.totalCalories7Days || 0)
+const workoutCal = computed(() => dashboardData.totalWorkoutCalories || 0)
+const extraCal = computed(() => dashboardData.totalExtraExerciseCalories || 0)
+
+async function loadCalorieData() {
+  try {
+    const data = await getLast7DaysCalories()
+    if (data) {
+      dashboardData.dates = data.dates || []
+      dashboardData.workoutCalories = data.workoutCalories || []
+      dashboardData.extraExerciseCalories = data.extraExerciseCalories || []
+      dashboardData.totalCalories = data.totalCalories || []
+      dashboardData.totalWorkoutCalories = data.totalWorkoutCalories || 0
+      dashboardData.totalExtraExerciseCalories = data.totalExtraExerciseCalories || 0
+      dashboardData.totalCalories7Days = data.totalCalories7Days || 0
+      await nextTick()
+      setTimeout(() => renderCalorieChart(), 100)
+    }
+  } catch (e) {
+    console.error('加载卡路里数据失败', e)
+  }
+}
+
+async function loadTrainingLogs(startDate, endDate) {
+  try {
+    const data = await getTrainingLogs(startDate, endDate)
+    if (data) {
+      allWorkoutLogs.value = data.workoutLogs || []
+      allExtraExerciseLogs.value = data.extraExerciseLogs || []
+      allDietLogs.value = data.dietLogs || []
+    }
+  } catch (e) {
+    console.error('加载训练日志失败', e)
+  }
+}
+
+async function loadNutritionData() {
+  try {
+    const data = await getNutritionRatio()
+    if (data) {
+      nutritionData.totalCalories = data.totalCalories || 0
+      nutritionData.carbsGrams = data.carbsGrams || 0
+      nutritionData.proteinGrams = data.proteinGrams || 0
+      nutritionData.fatGrams = data.fatGrams || 0
+      nutritionData.carbsPercent = data.carbsPercent || 0
+      nutritionData.proteinPercent = data.proteinPercent || 0
+      nutritionData.fatPercent = data.fatPercent || 0
+      nutritionData.carbsTargetPercent = data.carbsTargetPercent || 50
+      nutritionData.proteinTargetPercent = data.proteinTargetPercent || 30
+      nutritionData.fatTargetPercent = data.fatTargetPercent || 20
+    }
+  } catch (e) {
+    console.error('加载营养数据失败', e)
+  }
+}
+
+// 日期范围变化处理
+function handleWorkoutDateChange(val) {
+  const [startDate, endDate] = val || []
+  loadTrainingLogs(startDate, endDate)
+}
+
+function handleExtraDateChange(val) {
+  const [startDate, endDate] = val || []
+  loadTrainingLogs(startDate, endDate)
+}
+
+function handleDietDateChange(val) {
+  const [startDate, endDate] = val || []
+  loadTrainingLogs(startDate, endDate)
+}
+
+function getMealTypeText(type) {
+  const typeMap = {
+    'breakfast': '早餐',
+    'lunch': '午餐',
+    'dinner': '晚餐',
+    'snack': '加餐'
+  }
+  return typeMap[type] || type || '未知'
+}
+
+function getNutritionStatus(actual, target) {
+  if (!actual || !target) return 'normal'
+  const diff = actual - target
+  if (Math.abs(diff) <= 5) return 'normal'
+  return diff > 0 ? 'high' : 'low'
+}
+
+function getNutritionText(actual, target) {
+  if (!actual || !target) return '正常'
+  const diff = actual - target
+  if (Math.abs(diff) <= 5) return '✓ 正常'
+  return diff > 0 ? '↑ 偏高' : '↓ 偏低'
+}
+
+function renderCalorieChart() {
+  if (!calorieChartRef.value) return
+  if (!calorieChart) {
+    calorieChart = echarts.init(calorieChartRef.value)
+  }
+  const dates = dashboardData.dates.map(d => d.slice(5))
+  const option = {
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    legend: { data: ['项目训练', '额外运动'], bottom: 0, textStyle: { fontSize: 12 } },
+    grid: { left: '3%', right: '4%', bottom: '15%', top: '5%', containLabel: true },
+    xAxis: { type: 'category', data: dates, axisLabel: { fontSize: 11 } },
+    yAxis: { type: 'value', name: 'kcal', axisLabel: { fontSize: 11 } },
+    series: [
+      { name: '项目训练', type: 'bar', stack: 'total', data: dashboardData.workoutCalories, itemStyle: { color: '#409EFF', borderRadius: [4, 4, 0, 0] }, barMaxWidth: 40 },
+      { name: '额外运动', type: 'bar', stack: 'total', data: dashboardData.extraExerciseCalories, itemStyle: { color: '#67C23A', borderRadius: [4, 4, 0, 0] }, barMaxWidth: 40 }
+    ]
+  }
+  calorieChart.setOption(option, true)
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return ''
+  const today = new Date().toISOString().slice(0, 10)
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+  if (dateStr === today) return '今天'
+  if (dateStr === yesterday) return '昨天'
+  const date = new Date(dateStr)
+  const month = date.getMonth() + 1
+  const day = date.getDate()
+  const weekDay = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][date.getDay()]
+  return `${month}/${day} ${weekDay}`
+}
+
+function getGradeType(grade) {
+  const gradeMap = { 'S': 'success', 'A': 'primary', 'B': 'warning', 'C': 'info' }
+  return gradeMap[grade] || 'info'
+}
+
+const isRecordVisible = ref(false)
+const dailyRecord = reactive({ weight: 65.5, bodyFat: 18.5 })
+
 const saveDailyRecord = () => {
-  // 模拟发送数据给后端
   isRecordVisible.value = false
   ElMessage.success('今日体征已记录！后端 user_body_data 流水表已更新。')
-
-  // 💡 面试亮点：在这里可以说“前端触发保存后，看板上的 ECharts 折线图会重新请求接口，实现无刷新动态重绘”
 }
 
 const router = useRouter()
 const isGenerating = ref(false)
 
-const goToAICoach = () => {
-  router.push('/coach?auto=bottleneck')
-}
+const goToAICoach = () => { router.push('/coach?auto=bottleneck') }
 
-// 模拟生成周报的交互逻辑
 const generateWeeklyReport = () => {
   isGenerating.value = true
   ElMessage.success('正在调取本周数据，AI 正在深度分析中...')
-
   setTimeout(() => {
     isGenerating.value = false
-    ElMessage({
-      message: '周报生成完毕！即将跳转至 AI 私教解析页面...',
-      type: 'success',
-      duration: 3000
-    })
-    // 自动跳转到私教页面并带上周报参数
-    setTimeout(() => {
-      router.push('/coach?auto=weekly_report')
-    }, 1500)
+    ElMessage({ message: '周报生成完毕！即将跳转至 AI 私教解析页面...', type: 'success', duration: 3000 })
+    setTimeout(() => { router.push('/coach?auto=weekly_report') }, 1500)
   }, 2000)
 }
+
+onMounted(() => {
+  loadCalorieData()
+  loadTrainingLogs()
+  loadNutritionData()
+  window.addEventListener('resize', () => { calorieChart?.resize() })
+})
 </script>
 
 <style scoped>
-.dashboard-container {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding-bottom: 40px;
-}
-
-/* 页面头部样式 */
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-}
-
-.page-title {
-  margin: 0;
-  font-size: 24px;
-  color: #303133;
-}
-
-.report-btn {
-  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
-  font-weight: bold;
-  letter-spacing: 1px;
-}
-
-/* 顶部指标样式 */
-.metric-row {
-  margin-bottom: 24px;
-}
-
-.metric-card {
-  border-radius: 12px;
-  border: none;
-  text-align: center;
-  padding: 10px 0;
-}
-
-.diet-metric {
-  background: linear-gradient(145deg, #f8fdf6 0%, #ffffff 100%);
-}
-
-.metric-title {
-  font-size: 14px;
-  color: #909399;
-  margin-bottom: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-}
-
-.metric-value {
-  font-size: 32px;
-  font-weight: 900;
-  color: #303133;
-  font-style: italic;
-}
-
-.unit {
-  font-size: 14px;
-  font-style: normal;
-  color: #c0c4cc;
-}
-
-/* 核心布局保障 */
-.main-row {
-  margin-bottom: 24px;
-}
-
-.split-card {
-  border-radius: 16px;
-  border: none;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-.split-card :deep(.el-card__body) {
-  flex: 1;
-  padding: 24px;
-}
-
-/* 蓝绿分明的顶部装饰线 */
-.workout-card {
-  border-top: 4px solid #409EFF;
-}
-
-.diet-card {
-  border-top: 4px solid #67C23A;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.header-title {
-  font-size: 18px;
-  font-weight: bold;
-  color: #303133;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-/* 左侧图表样式 */
-.chart-placeholder {
-  height: 160px;
-  background-color: #f8f9fb;
-  border-radius: 12px;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  padding: 20px 20px 10px;
-  margin-top: 10px;
-}
-
-.bar-chart {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-around;
-  height: 100%;
-  width: 80%;
-  margin: 0 auto;
-  border-bottom: 2px solid #ebeef5;
-}
-
-.bar {
-  width: 30px;
-  background-color: #c6e2ff;
-  border-radius: 4px 4px 0 0;
-  transition: all 0.3s;
-}
-
-.bar:hover {
-  background-color: #409EFF;
-}
-
-.chart-desc {
-  text-align: center;
-  font-size: 12px;
-  color: #909399;
-  margin-top: 10px;
-}
-
-/* 右侧营养进度条样式 */
-.macro-container {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  padding-top: 10px;
-}
-
-.macro-item {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.macro-label {
-  font-size: 14px;
-  font-weight: bold;
-  color: #606266;
-}
-
-.macro-text {
-  font-size: 12px;
-  color: #909399;
-  text-align: right;
-}
-
-/* 日志区域样式 */
-.log-card {
-  border-radius: 16px;
-  border: none;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-}
-
-.log-content {
-  background-color: #f8f9fb;
-  padding: 12px 16px;
-  border-radius: 8px;
-  border: 1px solid #f0f2f5;
-  margin-top: 4px;
-}
-
-.log-content strong {
-  font-size: 15px;
-  color: #303133;
-}
-
-.log-detail {
-  font-size: 13px;
-  color: #909399;
-  margin-top: 8px;
-}
-
-/* ================= 悬浮打卡按钮 ================= */
-.floating-record-btn {
-  position: fixed;
-  bottom: 60px;
-  right: 60px;
-  width: 64px;
-  height: 64px;
-  font-size: 28px;
-  box-shadow: 0 8px 24px rgba(64, 158, 255, 0.4);
-  z-index: 999;
-  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.floating-record-btn:hover {
-  transform: scale(1.1);
-}
-
-/* 形体照上传组件样式 */
-.progress-uploader {
-  width: 100%;
-}
-
-.upload-trigger {
-  width: 100%;
-  height: 100px;
-  border: 1px dashed #dcdfe6;
-  border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  background-color: #fafafa;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.upload-trigger:hover {
-  border-color: #E6A23C;
-  background-color: #fdf6ec;
-}
-
-.upload-icon {
-  font-size: 24px;
-  color: #909399;
-  margin-bottom: 8px;
-}
-
-.upload-text {
-  font-size: 12px;
-  color: #909399;
-  text-align: center;
-  line-height: 1.4;
-}
-
-.upload-trigger:hover .upload-icon,
-.upload-trigger:hover .upload-text {
-  color: #E6A23C;
-}
+.dashboard-container { max-width: 1600px; margin: 0 auto; padding-bottom: 40px; }
+.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+.page-title { margin: 0; font-size: 24px; color: #303133; }
+.report-btn { box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3); font-weight: bold; letter-spacing: 1px; }
+.metric-row { margin-bottom: 24px; }
+.metric-card { border-radius: 12px; border: none; text-align: center; padding: 10px 0; transition: transform 0.2s; }
+.metric-card:hover { transform: translateY(-2px); }
+.workout-metric { background: linear-gradient(145deg, #ecf5ff 0%, #ffffff 100%); }
+.extra-metric { background: linear-gradient(145deg, #f0faf0 0%, #ffffff 100%); }
+.metric-title { font-size: 14px; color: #909399; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.metric-value { font-size: 32px; font-weight: 900; color: #303133; font-style: italic; }
+.unit { font-size: 14px; font-style: normal; color: #c0c4cc; }
+.main-row { margin-bottom: 24px; }
+.split-card { border-radius: 16px; border: none; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); display: flex; flex-direction: column; height: 100%; }
+.split-card :deep(.el-card__body) { flex: 1; padding: 24px; }
+.workout-card { border-top: 4px solid #409EFF; }
+.diet-card { border-top: 4px solid #67C23A; }
+.card-header { display: flex; justify-content: space-between; align-items: center; }
+.header-title { font-size: 18px; font-weight: bold; color: #303133; display: flex; align-items: center; gap: 8px; }
+.total-cal, .log-count { font-size: 12px; color: #909399; }
+.chart-container { height: 180px; margin-top: 10px; }
+.calorie-chart { width: 100%; height: 100%; }
+.chart-legend { display: flex; justify-content: center; gap: 24px; margin-top: 12px; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #606266; }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+.legend-dot.workout { background-color: #409EFF; }
+.legend-dot.extra { background-color: #67C23A; }
+.nutrition-container { margin-top: 10px; }
+.nutrition-item { margin-bottom: 20px; }
+.nutrition-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.label-text { font-size: 14px; font-weight: 600; color: #303133; }
+.label-percent { font-size: 12px; color: #909399; }
+.progress-bar-container { position: relative; height: 24px; background-color: #f0f0f0; border-radius: 12px; overflow: visible; }
+.progress-bar { height: 100%; border-radius: 12px; transition: width 0.5s ease; min-width: 4px; }
+.progress-bar.carbs { background: linear-gradient(90deg, #E6A23C 0%, #F56C6C 100%); }
+.progress-bar.protein { background: linear-gradient(90deg, #409EFF 0%, #67C23A 100%); }
+.progress-bar.fat { background: linear-gradient(90deg, #909399 0%, #303133 100%); }
+.target-line { position: absolute; top: -4px; bottom: -4px; width: 3px; background-color: #F56C6C; border-radius: 2px; box-shadow: 0 0 4px rgba(245, 108, 108, 0.5); }
+.nutrition-detail { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; font-size: 12px; color: #606266; }
+.status { font-weight: 600; padding: 2px 8px; border-radius: 4px; }
+.status.normal { color: #67C23A; background-color: rgba(103, 194, 58, 0.1); }
+.status.high { color: #F56C6C; background-color: rgba(245, 108, 108, 0.1); }
+.status.low { color: #E6A23C; background-color: rgba(230, 162, 60, 0.1); }
+.log-row { margin-top: 24px; }
+.log-card { border-radius: 16px; border: none; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); }
+.extra-log-card { border-top: 4px solid #67C23A; }
+.diet-log-card { border-top: 4px solid #E6A23C; }
+.date-filter { margin-top: 12px; }
+.log-content { background-color: #f8f9fb; padding: 12px 16px; border-radius: 8px; border: 1px solid #f0f2f5; margin-top: 4px; }
+.extra-log-content { background: linear-gradient(135deg, #f0faf0 0%, #e8f8e8 100%); border-color: #d4edda; }
+.diet-log-content { background: linear-gradient(135deg, #fff8e1 0%, #fff3e0 100%); border-color: #ffe0b2; }
+.log-content strong { font-size: 15px; color: #303133; }
+.log-detail { font-size: 13px; color: #909399; margin-top: 8px; }
+.log-comment { font-size: 12px; color: #606266; margin-top: 6px; font-style: italic; }
+.meal-total-cal { margin-left: 8px; font-size: 13px; color: #E6A23C; font-weight: 600; }
+.food-list { margin-top: 8px; }
+.food-item { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #606266; padding: 4px 0; border-bottom: 1px dashed #f0f0f0; }
+.food-item:last-child { border-bottom: none; }
+.food-cal { color: #909399; margin-right: 8px; }
+.food-time { color: #c0c4cc; font-size: 11px; }
+.floating-record-btn { position: fixed; bottom: 60px; right: 60px; width: 64px; height: 64px; font-size: 28px; box-shadow: 0 8px 24px rgba(64, 158, 255, 0.4); z-index: 999; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+.floating-record-btn:hover { transform: scale(1.1); }
 </style>

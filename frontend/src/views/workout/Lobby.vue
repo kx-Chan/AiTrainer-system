@@ -24,9 +24,9 @@
             <Lightning />
           </el-icon> 选择训练项目</h2>
         <el-radio-group v-model="filterType" size="small">
-          <el-radio-button label="all">全部项目</el-radio-button>
-          <el-radio-button label="leg">下肢核心</el-radio-button>
-          <el-radio-button label="back">背部塑形</el-radio-button>
+          <el-radio-button value="all">全部项目</el-radio-button>
+          <el-radio-button value="leg">下肢核心</el-radio-button>
+          <el-radio-button value="back">背部塑形</el-radio-button>
         </el-radio-group>
       </div>
 
@@ -35,15 +35,13 @@
           <el-card class="workout-card" shadow="hover" :style="{ '--theme-color': workout.color }">
 
             <div class="card-visual" :class="workout.id"
-              :style="workout.coverUrl ? { backgroundImage: `url(${workout.coverUrl})` } : undefined">
+              :style="workout.coverUrl ? { backgroundImage: `url('${workout.coverUrl}')` } : undefined">
               <div class="overlay-gradient"></div>
               <div class="visual-tags">
                 <el-tag size="small" effect="dark" :color="workout.color" style="border: none;">
                   {{ workout.enName }}
                 </el-tag>
               </div>
-              <div class="skeleton-line line-1"></div>
-              <div class="skeleton-line line-2"></div>
             </div>
 
             <div class="card-info">
@@ -103,6 +101,13 @@ const normalizeWorkout = (raw) => {
       })()
       : []
   const id = String(raw?.id || '').trim()
+
+  let cover = raw?.coverUrl || raw?.cover_url || WORKOUT_COVER_MAP[id] || '';
+
+  // 计科 Tip: 处理中文路径编码，防止裂图
+  if (cover.includes('aliyuncs.com')) {
+    cover = encodeURI(cover);
+  }
   return {
     id,
     name: raw?.name || '',
@@ -282,15 +287,15 @@ onMounted(() => {
 }
 
 .card-visual.squat {
-  background: radial-gradient(circle at right bottom, #e6f1fc, #f5f7fa);
+  background-color: #e6f1fc;
 }
 
 .card-visual.lunge {
-  background: radial-gradient(circle at right bottom, #f0f9eb, #f5f7fa);
+  background-color: #f0f9eb;
 }
 
 .card-visual.good_morning {
-  background: radial-gradient(circle at right bottom, #fdf6ec, #f5f7fa);
+  background-color: #fdf6ec;
 }
 
 .overlay-gradient {
@@ -307,42 +312,6 @@ onMounted(() => {
   top: 16px;
   left: 16px;
   z-index: 2;
-}
-
-/* 纯 CSS 模拟骨骼追踪连线动画 */
-.skeleton-line {
-  position: absolute;
-  background: #409EFF;
-  opacity: 0.4;
-  box-shadow: 0 0 8px #409EFF;
-}
-
-.line-1 {
-  width: 2px;
-  height: 60px;
-  bottom: 20px;
-  right: 60px;
-  transform: rotate(15deg);
-  animation: pulse 2s infinite alternate;
-}
-
-.line-2 {
-  width: 80px;
-  height: 2px;
-  bottom: 80px;
-  right: 40px;
-  transform: rotate(-10deg);
-  animation: pulse 2s infinite alternate 0.5s;
-}
-
-@keyframes pulse {
-  0% {
-    opacity: 0.2;
-  }
-
-  100% {
-    opacity: 0.8;
-  }
 }
 
 /* 卡片信息区 */

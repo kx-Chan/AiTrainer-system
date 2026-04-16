@@ -22,8 +22,8 @@
             </div>
           </div>
           <el-radio-group v-model="form.gender" size="large">
-            <el-radio-button label="male">男生 (Male)</el-radio-button>
-            <el-radio-button label="female">女生 (Female)</el-radio-button>
+            <el-radio-button value="male">男生 (Male)</el-radio-button>
+            <el-radio-button value="female">女生 (Female)</el-radio-button>
           </el-radio-group>
         </div>
 
