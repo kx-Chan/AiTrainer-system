@@ -2,10 +2,12 @@ package com.aitrainer.service;
 
 import com.aitrainer.dto.AddExtraExerciseDTO;
 import com.aitrainer.dto.AddMealDTO;
+import com.aitrainer.dto.AnalyzeFoodDTO;
 import com.aitrainer.dto.UpdateExtraExerciseDTO;
 import com.aitrainer.dto.UpdateMealDTO;
 import com.aitrainer.vo.DietSummaryVO;
 import com.aitrainer.vo.ExtraExerciseVO;
+import com.aitrainer.vo.FoodAnalysisVO;
 import com.aitrainer.vo.MealVO;
 
 /**
@@ -75,4 +77,13 @@ public interface MealService {
      * @param exerciseId 记录 ID
      */
     void deleteExtraExercise(Long userId, Long exerciseId);
+
+    /**
+     * AI 智能分析食物营养成分（当前为固定数据模拟，后续可接入 AI）。
+     *
+     * @param userId 用户 ID
+     * @param dto    分析请求参数
+     * @return 食物营养分析结果
+     */
+    FoodAnalysisVO analyzeFood(Long userId, AnalyzeFoodDTO dto);
 }

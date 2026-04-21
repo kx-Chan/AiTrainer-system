@@ -19,6 +19,15 @@ public record AddMealDTO(
         @NotNull(message = "热量不能为空")
         Integer calories,
 
+        @Schema(description = "蛋白质 (g)", example = "20")
+        Integer protein,
+
+        @Schema(description = "脂肪 (g)", example = "10")
+        Integer fat,
+
+        @Schema(description = "碳水化合物 (g)", example = "40")
+        Integer carbs,
+
         @Schema(description = "食物重量 (g)", example = "200")
         Integer weight,
 

@@ -36,6 +36,15 @@ public class MealVO {
     @Schema(description = "热量 (kcal)")
     private Integer calories;
 
+    @Schema(description = "蛋白质 (g)")
+    private Integer protein;
+
+    @Schema(description = "脂肪 (g)")
+    private Integer fat;
+
+    @Schema(description = "碳水化合物 (g)")
+    private Integer carbs;
+
     @Schema(description = "食物重量 (g)")
     private Integer weight;
 

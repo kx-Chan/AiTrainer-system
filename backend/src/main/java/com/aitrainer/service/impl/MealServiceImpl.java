@@ -4,8 +4,10 @@ import com.aitrainer.common.constant.MessageConstant;
 import com.aitrainer.common.exception.BusinessException;
 import com.aitrainer.dto.AddExtraExerciseDTO;
 import com.aitrainer.dto.AddMealDTO;
+import com.aitrainer.dto.AnalyzeFoodDTO;
 import com.aitrainer.dto.UpdateExtraExerciseDTO;
 import com.aitrainer.dto.UpdateMealDTO;
+import com.aitrainer.vo.FoodAnalysisVO;
 import com.aitrainer.entity.ExtraExercise;
 import com.aitrainer.entity.Meal;
 import com.aitrainer.entity.UserProfile;
@@ -154,6 +156,9 @@ public class MealServiceImpl implements MealService {
                 .mealType(dto.mealType())
                 .foodName(dto.foodName())
                 .calories(dto.calories())
+                .protein(dto.protein())
+                .fat(dto.fat())
+                .carbs(dto.carbs())
                 .weight(dto.weight())
                 .tagType(MEAL_TAG_TYPE.getOrDefault(dto.mealType(), "info"))
                 .isDeleted(0)
@@ -183,6 +188,15 @@ public class MealServiceImpl implements MealService {
         }
         if (dto.calories() != null) {
             meal.setCalories(dto.calories());
+        }
+        if (dto.protein() != null) {
+            meal.setProtein(dto.protein());
+        }
+        if (dto.fat() != null) {
+            meal.setFat(dto.fat());
+        }
+        if (dto.carbs() != null) {
+            meal.setCarbs(dto.carbs());
         }
         if (dto.weight() != null) {
             meal.setWeight(dto.weight());
@@ -343,6 +357,36 @@ public class MealServiceImpl implements MealService {
                 .build();
     }
 
+    @Override
+    public FoodAnalysisVO analyzeFood(final Long userId, final AnalyzeFoodDTO dto) {
+        // TODO: 后续可接入真实的 AI 分析逻辑
+        // 目前返回固定数据用于测试
+        
+        final int weight = dto.weight() != null ? dto.weight() : 100;
+        
+        // 基于重量的固定估算值（简化版，实际应接入食物数据库或 AI）
+        // 假设每 100g 食物平均热量约 150kcal，蛋白质 10g，脂肪 8g，碳水 15g
+        final int basePer100g = 150;
+        final int proteinPer100g = 10;
+        final int fatPer100g = 8;
+        final int carbsPer100g = 15;
+        
+        final int calories = (int) Math.round(basePer100g * weight / 100.0);
+        final int protein = (int) Math.round(proteinPer100g * weight / 100.0);
+        final int fat = (int) Math.round(fatPer100g * weight / 100.0);
+        final int carbs = (int) Math.round(carbsPer100g * weight / 100.0);
+        
+        log.info("用户 {} 请求 AI 分析: {} ({}g) -> 热量:{} 蛋白质:{} 脂肪:{} 碳水:{}", 
+                userId, dto.foodName(), weight, calories, protein, fat, carbs);
+        
+        return FoodAnalysisVO.builder()
+                .calories(calories)
+                .protein(protein)
+                .fat(fat)
+                .carbs(carbs)
+                .build();
+    }
+
     /**
      * 饮食实体转 VO。
      */
@@ -357,6 +401,9 @@ public class MealServiceImpl implements MealService {
                 .mealType(meal.getMealType())
                 .foodName(meal.getFoodName())
                 .calories(meal.getCalories())
+                .protein(meal.getProtein())
+                .fat(meal.getFat())
+                .carbs(meal.getCarbs())
                 .weight(meal.getWeight())
                 .tagType(meal.getTagType())
                 .createdAt(meal.getCreatedAt())

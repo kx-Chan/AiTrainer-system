@@ -23,4 +23,7 @@ export const dietApi = {
   /** 删除额外运动消耗 */
   deleteExtraExercise: (exerciseId) =>
     request.delete(`/meals/extra-exercise/${exerciseId}`),
+
+  /** AI 智能估算食物热量和营养成分 */
+  analyzeFood: (data) => request.post("/meals/analyze", data),
 };

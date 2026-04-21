@@ -55,6 +55,21 @@ public class Meal {
     private Integer calories;
 
     /**
+     * 蛋白质 (g)。
+     */
+    private Integer protein;
+
+    /**
+     * 脂肪 (g)。
+     */
+    private Integer fat;
+
+    /**
+     * 碳水化合物 (g)。
+     */
+    private Integer carbs;
+
+    /**
      * 食物重量 (g)。
      */
     private Integer weight;

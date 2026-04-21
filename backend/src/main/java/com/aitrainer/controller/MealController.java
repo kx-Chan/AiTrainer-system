@@ -4,8 +4,10 @@ import com.aitrainer.common.result.Result;
 import com.aitrainer.common.security.CustomUser;
 import com.aitrainer.dto.AddExtraExerciseDTO;
 import com.aitrainer.dto.AddMealDTO;
+import com.aitrainer.dto.AnalyzeFoodDTO;
 import com.aitrainer.dto.UpdateExtraExerciseDTO;
 import com.aitrainer.dto.UpdateMealDTO;
+import com.aitrainer.vo.FoodAnalysisVO;
 import com.aitrainer.service.MealService;
 import com.aitrainer.vo.DietSummaryVO;
 import com.aitrainer.vo.ExtraExerciseVO;
@@ -143,5 +145,21 @@ public class MealController {
         final CustomUser user = (CustomUser) authentication.getPrincipal();
         mealService.deleteExtraExercise(user.getId(), exerciseId);
         return Result.success();
+    }
+
+    /**
+     * AI 智能分析食物营养成分（当前为固定数据模拟）。
+     *
+     * @param authentication 登录信息
+     * @param dto            分析请求参数
+     * @return 食物营养分析结果
+     */
+    @Operation(summary = "AI 智能分析食物营养")
+    @PostMapping("/analyze")
+    public Result<FoodAnalysisVO> analyzeFood(
+            final Authentication authentication,
+            @RequestBody final AnalyzeFoodDTO dto) {
+        final CustomUser user = (CustomUser) authentication.getPrincipal();
+        return Result.success(mealService.analyzeFood(user.getId(), dto));
     }
 }

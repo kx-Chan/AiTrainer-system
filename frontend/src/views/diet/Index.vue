@@ -3,10 +3,13 @@
     <div class="diet-left">
       <div class="date-picker-bar">
         <div class="date-picker-left">
-          <el-icon :size="20" color="#409EFF"><Calendar /></el-icon>
+          <el-icon :size="20" color="#409EFF">
+            <Calendar />
+          </el-icon>
           <span class="date-label">日期选择</span>
         </div>
-        <el-date-picker v-model="selectedDate" type="date" placeholder="选择日期" format="YYYY-MM-DD" value-format="YYYY-MM-DD" @change="loadSummary" size="default" style="width:180px" />
+        <el-date-picker v-model="selectedDate" type="date" placeholder="选择日期" format="YYYY-MM-DD"
+          value-format="YYYY-MM-DD" @change="loadSummary" size="default" style="width:180px" />
       </div>
 
       <el-card shadow="hover" class="diet-card">
@@ -16,14 +19,17 @@
             <h3 class="card-title">饮食记录</h3>
           </div>
           <el-button type="primary" round size="default" class="header-action-btn" @click="showAddDialog">
-            <el-icon style="margin-right:4px"><Plus /></el-icon>记录饮食
+            <el-icon style="margin-right:4px">
+              <Plus />
+            </el-icon>记录饮食
           </el-button>
         </div>
         <!-- 按餐次分组的饮食记录 -->
         <div class="meal-grouped-list" v-if="groupedMeals && Object.keys(groupedMeals).length">
           <div class="meal-group" v-for="(meals, mealType) in groupedMeals" :key="mealType">
             <div class="meal-group-header">
-              <el-tag :type="mealType.startsWith('snack') ? 'warning' : meals[0].tagType" size="default" effect="dark" round>
+              <el-tag :type="mealType.startsWith('snack') ? 'warning' : meals[0].tagType" size="default" effect="dark"
+                round>
                 {{ getMealTypeIcon(mealType) }} {{ getMealTypeName(mealType) }}
               </el-tag>
               <span class="meal-group-time">{{ meals[0].time }}</span>
@@ -36,15 +42,26 @@
                 <div class="dish-left">
                   <span class="dish-name">{{ meal.foodName }}</span>
                   <span class="dish-weight" v-if="meal.weight">{{ meal.weight }}g</span>
+                  <div class="dish-nutrition">
+                    <span class="nutrition-tag protein">蛋白质 {{ meal.protein || 0 }}g</span>
+                    <span class="nutrition-tag fat">脂肪 {{ meal.fat || 0 }}g</span>
+                    <span class="nutrition-tag carbs">碳水 {{ meal.carbs || 0 }}g</span>
+                  </div>
                 </div>
                 <div class="dish-right">
                   <span class="dish-cal">{{ meal.calories }} kcal</span>
                   <div class="meal-actions">
                     <el-tooltip content="编辑记录" placement="top">
-                      <el-button type="primary" link class="action-btn" @click="showEditDialog(meal)"><el-icon :size="18"><Edit /></el-icon></el-button>
+                      <el-button type="primary" link class="action-btn" @click="showEditDialog(meal)"><el-icon
+                          :size="18">
+                          <Edit />
+                        </el-icon></el-button>
                     </el-tooltip>
                     <el-tooltip content="删除记录" placement="top">
-                      <el-button type="danger" link class="action-btn" @click="handleDelete(meal.id)"><el-icon :size="18"><Delete /></el-icon></el-button>
+                      <el-button type="danger" link class="action-btn" @click="handleDelete(meal.id)"><el-icon
+                          :size="18">
+                          <Delete />
+                        </el-icon></el-button>
                     </el-tooltip>
                   </div>
                 </div>
@@ -62,20 +79,30 @@
             <h3 class="card-title">额外运动消耗</h3>
           </div>
           <el-button type="success" round size="default" class="header-action-btn" @click="showExerciseDialog">
-            <el-icon style="margin-right:4px"><Plus /></el-icon>记录运动
+            <el-icon style="margin-right:4px">
+              <Plus />
+            </el-icon>记录运动
           </el-button>
         </div>
         <div class="exercise-list" v-if="(summary.extraExercises || []).length">
           <div class="exercise-item" v-for="ex in summary.extraExercises" :key="ex.id">
             <div class="exercise-info">
               <span class="exercise-name">{{ ex.exerciseName }}</span>
-              <span class="exercise-detail"><el-icon><Timer /></el-icon> {{ ex.durationMinutes }} 分钟</span>
+              <span class="exercise-detail"><el-icon>
+                  <Timer />
+                </el-icon> {{ ex.durationMinutes }} 分钟</span>
             </div>
             <div class="exercise-right">
               <span class="exercise-cal">-{{ ex.caloriesBurned }} <small>kcal</small></span>
               <div class="meal-actions">
-                <el-button type="primary" link class="action-btn" @click="showEditExerciseDialog(ex)"><el-icon :size="20"><Edit /></el-icon></el-button>
-                <el-button type="danger" link class="action-btn" @click="handleDeleteExercise(ex.id)"><el-icon :size="20"><Delete /></el-icon></el-button>
+                <el-button type="primary" link class="action-btn" @click="showEditExerciseDialog(ex)"><el-icon
+                    :size="20">
+                    <Edit />
+                  </el-icon></el-button>
+                <el-button type="danger" link class="action-btn" @click="handleDeleteExercise(ex.id)"><el-icon
+                    :size="20">
+                    <Delete />
+                  </el-icon></el-button>
               </div>
             </div>
           </div>
@@ -83,7 +110,8 @@
         <el-empty v-else description="暂无额外运动记录" :image-size="50" />
       </el-card>
 
-      <el-card shadow="hover" class="workout-card" style="margin-top:16px" v-if="(summary.workoutDetails || []).length > 0">
+      <el-card shadow="hover" class="workout-card" style="margin-top:16px"
+        v-if="(summary.workoutDetails || []).length > 0">
         <div class="card-header-fancy">
           <div class="header-left">
             <div class="header-icon">🏋️</div>
@@ -94,7 +122,9 @@
           <div class="exercise-item" v-for="(w, idx) in summary.workoutDetails" :key="idx">
             <div class="exercise-info">
               <span class="exercise-name">{{ w.workoutName }}</span>
-              <span class="exercise-detail"><el-icon><Timer /></el-icon> {{ w.durationMinutes }} 分钟</span>
+              <span class="exercise-detail"><el-icon>
+                  <Timer />
+                </el-icon> {{ w.durationMinutes }} 分钟</span>
             </div>
             <div class="exercise-right">
               <span class="exercise-cal">-{{ w.caloriesBurned }} <small>kcal</small></span>
@@ -115,7 +145,9 @@
                 <div class="tip-title">📖 基础代谢率 (BMR)</div>
                 <div class="tip-body">基础代谢是人体在安静状态下维持生命所需的最低热量。</div>
               </template>
-              <span class="info-label-with-tip">基础代谢 <el-icon :size="14" style="vertical-align:middle;color:#409EFF"><QuestionFilled /></el-icon></span>
+              <span class="info-label-with-tip">基础代谢 <el-icon :size="14" style="vertical-align:middle;color:#409EFF">
+                  <QuestionFilled />
+                </el-icon></span>
             </el-tooltip>
             <span>{{ summary.bmrCalories }} kcal</span>
           </div>
@@ -125,7 +157,9 @@
           <div class="info-row"><span>已摄入</span><span class="warn">{{ summary.totalIntakeCalories }} kcal</span></div>
           <div class="info-row remain">
             <span>{{ summary.remainingCalories >= 0 ? '还可摄入' : '已超标' }}</span>
-            <span :class="summary.remainingCalories >= 0 ? 'success' : 'danger'">{{ Math.abs(summary.remainingCalories) }} kcal</span>
+            <span :class="summary.remainingCalories >= 0 ? 'success' : 'danger'">{{ Math.abs(summary.remainingCalories)
+              }}
+              kcal</span>
           </div>
           <div class="info-row"><span>健身目标</span><span>{{ goalText }}</span></div>
         </div>
@@ -134,7 +168,9 @@
         <h3 style="text-align:center;margin:0 0 8px">🍽️ AI 拍照识餐</h3>
         <p style="color:#999;text-align:center;font-size:13px">上传餐盘照片，AI 自动估算热量与营养（即将上线）</p>
         <div class="upload-placeholder">
-          <el-icon :size="40" color="#c0c4cc"><UploadFilled /></el-icon>
+          <el-icon :size="40" color="#c0c4cc">
+            <UploadFilled />
+          </el-icon>
           <p style="color:#999;font-size:13px">将照片拖到此处，或<el-link type="primary">点击上传</el-link></p>
         </div>
       </el-card>
@@ -162,25 +198,58 @@
         <div class="dishes-section">
           <div class="section-header">
             <span class="form-label">菜品明细</span>
-            <el-button type="primary" plain size="small" @click="addDishItem"><el-icon><Plus /></el-icon> 添加菜品</el-button>
+            <el-button type="primary" plain size="small" @click="addDishItem"><el-icon>
+                <Plus />
+              </el-icon> 添加菜品</el-button>
           </div>
           <div class="dish-list">
-            <div v-for="(dish, index) in form.dishes" :key="index" class="dish-item">
+            <div v-for="(dish, index) in form.dishes" :key="index" class="dish-item" v-loading="dish.loading">
               <div class="dish-index">{{ index + 1 }}</div>
               <div class="dish-fields">
-                <el-input v-model="dish.foodName" placeholder="菜品名称，如：红烧肉" class="dish-name-input" />
+                <el-input v-model="dish.foodName" placeholder="菜品名称，如：红烧肉" class="dish-name-input" @input="debouncedEstimate(dish)">
+                  <template #prefix>
+                    <el-icon v-if="dish.loading" class="is-loading"><Loading /></el-icon>
+                  </template>
+                </el-input>
                 <div class="dish-numbers">
-                  <div class="input-with-unit">
-                    <el-input-number v-model="dish.weight" :min="0" :max="9999" :precision="0" placeholder="0" controls-position="right" />
+                  <div class="input-with-unit wide">
+                    <el-input-number v-model="dish.weight" :min="0" :max="9999" :precision="0" placeholder="0"
+                      controls-position="right" @change="debouncedEstimate(dish)" />
                     <span class="unit-label">克(g)</span>
                   </div>
-                  <div class="input-with-unit">
-                    <el-input-number v-model="dish.calories" :min="0" :max="9999" :precision="0" placeholder="0" controls-position="right" />
+                  <div class="input-with-unit wide">
+                    <el-input-number v-model="dish.calories" :min="0" :max="9999" :precision="0" placeholder="0"
+                      controls-position="right" />
                     <span class="unit-label">千卡(kcal)</span>
                   </div>
                 </div>
+                <!-- 营养成分显示区域 - 标签样式 -->
+                <div class="nutrition-tags" v-if="dish.isAiEstimated">
+                  <span class="ai-estimate-tag">
+                    <el-icon class="is-loading"><Loading /></el-icon>
+                    AI 已估算
+                  </span>
+                  <div class="nutrition-badge protein">
+                    <span class="badge-value">{{ dish.protein || 0 }}</span>
+                    <span class="badge-unit">g</span>
+                    <span class="badge-name">蛋白质</span>
+                  </div>
+                  <div class="nutrition-badge fat">
+                    <span class="badge-value">{{ dish.fat || 0 }}</span>
+                    <span class="badge-unit">g</span>
+                    <span class="badge-name">脂肪</span>
+                  </div>
+                  <div class="nutrition-badge carbs">
+                    <span class="badge-value">{{ dish.carbs || 0 }}</span>
+                    <span class="badge-unit">g</span>
+                    <span class="badge-name">碳水</span>
+                  </div>
+                </div>
               </div>
-              <el-button type="danger" plain circle size="small" @click="removeDishItem(index)" :disabled="form.dishes.length <= 1"><el-icon><Delete /></el-icon></el-button>
+              <el-button type="danger" plain circle size="small" @click="removeDishItem(index)"
+                :disabled="form.dishes.length <= 1"><el-icon>
+                  <Delete />
+                </el-icon></el-button>
             </div>
           </div>
         </div>
@@ -188,20 +257,38 @@
           <span>本次合计：</span>
           <span class="total-cal">{{ totalCalories }} kcal</span>
           <span class="total-count">共 {{ form.dishes.length }} 种食材</span>
+          <div class="ai-disclaimer">
+            <el-icon><QuestionFilled /></el-icon> 
+            <span>营养数据由 AI 估算，仅供参考</span>
+          </div>
         </div>
       </div>
       <template #footer>
         <el-button @click="addDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="handleAdd" :disabled="!isFormValid">确认添加 ({{ totalCalories }} kcal)</el-button>
+        <el-button type="primary" :loading="submitting" @click="handleAdd" :disabled="!isFormValid">确认添加 ({{
+          totalCalories }} kcal)</el-button>
       </template>
     </el-dialog>
 
     <!-- 编辑饮食记录弹窗 -->
-    <el-dialog v-model="editDialogVisible" title="编辑饮食记录" width="420px">
+    <el-dialog v-model="editDialogVisible" title="编辑饮食记录" width="480px">
       <el-form :model="editForm" label-width="80px">
         <el-form-item label="食物名称"><el-input v-model="editForm.foodName" placeholder="如：全麦面包, 煮鸡蛋" /></el-form-item>
-        <el-form-item label="热量"><el-input-number v-model="editForm.calories" :min="0" :max="9999" /><span style="margin-left:8px">kcal</span></el-form-item>
-        <el-form-item label="重量"><el-input-number v-model="editForm.weight" :min="0" :max="9999" /><span style="margin-left:8px">g</span></el-form-item>
+        <el-form-item label="热量"><el-input-number v-model="editForm.calories" :min="0" :max="9999" /><span
+            style="margin-left:8px">kcal</span></el-form-item>
+        <div class="edit-nutrition-row">
+          <el-form-item label="蛋白质" class="nutrition-form-item">
+            <el-input-number v-model="editForm.protein" :min="0" :max="9999" /><span style="margin-left:8px">g</span>
+          </el-form-item>
+          <el-form-item label="脂肪" class="nutrition-form-item">
+            <el-input-number v-model="editForm.fat" :min="0" :max="9999" /><span style="margin-left:8px">g</span>
+          </el-form-item>
+          <el-form-item label="碳水" class="nutrition-form-item">
+            <el-input-number v-model="editForm.carbs" :min="0" :max="9999" /><span style="margin-left:8px">g</span>
+          </el-form-item>
+        </div>
+        <el-form-item label="重量"><el-input-number v-model="editForm.weight" :min="0" :max="9999" /><span
+            style="margin-left:8px">g</span></el-form-item>
         <el-form-item label="进餐时间" v-if="editForm.mealType === 'snack'">
           <el-time-picker v-model="editForm.mealTime" format="HH:mm" value-format="HH:mm" placeholder="选择时间" />
         </el-form-item>
@@ -219,8 +306,10 @@
     <el-dialog v-model="exerciseDialogVisible" title="添加额外运动消耗" width="420px">
       <el-form :model="exerciseForm" label-width="80px">
         <el-form-item label="运动名称"><el-input v-model="exerciseForm.exerciseName" placeholder="如：跑步、游泳" /></el-form-item>
-        <el-form-item label="消耗热量"><el-input-number v-model="exerciseForm.caloriesBurned" :min="0" :max="9999" /><span style="margin-left:8px">kcal</span></el-form-item>
-        <el-form-item label="运动时长"><el-input-number v-model="exerciseForm.durationMinutes" :min="0" :max="999" /><span style="margin-left:8px">分钟</span></el-form-item>
+        <el-form-item label="消耗热量"><el-input-number v-model="exerciseForm.caloriesBurned" :min="0" :max="9999" /><span
+            style="margin-left:8px">kcal</span></el-form-item>
+        <el-form-item label="运动时长"><el-input-number v-model="exerciseForm.durationMinutes" :min="0" :max="999" /><span
+            style="margin-left:8px">分钟</span></el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="exerciseDialogVisible = false">取消</el-button>
@@ -231,9 +320,12 @@
     <!-- 编辑额外运动弹窗 -->
     <el-dialog v-model="editExerciseDialogVisible" title="编辑额外运动消耗" width="420px">
       <el-form :model="editExerciseForm" label-width="80px">
-        <el-form-item label="运动名称"><el-input v-model="editExerciseForm.exerciseName" placeholder="如：跑步、游泳" /></el-form-item>
-        <el-form-item label="消耗热量"><el-input-number v-model="editExerciseForm.caloriesBurned" :min="0" :max="9999" /><span style="margin-left:8px">kcal</span></el-form-item>
-        <el-form-item label="运动时长"><el-input-number v-model="editExerciseForm.durationMinutes" :min="0" :max="999" /><span style="margin-left:8px">分钟</span></el-form-item>
+        <el-form-item label="运动名称"><el-input v-model="editExerciseForm.exerciseName"
+            placeholder="如：跑步、游泳" /></el-form-item>
+        <el-form-item label="消耗热量"><el-input-number v-model="editExerciseForm.caloriesBurned" :min="0"
+            :max="9999" /><span style="margin-left:8px">kcal</span></el-form-item>
+        <el-form-item label="运动时长"><el-input-number v-model="editExerciseForm.durationMinutes" :min="0"
+            :max="999" /><span style="margin-left:8px">分钟</span></el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="editExerciseDialogVisible = false">取消</el-button>
@@ -246,7 +338,8 @@
 <script setup>
 import { ref, reactive, computed, onMounted, nextTick } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { UploadFilled, Plus, Edit, Delete, Timer, Calendar, QuestionFilled } from "@element-plus/icons-vue";
+import { UploadFilled, Plus, Edit, Delete, Timer, Calendar, QuestionFilled, Loading } from "@element-plus/icons-vue";
+import { debounce } from "lodash-es";
 import * as echarts from "echarts";
 import { dietApi } from "@/api/diet";
 
@@ -259,11 +352,60 @@ let chartInstance = null;
 const goalMap = { lose: "减脂", gain: "增肌", maintain: "保持身材" };
 const goalText = computed(() => goalMap[summary.goal] || "保持身材");
 
-// 菜品表单
-const form = reactive({ mealType: "breakfast", mealTime: "08:00", dishes: [{ foodName: "", weight: 100, calories: 0 }] });
+// 菜品表单 - 增加 AI 估算相关字段
+const createDishItem = () => ({
+  foodName: "",
+  weight: 100,
+  calories: 0,
+  protein: 0,
+  fat: 0,
+  carbs: 0,
+  loading: false,
+  isAiEstimated: false
+});
+
+const form = reactive({ 
+  mealType: "breakfast", 
+  mealTime: "08:00", 
+  dishes: [createDishItem()] 
+});
+
 const defaultTimeMap = { breakfast: "08:00", lunch: "12:00", dinner: "18:00", snack: "15:00" };
 const totalCalories = computed(() => form.dishes.reduce((sum, dish) => sum + (dish.calories || 0), 0));
 const isFormValid = computed(() => form.dishes.some(dish => dish.foodName && dish.calories > 0));
+
+// AI 智能估算功能 - 带防抖处理
+const requestAiEstimate = async (dish) => {
+  // 校验：名称长度太短或重量为0则不触发
+  if (!dish.foodName || dish.foodName.trim().length < 2 || !dish.weight) return;
+
+  dish.loading = true;
+  try {
+    const data = await dietApi.analyzeFood({
+      foodName: dish.foodName,
+      weight: dish.weight
+    });
+
+    if (data) {
+      const { calories, protein, fat, carbs } = data;
+      dish.calories = calories || 0;
+      dish.protein = protein || 0;
+      dish.fat = fat || 0;
+      dish.carbs = carbs || 0;
+      dish.isAiEstimated = true; // 标记为 AI 估算
+    }
+  } catch (e) {
+    console.error("AI 分析失败", e);
+    dish.isAiEstimated = false;
+  } finally {
+    dish.loading = false;
+  }
+};
+
+// 创建防抖版本的函数 - 1500ms 内如果重复触发，之前的请求会被取消
+const debouncedEstimate = debounce((dish) => {
+  requestAiEstimate(dish);
+}, 1500);
 
 // 餐次选项
 // 餐次选项和图标映射
@@ -279,15 +421,15 @@ const mealTypeIconMap = { breakfast: "🌅", lunch: "☀️", dinner: "🌙", sn
 const groupedMeals = computed(() => {
   const groups = {};
   const order = ["breakfast", "lunch", "dinner"];
-  
+
   // 先按时间排序
   const meals = [...(summary.meals || [])].sort((a, b) => {
     return (a.time || "").localeCompare(b.time || "");
   });
-  
+
   for (const meal of meals) {
     const type = meal.mealType || meal.type;
-    
+
     // 加餐按时间分组（相同时间的放一起，不同时间分开）
     if (type === "snack") {
       const time = meal.time || "";
@@ -302,7 +444,7 @@ const groupedMeals = computed(() => {
       groups[type].meals.push(meal);
     }
   }
-  
+
   // 按固定顺序返回
   const result = {};
   for (const t of order) {
@@ -341,9 +483,9 @@ function isMealTypeUsed(type) {
   return used instanceof Set ? used.has(type) : used.includes(type);
 }
 
-function addDishItem() { form.dishes.push({ foodName: "", weight: 100, calories: 0 }); }
+function addDishItem() { form.dishes.push(createDishItem()); }
 function removeDishItem(index) { if (form.dishes.length > 1) form.dishes.splice(index, 1); }
-function onMealTypeChange(type) { 
+function onMealTypeChange(type) {
   // 如果该餐次已有记录，保留原时间；否则使用默认时间
   if (type !== "snack") {
     const existingMeal = summary.meals?.find(m => m.mealType === type);
@@ -358,7 +500,6 @@ function onMealTypeChange(type) {
 function showAddDialog() {
   // 自动选择第一个未记录的餐次
   const order = ["breakfast", "lunch", "dinner", "snack"];
-  const used = summary.usedMealTypes || [];
   const firstAvailable = order.find(t => !isMealTypeUsed(t)) || "snack";
   form.mealType = firstAvailable;
   // 如果该餐次已有记录，使用已有记录的时间
@@ -368,7 +509,7 @@ function showAddDialog() {
   } else {
     form.mealTime = defaultTimeMap[firstAvailable] || "08:00";
   }
-  form.dishes = [{ foodName: "", weight: 100, calories: 0 }];
+  form.dishes = [createDishItem()];
   addDialogVisible.value = true;
 }
 
@@ -378,7 +519,17 @@ async function handleAdd() {
   submitting.value = true;
   try {
     for (const dish of validDishes) {
-      await dietApi.addMeal({ mealType: form.mealType, foodName: dish.foodName, calories: dish.calories, weight: dish.weight, mealTime: form.mealTime, date: selectedDate.value });
+      await dietApi.addMeal({ 
+        mealType: form.mealType, 
+        foodName: dish.foodName, 
+        calories: dish.calories, 
+        protein: dish.protein || 0,
+        fat: dish.fat || 0,
+        carbs: dish.carbs || 0,
+        weight: dish.weight, 
+        mealTime: form.mealTime, 
+        date: selectedDate.value 
+      });
     }
     ElMessage.success(`已添加 ${validDishes.length} 种食材`);
     addDialogVisible.value = false;
@@ -407,13 +558,16 @@ async function handleDelete(id) {
 
 const editDialogVisible = ref(false);
 const editSubmitting = ref(false);
-const editForm = reactive({ id: null, mealType: "", foodName: "", calories: 0, weight: 0, mealTime: "08:00" });
+const editForm = reactive({ id: null, mealType: "", foodName: "", calories: 0, protein: 0, fat: 0, carbs: 0, weight: 0, mealTime: "08:00" });
 
 function showEditDialog(row) {
   editForm.id = row.id;
   editForm.mealType = row.mealType;
   editForm.foodName = row.foodName;
   editForm.calories = row.calories || 0;
+  editForm.protein = row.protein || 0;
+  editForm.fat = row.fat || 0;
+  editForm.carbs = row.carbs || 0;
   editForm.weight = row.weight || 0;
   editForm.mealTime = row.time || "08:00";
   editDialogVisible.value = true;
@@ -425,7 +579,14 @@ async function handleEdit() {
   editSubmitting.value = true;
   try {
     // 正餐不可修改时间，只发送必要字段
-    const updateData = { foodName: editForm.foodName, calories: editForm.calories, weight: editForm.weight };
+    const updateData = { 
+      foodName: editForm.foodName, 
+      calories: editForm.calories, 
+      protein: editForm.protein,
+      fat: editForm.fat,
+      carbs: editForm.carbs,
+      weight: editForm.weight 
+    };
     if (editForm.mealType === "snack") {
       updateData.mealTime = editForm.mealTime;
     }
@@ -528,90 +689,673 @@ onMounted(() => { loadSummary(); window.addEventListener("resize", () => chartIn
 </script>
 
 <style scoped>
-.diet-page { display: flex; gap: 20px; max-width: 1200px; margin: 24px auto; padding: 0 16px; }
-.diet-left { flex: 1; min-width: 0; }
-.diet-right { width: 380px; flex-shrink: 0; }
-.card-header-fancy { display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid #f0f0f0; }
-.header-left { display: flex; align-items: center; gap: 12px; }
-.header-icon { font-size: 28px; line-height: 1; }
-.card-title { margin: 0; font-size: 17px; font-weight: 600; color: #303133; }
-.chart-box { width: 100%; height: 260px; }
-.calorie-info { margin-top: 12px; }
-.info-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; border-bottom: 1px dashed #eee; }
-.info-row.remain { font-weight: 600; font-size: 15px; border-bottom: none; padding-top: 10px; }
-.primary { color: #409EFF; }
-.warn { color: #E6A23C; }
-.success { color: #67C23A; }
-.danger { color: #F56C6C; }
-.upload-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; border: 2px dashed #dcdfe6; border-radius: 8px; padding: 32px 0; margin-top: 12px; cursor: pointer; transition: border-color 0.3s; }
-.upload-placeholder:hover { border-color: #409EFF; }
-.meal-list { margin-top: 12px; }
-.meal-item { display: flex; align-items: center; padding: 14px 12px; margin-bottom: 8px; border-radius: 10px; background: linear-gradient(135deg, #f8f9ff 0%, #f0f5ff 100%); border: 1px solid #e8ecf4; transition: all 0.25s ease; }
-.meal-item:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(64, 158, 255, 0.1); border-color: #b3d8ff; }
-.meal-left { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 70px; }
-.meal-time { font-size: 15px; font-weight: 600; color: #409EFF; }
-.meal-center { flex: 1; padding: 0 16px; display: flex; flex-direction: column; gap: 2px; }
-.meal-food { font-size: 14px; font-weight: 500; color: #303133; }
-.meal-weight { font-size: 12px; color: #909399; }
-.meal-right { display: flex; align-items: center; gap: 12px; min-width: 120px; justify-content: flex-end; }
-.meal-cal { font-size: 16px; font-weight: 700; color: #E6A23C; white-space: nowrap; }
-.meal-cal small { font-size: 11px; font-weight: 400; color: #909399; }
-.meal-actions { display: flex; gap: 2px; }
-.exercise-list { margin-top: 12px; }
-.exercise-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; margin-bottom: 8px; border-radius: 10px; background: linear-gradient(135deg, #f0faf0 0%, #e8f8e8 100%); border: 1px solid #d4edda; transition: all 0.25s ease; }
-.exercise-item:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(103, 194, 58, 0.1); border-color: #a3d98a; }
-.exercise-info { display: flex; flex-direction: column; gap: 4px; }
-.exercise-name { font-size: 14px; font-weight: 500; color: #303133; }
-.exercise-detail { font-size: 12px; color: #909399; display: flex; align-items: center; gap: 3px; }
-.exercise-right { display: flex; align-items: center; gap: 10px; }
-.exercise-cal { font-size: 15px; font-weight: 700; color: #67C23A; white-space: nowrap; }
-.exercise-cal small { font-size: 11px; font-weight: 400; color: #909399; }
-.workout-card .exercise-item { background: linear-gradient(135deg, #fff8f0 0%, #fff3e6 100%); border-color: #fde2c8; }
-.workout-card .exercise-cal { color: #E6A23C; }
-.date-picker-bar { display: flex; align-items: center; justify-content: space-between; background: #fff; border-radius: 10px; padding: 12px 16px; margin-bottom: 14px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06); border: 1px solid #e8ecf4; }
-.date-picker-left { display: flex; align-items: center; gap: 8px; }
-.date-label { font-size: 15px; font-weight: 600; color: #303133; }
-.action-btn { padding: 6px !important; width: 34px !important; height: 34px !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; border-radius: 8px !important; transition: all 0.2s ease; cursor: pointer; }
-.action-btn:hover { background: rgba(64, 158, 255, 0.1) !important; transform: scale(1.1); }
-.header-action-btn { font-size: 14px !important; }
-.info-label-with-tip { cursor: help; display: inline-flex; align-items: center; gap: 4px; }
-.info-label-with-tip:hover { color: #409EFF; }
+.diet-page {
+  display: flex;
+  gap: 20px;
+  max-width: 1200px;
+  margin: 24px auto;
+  padding: 0 16px;
+}
+
+.diet-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.diet-right {
+  width: 380px;
+  flex-shrink: 0;
+}
+
+.card-header-fancy {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-icon {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.card-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.chart-box {
+  width: 100%;
+  height: 260px;
+}
+
+.calorie-info {
+  margin-top: 12px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 14px;
+  border-bottom: 1px dashed #eee;
+}
+
+.info-row.remain {
+  font-weight: 600;
+  font-size: 15px;
+  border-bottom: none;
+  padding-top: 10px;
+}
+
+.primary {
+  color: #409EFF;
+}
+
+.warn {
+  color: #E6A23C;
+}
+
+.success {
+  color: #67C23A;
+}
+
+.danger {
+  color: #F56C6C;
+}
+
+.upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed #dcdfe6;
+  border-radius: 8px;
+  padding: 32px 0;
+  margin-top: 12px;
+  cursor: pointer;
+  transition: border-color 0.3s;
+}
+
+.upload-placeholder:hover {
+  border-color: #409EFF;
+}
+
+.meal-list {
+  margin-top: 12px;
+}
+
+.meal-item {
+  display: flex;
+  align-items: center;
+  padding: 14px 12px;
+  margin-bottom: 8px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f8f9ff 0%, #f0f5ff 100%);
+  border: 1px solid #e8ecf4;
+  transition: all 0.25s ease;
+}
+
+.meal-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.1);
+  border-color: #b3d8ff;
+}
+
+.meal-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 70px;
+}
+
+.meal-time {
+  font-size: 15px;
+  font-weight: 600;
+  color: #409EFF;
+}
+
+.meal-center {
+  flex: 1;
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.meal-food {
+  font-size: 14px;
+  font-weight: 500;
+  color: #303133;
+}
+
+.meal-weight {
+  font-size: 12px;
+  color: #909399;
+}
+
+.meal-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 120px;
+  justify-content: flex-end;
+}
+
+.meal-cal {
+  font-size: 16px;
+  font-weight: 700;
+  color: #E6A23C;
+  white-space: nowrap;
+}
+
+.meal-cal small {
+  font-size: 11px;
+  font-weight: 400;
+  color: #909399;
+}
+
+.meal-actions {
+  display: flex;
+  gap: 2px;
+}
+
+.exercise-list {
+  margin-top: 12px;
+}
+
+.exercise-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f0faf0 0%, #e8f8e8 100%);
+  border: 1px solid #d4edda;
+  transition: all 0.25s ease;
+}
+
+.exercise-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(103, 194, 58, 0.1);
+  border-color: #a3d98a;
+}
+
+.exercise-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.exercise-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #303133;
+}
+
+.exercise-detail {
+  font-size: 12px;
+  color: #909399;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.exercise-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.exercise-cal {
+  font-size: 15px;
+  font-weight: 700;
+  color: #67C23A;
+  white-space: nowrap;
+}
+
+.exercise-cal small {
+  font-size: 11px;
+  font-weight: 400;
+  color: #909399;
+}
+
+.workout-card .exercise-item {
+  background: linear-gradient(135deg, #fff8f0 0%, #fff3e6 100%);
+  border-color: #fde2c8;
+}
+
+.workout-card .exercise-cal {
+  color: #E6A23C;
+}
+
+.date-picker-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e8ecf4;
+}
+
+.date-picker-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.date-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.action-btn {
+  padding: 6px !important;
+  width: 34px !important;
+  height: 34px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.action-btn:hover {
+  background: rgba(64, 158, 255, 0.1) !important;
+  transform: scale(1.1);
+}
+
+.header-action-btn {
+  font-size: 14px !important;
+}
+
+.info-label-with-tip {
+  cursor: help;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.info-label-with-tip:hover {
+  color: #409EFF;
+}
 
 /* 添加多菜品表单样式 */
-.add-meal-form { padding: 8px 0; }
-.meal-type-row { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
-.form-label { font-size: 14px; font-weight: 600; color: #606266; min-width: 70px; }
-.time-row { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
-.dishes-section { margin-bottom: 16px; }
-.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-.dish-list { display: flex; flex-direction: column; gap: 12px; }
-.dish-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px; background: #f8f9fb; border-radius: 8px; border: 1px solid #ebeef5; }
-.dish-index { width: 24px; height: 24px; background: #409EFF; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; flex-shrink: 0; margin-top: 6px; }
-.dish-fields { flex: 1; display: flex; flex-direction: column; gap: 8px; }
-.dish-name-input { width: 100%; }
-.dish-numbers { display: flex; gap: 8px; }
-.dish-numbers .el-input-number { width: calc(100% - 50px); }
-.input-with-unit { display: flex; align-items: center; gap: 6px; }
-.input-with-unit .el-input-number { flex: 1; }
-.unit-label { font-size: 13px; color: #909399; white-space: nowrap; min-width: 55px; }
-.calorie-summary { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: linear-gradient(135deg, #f0f9ff 0%, #e6f0ff 100%); border-radius: 8px; border: 1px solid #d9ecff; }
-.total-cal { font-size: 20px; font-weight: bold; color: #409EFF; }
-.total-count { font-size: 12px; color: #909399; margin-left: auto; }
-/* 按餐次分组显示样式 */
-.meal-grouped-list { margin-top: 12px; display: flex; flex-direction: column; gap: 16px; }
-.meal-group { background: linear-gradient(135deg, #f8f9ff 0%, #f0f5ff 100%); border-radius: 12px; border: 1px solid #e8ecf4; overflow: hidden; transition: all 0.25s ease; }
-.meal-group:hover { border-color: #b3d8ff; box-shadow: 0 4px 12px rgba(64, 158, 255, 0.08); }
-.meal-group-header { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: rgba(64, 158, 255, 0.06); border-bottom: 1px solid #e8ecf4; }
-.meal-group-time { font-size: 14px; font-weight: 600; color: #409EFF; }
-.meal-group-total { font-size: 13px; color: #606266; margin-left: auto; font-weight: 500; }
-.meal-group-dishes { padding: 8px 16px; }
-.meal-dish-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #e8ecf4; }
-.meal-dish-item:last-child { border-bottom: none; }
-.dish-left { display: flex; align-items: center; gap: 8px; flex: 1; }
-.dish-name { font-size: 14px; color: #303133; }
-.dish-weight { font-size: 12px; color: #909399; }
-.dish-right { display: flex; align-items: center; gap: 12px; }
-.dish-cal { font-size: 14px; font-weight: 600; color: #E6A23C; }
+.add-meal-form {
+  padding: 8px 0;
+}
 
-@media (max-width: 860px) { .diet-page { flex-direction: column; } .diet-right { width: 100%; } }
+.meal-type-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.form-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #606266;
+  min-width: 70px;
+}
+
+.time-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.dishes-section {
+  margin-bottom: 16px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.dish-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dish-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  background: #f8f9fb;
+  border-radius: 8px;
+  border: 1px solid #ebeef5;
+}
+
+.dish-index {
+  width: 24px;
+  height: 24px;
+  background: #409EFF;
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+
+.dish-fields {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dish-name-input {
+  width: 100%;
+}
+
+.dish-numbers {
+  display: flex;
+  gap: 8px;
+}
+
+.dish-numbers .el-input-number {
+  width: calc(100% - 50px);
+}
+
+.input-with-unit {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.input-with-unit .el-input-number {
+  flex: 1;
+}
+
+.unit-label {
+  font-size: 13px;
+  color: #909399;
+  white-space: nowrap;
+  min-width: 55px;
+}
+
+.calorie-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e6f0ff 100%);
+  border-radius: 8px;
+  border: 1px solid #d9ecff;
+}
+
+.total-cal {
+  font-size: 20px;
+  font-weight: bold;
+  color: #409EFF;
+}
+
+.total-count {
+  font-size: 12px;
+  color: #909399;
+  margin-left: auto;
+}
+
+.ai-badge-tag {
+  margin-left: 8px;
+  font-weight: bold;
+  animation: pulse-green 2s infinite;
+}
+
+@keyframes pulse-green {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+.ai-disclaimer {
+  margin-left: auto;
+  font-size: 11px;
+  color: #a8abb2;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.is-loading {
+  animation: rotating 2s linear infinite;
+}
+
+@keyframes rotating {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 按餐次分组显示样式 */
+.meal-grouped-list {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.meal-group {
+  background: linear-gradient(135deg, #f8f9ff 0%, #f0f5ff 100%);
+  border-radius: 12px;
+  border: 1px solid #e8ecf4;
+  overflow: hidden;
+  transition: all 0.25s ease;
+}
+
+.meal-group:hover {
+  border-color: #b3d8ff;
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.08);
+}
+
+.meal-group-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(64, 158, 255, 0.06);
+  border-bottom: 1px solid #e8ecf4;
+}
+
+.meal-group-time {
+  font-size: 14px;
+  font-weight: 600;
+  color: #409EFF;
+}
+
+.meal-group-total {
+  font-size: 13px;
+  color: #606266;
+  margin-left: auto;
+  font-weight: 500;
+}
+
+.meal-group-dishes {
+  padding: 8px 16px;
+}
+
+.meal-dish-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px dashed #e8ecf4;
+}
+
+.meal-dish-item:last-child {
+  border-bottom: none;
+}
+
+.dish-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.dish-name {
+  font-size: 14px;
+  color: #303133;
+}
+
+.dish-weight {
+  font-size: 12px;
+  color: #909399;
+}
+
+.dish-nutrition {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.nutrition-tag {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.nutrition-tag.protein {
+  background: #E8F4FD;
+  color: #409EFF;
+}
+
+.nutrition-tag.fat {
+  background: #FDF6EC;
+  color: #E6A23C;
+}
+
+.nutrition-tag.carbs {
+  background: #F0F9EE;
+  color: #67C23A;
+}
+
+.dish-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dish-cal {
+  font-size: 14px;
+  font-weight: 600;
+  color: #E6A23C;
+}
+
+/* 营养成分标签样式 - AI估算结果显示 */
+.nutrition-tags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 0;
+}
+
+.ai-estimate-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: linear-gradient(135deg, #67C23A 0%, #85CE61 100%);
+  color: #fff;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  box-shadow: 0 2px 6px rgba(103, 194, 58, 0.3);
+}
+
+.nutrition-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.nutrition-badge.protein {
+  background: linear-gradient(135deg, #E8F4FD 0%, #D4EDFC 100%);
+  color: #409EFF;
+}
+
+.nutrition-badge.fat {
+  background: linear-gradient(135deg, #FDF6EC 0%, #FCEBD8 100%);
+  color: #E6A23C;
+}
+
+.nutrition-badge.carbs {
+  background: linear-gradient(135deg, #F0F9EE 0%, #E4F4DD 100%);
+  color: #67C23A;
+}
+
+.badge-value {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.badge-unit {
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+.badge-name {
+  font-size: 11px;
+  margin-left: 2px;
+  opacity: 0.7;
+}
+
+/* 编辑弹窗营养成分行 */
+.edit-nutrition-row {
+  display: flex;
+  gap: 8px;
+}
+
+.nutrition-form-item {
+  flex: 1;
+}
+
+.nutrition-form-item .el-form-item__label {
+  font-size: 13px;
+}
+
+@media (max-width: 860px) {
+  .diet-page {
+    flex-direction: column;
+  }
+
+  .diet-right {
+    width: 100%;
+  }
+}
 </style>
