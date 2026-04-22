@@ -153,7 +153,22 @@
           </div>
           <div class="info-row"><span>训练消耗</span><span>{{ summary.workoutBurnedCalories }} kcal</span></div>
           <div class="info-row"><span>额外运动消耗</span><span>{{ summary.extraBurnedCalories }} kcal</span></div>
-          <div class="info-row"><span>目标摄入</span><span class="primary">{{ summary.targetCalories }} kcal</span></div>
+          <div class="info-row">
+            <el-tooltip placement="left" :show-after="300" popper-class="science-tooltip" effect="light">
+              <template #content>
+                <div class="tip-title">📖 目标摄入热量</div>
+                <div class="tip-body">目标摄入 ≠ 基础代谢，计算方式如下：</div>
+                <div class="tip-body">1. 基础代谢（BMR）约占无运动总消耗的 70%，因此无运动总消耗 = BMR / 0.7；</div>
+                <div class="tip-body">2. 理论平衡热量 = BMR / 0.7 + 运动消耗；</div>
+                <div class="tip-body">3. 人们常不自觉多摄入约 20%，因此需乘以 0.8 抵消偏差；</div>
+                <div class="tip-body">4. 再根据健身目标调整：减脂 ×0.8、增肌 ×1.1、保持 ×1.0。</div>
+              </template>
+              <span class="info-label-with-tip">目标摄入 <el-icon :size="14" style="vertical-align:middle;color:#409EFF">
+                  <QuestionFilled />
+                </el-icon></span>
+            </el-tooltip>
+            <span class="primary">{{ summary.targetCalories }} kcal</span>
+          </div>
           <div class="info-row"><span>已摄入</span><span class="warn">{{ summary.totalIntakeCalories }} kcal</span></div>
           <div class="info-row remain">
             <span>{{ summary.remainingCalories >= 0 ? '还可摄入' : '已超标' }}</span>
@@ -271,24 +286,38 @@
     </el-dialog>
 
     <!-- 编辑饮食记录弹窗 -->
-    <el-dialog v-model="editDialogVisible" title="编辑饮食记录" width="480px">
-      <el-form :model="editForm" label-width="80px">
-        <el-form-item label="食物名称"><el-input v-model="editForm.foodName" placeholder="如：全麦面包, 煮鸡蛋" /></el-form-item>
-        <el-form-item label="热量"><el-input-number v-model="editForm.calories" :min="0" :max="9999" /><span
-            style="margin-left:8px">kcal</span></el-form-item>
-        <div class="edit-nutrition-row">
-          <el-form-item label="蛋白质" class="nutrition-form-item">
-            <el-input-number v-model="editForm.protein" :min="0" :max="9999" /><span style="margin-left:8px">g</span>
-          </el-form-item>
-          <el-form-item label="脂肪" class="nutrition-form-item">
-            <el-input-number v-model="editForm.fat" :min="0" :max="9999" /><span style="margin-left:8px">g</span>
-          </el-form-item>
-          <el-form-item label="碳水" class="nutrition-form-item">
-            <el-input-number v-model="editForm.carbs" :min="0" :max="9999" /><span style="margin-left:8px">g</span>
-          </el-form-item>
-        </div>
-        <el-form-item label="重量"><el-input-number v-model="editForm.weight" :min="0" :max="9999" /><span
-            style="margin-left:8px">g</span></el-form-item>
+    <el-dialog v-model="editDialogVisible" title="编辑饮食记录" width="520px" destroy-on-close>
+      <el-form :model="editForm" label-width="80px" class="edit-meal-form">
+        <el-form-item label="食物名称">
+          <el-input v-model="editForm.foodName" placeholder="如：全麦面包, 煮鸡蛋" />
+        </el-form-item>
+        <el-form-item label="热量">
+          <el-input-number v-model="editForm.calories" :min="0" :max="9999" controls-position="right" />
+          <span class="form-unit">kcal</span>
+        </el-form-item>
+        <el-form-item label="营养成分">
+          <div class="nutrition-inline-edit">
+            <div class="nutrition-inline-item">
+              <span class="nutrition-dot protein"></span>
+              <el-input-number v-model="editForm.protein" :min="0" :max="9999" controls-position="right" size="small" />
+              <span class="form-unit">g 蛋白质</span>
+            </div>
+            <div class="nutrition-inline-item">
+              <span class="nutrition-dot fat"></span>
+              <el-input-number v-model="editForm.fat" :min="0" :max="9999" controls-position="right" size="small" />
+              <span class="form-unit">g 脂肪</span>
+            </div>
+            <div class="nutrition-inline-item">
+              <span class="nutrition-dot carbs"></span>
+              <el-input-number v-model="editForm.carbs" :min="0" :max="9999" controls-position="right" size="small" />
+              <span class="form-unit">g 碳水</span>
+            </div>
+          </div>
+        </el-form-item>
+        <el-form-item label="重量">
+          <el-input-number v-model="editForm.weight" :min="0" :max="9999" controls-position="right" />
+          <span class="form-unit">g</span>
+        </el-form-item>
         <el-form-item label="进餐时间" v-if="editForm.mealType === 'snack'">
           <el-time-picker v-model="editForm.mealTime" format="HH:mm" value-format="HH:mm" placeholder="选择时间" />
         </el-form-item>
@@ -1335,18 +1364,51 @@ onMounted(() => { loadSummary(); window.addEventListener("resize", () => chartIn
   opacity: 0.7;
 }
 
-/* 编辑弹窗营养成分行 */
-.edit-nutrition-row {
+/* 编辑弹窗样式 */
+.edit-meal-form .el-input-number {
+  width: 120px;
+}
+
+.form-unit {
+  margin-left: 8px;
+  font-size: 13px;
+  color: #909399;
+}
+
+.nutrition-inline-edit {
   display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+.nutrition-inline-item {
+  display: flex;
+  align-items: center;
   gap: 8px;
 }
 
-.nutrition-form-item {
-  flex: 1;
+.nutrition-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
-.nutrition-form-item .el-form-item__label {
-  font-size: 13px;
+.nutrition-dot.protein {
+  background: #409EFF;
+}
+
+.nutrition-dot.fat {
+  background: #E6A23C;
+}
+
+.nutrition-dot.carbs {
+  background: #67C23A;
+}
+
+.nutrition-inline-item .el-input-number {
+  width: 80px;
 }
 
 @media (max-width: 860px) {

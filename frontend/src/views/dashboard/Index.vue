@@ -58,23 +58,36 @@
           <template #header>
             <div class="card-header">
               <span class="header-title"><el-icon><PieChart /></el-icon> 今日营养摄入配比</span>
-              <span class="total-cal">总热量: {{ nutritionData.totalCalories || 0 }} kcal</span>
+              <span class="total-cal">
+                已摄入 {{ nutritionData.totalCalories || 0 }} / {{ nutritionData.targetCalories || 0 }} kcal
+                <span class="calorie-progress">({{ getCalorieProgress() }}%)</span>
+              </span>
             </div>
           </template>
-          <div class="nutrition-container" v-if="nutritionData.totalCalories > 0">
+          <div class="nutrition-container" v-if="nutritionData.targetCalories > 0">
+            <div class="target-summary">
+              <div class="target-info">
+                <span class="target-label">每日目标</span>
+              </div>
+              <div class="target-values">
+                <span class="target-item carbs">碳水 {{ nutritionData.carbsTargetGrams || 0 }}g</span>
+                <span class="target-item protein">蛋白 {{ nutritionData.proteinTargetGrams || 0 }}g</span>
+                <span class="target-item fat">脂肪 {{ nutritionData.fatTargetGrams || 0 }}g</span>
+              </div>
+            </div>
+            
             <div class="nutrition-item">
               <div class="nutrition-label">
                 <span class="label-text">碳水化合物</span>
-                <span class="label-percent">{{ nutritionData.carbsPercent || 0 }}% / {{ nutritionData.carbsTargetPercent || 50 }}%</span>
+                <span class="label-percent">{{ nutritionData.carbsGrams || 0 }}g / {{ nutritionData.carbsTargetGrams || 0 }}g (目标)</span>
               </div>
               <div class="progress-bar-container">
-                <div class="progress-bar carbs" :style="{ width: (nutritionData.carbsPercent || 0) + '%' }"></div>
-                <div class="target-line" :style="{ left: (nutritionData.carbsTargetPercent || 50) + '%' }"></div>
+                <div class="progress-bar carbs" :style="{ width: getProgressWidth(nutritionData.carbsGrams, nutritionData.carbsTargetGrams) }"></div>
               </div>
               <div class="nutrition-detail">
-                <span>{{ nutritionData.carbsGrams || 0 }}g</span>
-                <span class="status" :class="getNutritionStatus(nutritionData.carbsPercent, nutritionData.carbsTargetPercent)">
-                  {{ getNutritionText(nutritionData.carbsPercent, nutritionData.carbsTargetPercent) }}
+                <span>{{ nutritionData.carbsPercent || 0 }}%</span>
+                <span class="status" :class="getTargetStatus(nutritionData.carbsGrams, nutritionData.carbsTargetGrams)">
+                  {{ getTargetText(nutritionData.carbsGrams, nutritionData.carbsTargetGrams) }}
                 </span>
               </div>
             </div>
@@ -82,16 +95,15 @@
             <div class="nutrition-item">
               <div class="nutrition-label">
                 <span class="label-text">蛋白质</span>
-                <span class="label-percent">{{ nutritionData.proteinPercent || 0 }}% / {{ nutritionData.proteinTargetPercent || 30 }}%</span>
+                <span class="label-percent">{{ nutritionData.proteinGrams || 0 }}g / {{ nutritionData.proteinTargetGrams || 0 }}g (目标)</span>
               </div>
               <div class="progress-bar-container">
-                <div class="progress-bar protein" :style="{ width: (nutritionData.proteinPercent || 0) + '%' }"></div>
-                <div class="target-line" :style="{ left: (nutritionData.proteinTargetPercent || 30) + '%' }"></div>
+                <div class="progress-bar protein" :style="{ width: getProgressWidth(nutritionData.proteinGrams, nutritionData.proteinTargetGrams) }"></div>
               </div>
               <div class="nutrition-detail">
-                <span>{{ nutritionData.proteinGrams || 0 }}g</span>
-                <span class="status" :class="getNutritionStatus(nutritionData.proteinPercent, nutritionData.proteinTargetPercent)">
-                  {{ getNutritionText(nutritionData.proteinPercent, nutritionData.proteinTargetPercent) }}
+                <span>{{ nutritionData.proteinPercent || 0 }}%</span>
+                <span class="status" :class="getTargetStatus(nutritionData.proteinGrams, nutritionData.proteinTargetGrams)">
+                  {{ getTargetText(nutritionData.proteinGrams, nutritionData.proteinTargetGrams) }}
                 </span>
               </div>
             </div>
@@ -99,16 +111,15 @@
             <div class="nutrition-item">
               <div class="nutrition-label">
                 <span class="label-text">脂肪</span>
-                <span class="label-percent">{{ nutritionData.fatPercent || 0 }}% / {{ nutritionData.fatTargetPercent || 20 }}%</span>
+                <span class="label-percent">{{ nutritionData.fatGrams || 0 }}g / {{ nutritionData.fatTargetGrams || 0 }}g (目标)</span>
               </div>
               <div class="progress-bar-container">
-                <div class="progress-bar fat" :style="{ width: (nutritionData.fatPercent || 0) + '%' }"></div>
-                <div class="target-line" :style="{ left: (nutritionData.fatTargetPercent || 20) + '%' }"></div>
+                <div class="progress-bar fat" :style="{ width: getProgressWidth(nutritionData.fatGrams, nutritionData.fatTargetGrams) }"></div>
               </div>
               <div class="nutrition-detail">
-                <span>{{ nutritionData.fatGrams || 0 }}g</span>
-                <span class="status" :class="getNutritionStatus(nutritionData.fatPercent, nutritionData.fatTargetPercent)">
-                  {{ getNutritionText(nutritionData.fatPercent, nutritionData.fatTargetPercent) }}
+                <span>{{ nutritionData.fatPercent || 0 }}%</span>
+                <span class="status" :class="getTargetStatus(nutritionData.fatGrams, nutritionData.fatTargetGrams)">
+                  {{ getTargetText(nutritionData.fatGrams, nutritionData.fatTargetGrams) }}
                 </span>
               </div>
             </div>
@@ -294,7 +305,11 @@ const nutritionData = reactive({
   fatPercent: 0,
   carbsTargetPercent: 50,
   proteinTargetPercent: 30,
-  fatTargetPercent: 20
+  fatTargetPercent: 20,
+  targetCalories: 0,
+  carbsTargetGrams: 0,
+  proteinTargetGrams: 0,
+  fatTargetGrams: 0
 })
 
 // 原始数据（未过滤）
@@ -373,6 +388,11 @@ async function loadNutritionData() {
       nutritionData.carbsTargetPercent = data.carbsTargetPercent || 50
       nutritionData.proteinTargetPercent = data.proteinTargetPercent || 30
       nutritionData.fatTargetPercent = data.fatTargetPercent || 20
+      // 新增目标营养素克数字段
+      nutritionData.targetCalories = data.targetCalories || 0
+      nutritionData.carbsTargetGrams = data.carbsTargetGrams || 0
+      nutritionData.proteinTargetGrams = data.proteinTargetGrams || 0
+      nutritionData.fatTargetGrams = data.fatTargetGrams || 0
     }
   } catch (e) {
     console.error('加载营养数据失败', e)
@@ -417,6 +437,37 @@ function getNutritionText(actual, target) {
   const diff = actual - target
   if (Math.abs(diff) <= 5) return '✓ 正常'
   return diff > 0 ? '↑ 偏高' : '↓ 偏低'
+}
+
+// 获取卡路里完成进度
+function getCalorieProgress() {
+  const target = nutritionData.targetCalories || 0
+  const current = nutritionData.totalCalories || 0
+  if (target === 0) return 0
+  return Math.min(Math.round((current / target) * 100), 100)
+}
+
+// 获取进度条宽度
+function getProgressWidth(actual, target) {
+  if (!target || target === 0) return '0%'
+  const percent = Math.min((actual / target) * 100, 100)
+  return Math.max(percent, 0) + '%'
+}
+
+// 获取目标完成状态
+function getTargetStatus(actual, target) {
+  if (!target || target === 0) return 'normal'
+  const percent = (actual / target) * 100
+  if (percent >= 90 && percent <= 110) return 'normal'
+  return percent < 90 ? 'low' : 'high'
+}
+
+// 获取目标完成状态文本
+function getTargetText(actual, target) {
+  if (!target || target === 0) return '—'
+  const percent = (actual / target) * 100
+  if (percent >= 90 && percent <= 110) return '✓ 达标'
+  return percent < 90 ? '未达标' : '超标'
 }
 
 function renderCalorieChart() {
@@ -517,6 +568,23 @@ onMounted(() => {
 .legend-dot.workout { background-color: #409EFF; }
 .legend-dot.extra { background-color: #67C23A; }
 .nutrition-container { margin-top: 10px; }
+.target-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e8f4ff 100%);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border: 1px solid #d0e8ff;
+}
+.target-label { font-size: 13px; font-weight: 600; color: #606266; }
+.target-values { display: flex; gap: 12px; }
+.target-item { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 6px; }
+.target-item.carbs { color: #E6A23C; background-color: rgba(230, 162, 60, 0.1); }
+.target-item.protein { color: #409EFF; background-color: rgba(64, 158, 255, 0.1); }
+.target-item.fat { color: #909399; background-color: rgba(144, 147, 153, 0.1); }
+.calorie-progress { color: #67C23A; font-weight: 600; margin-left: 4px; }
 .nutrition-item { margin-bottom: 20px; }
 .nutrition-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .label-text { font-size: 14px; font-weight: 600; color: #303133; }
