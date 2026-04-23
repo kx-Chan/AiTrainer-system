@@ -24,6 +24,6 @@ export const dietApi = {
   deleteExtraExercise: (exerciseId) =>
     request.delete(`/meals/extra-exercise/${exerciseId}`),
 
-  /** AI 智能估算食物热量和营养成分 */
-  analyzeFood: (data) => request.post("/meals/analyze", data),
+  /** AI 智能估算食物热量和营养成分（AI调用较慢，超时设为60秒） */
+  analyzeFood: (data) => request.post("/meals/analyze", data, { timeout: 60000 }),
 };

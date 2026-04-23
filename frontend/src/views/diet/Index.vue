@@ -218,10 +218,10 @@
               </el-icon> 添加菜品</el-button>
           </div>
           <div class="dish-list">
-            <div v-for="(dish, index) in form.dishes" :key="index" class="dish-item" v-loading="dish.loading">
+            <div v-for="(dish, index) in form.dishes" :key="index" class="dish-item">
               <div class="dish-index">{{ index + 1 }}</div>
               <div class="dish-fields">
-                <el-input v-model="dish.foodName" placeholder="菜品名称，如：红烧肉" class="dish-name-input" @input="debouncedEstimate(dish)">
+                <el-input v-model="dish.foodName" placeholder="菜品名称，如：红烧肉" class="dish-name-input" @input="maybeDebounceEstimate(dish)">
                   <template #prefix>
                     <el-icon v-if="dish.loading" class="is-loading"><Loading /></el-icon>
                   </template>
@@ -229,7 +229,7 @@
                 <div class="dish-numbers">
                   <div class="input-with-unit wide">
                     <el-input-number v-model="dish.weight" :min="0" :max="9999" :precision="0" placeholder="0"
-                      controls-position="right" @change="debouncedEstimate(dish)" />
+                      controls-position="right" @change="maybeDebounceEstimate(dish)" />
                     <span class="unit-label">克(g)</span>
                   </div>
                   <div class="input-with-unit wide">
@@ -238,10 +238,20 @@
                     <span class="unit-label">千卡(kcal)</span>
                   </div>
                 </div>
-                <!-- 营养成分显示区域 - 标签样式 -->
-                <div class="nutrition-tags" v-if="dish.isAiEstimated">
-                  <span class="ai-estimate-tag">
+                <!-- 营养成分显示区域 - 加载中骨架屏 -->
+                <div class="nutrition-tags" v-if="dish.loading">
+                  <span class="ai-analyzing-tag">
                     <el-icon class="is-loading"><Loading /></el-icon>
+                    AI 正在翻阅营养库...
+                  </span>
+                  <div class="nutrition-skeleton protein-skeleton"></div>
+                  <div class="nutrition-skeleton fat-skeleton"></div>
+                  <div class="nutrition-skeleton carbs-skeleton"></div>
+                </div>
+                <!-- 营养成分显示区域 - 已估算结果 -->
+                <div class="nutrition-tags" v-else-if="dish.isAiEstimated">
+                  <span class="ai-estimate-tag">
+                    <el-icon v-if="dish.isAiEstimated"><Select /></el-icon>
                     AI 已估算
                   </span>
                   <div class="nutrition-badge protein">
@@ -367,7 +377,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted, nextTick } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { UploadFilled, Plus, Edit, Delete, Timer, Calendar, QuestionFilled, Loading } from "@element-plus/icons-vue";
+import { UploadFilled, Plus, Edit, Delete, Timer, Calendar, QuestionFilled, Loading, Select } from "@element-plus/icons-vue";
 import { debounce } from "lodash-es";
 import * as echarts from "echarts";
 import { dietApi } from "@/api/diet";
@@ -384,7 +394,7 @@ const goalText = computed(() => goalMap[summary.goal] || "保持身材");
 // 菜品表单 - 增加 AI 估算相关字段
 const createDishItem = () => ({
   foodName: "",
-  weight: 100,
+  weight: 0,
   calories: 0,
   protein: 0,
   fat: 0,
@@ -431,10 +441,17 @@ const requestAiEstimate = async (dish) => {
   }
 };
 
-// 创建防抖版本的函数 - 1500ms 内如果重复触发，之前的请求会被取消
+// 创建防抖版本的函数 - 只有同时输入了食物名称（≥2字）和重量后，才会触发AI估算
 const debouncedEstimate = debounce((dish) => {
   requestAiEstimate(dish);
 }, 1500);
+
+// 只有同时满足食物名称（≥2字）和重量（>0）才触发防抖
+const maybeDebounceEstimate = (dish) => {
+  if (dish.foodName && dish.foodName.trim().length >= 2 && dish.weight > 0) {
+    debouncedEstimate(dish);
+  }
+};
 
 // 餐次选项
 // 餐次选项和图标映射
@@ -1307,6 +1324,49 @@ onMounted(() => { loadSummary(); window.addEventListener("resize", () => chartIn
   gap: 8px;
   flex-wrap: wrap;
   padding: 8px 0;
+}
+
+/* AI 分析中标签 */
+.ai-analyzing-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: linear-gradient(135deg, #409EFF 0%, #66B1FF 100%);
+  color: #fff;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  box-shadow: 0 2px 6px rgba(64, 158, 255, 0.3);
+}
+
+/* 骨架屏 shimmer 动画 */
+.nutrition-skeleton {
+  display: inline-block;
+  width: 60px;
+  height: 24px;
+  border-radius: 20px;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+.nutrition-skeleton.protein-skeleton {
+  background: linear-gradient(90deg, #B3D8FF 25%, #8CC5FF 50%, #B3D8FF 75%);
+  background-size: 200% 100%;
+}
+
+.nutrition-skeleton.fat-skeleton {
+  background: linear-gradient(90deg, #F5DAB1 25%, #EEC98E 50%, #F5DAB1 75%);
+  background-size: 200% 100%;
+}
+
+.nutrition-skeleton.carbs-skeleton {
+  background: linear-gradient(90deg, #B3E19D 25%, #95D475 50%, #B3E19D 75%);
+  background-size: 200% 100%;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 .ai-estimate-tag {

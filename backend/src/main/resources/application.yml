@@ -54,3 +54,14 @@ aliyun:
     access-key-id: ${ALIYUN_ACCESS_KEY_ID:}
     access-key-secret: ${ALIYUN_ACCESS_KEY_SECRET:}
     avatar-url-expire-seconds: ${ALIYUN_OSS_AVATAR_URL_EXPIRE_SECONDS:90000}
+
+langchain4j:
+  open-ai:
+    chat-model:
+      api-key: ${AI_API_KEY:}
+      model-name: ${AI_MODEL:claude-sonnet-4-6}
+      base-url: ${AI_BASE_URL:https://ai.sandboxai.top/v1/}
+      timeout: 60s
+      max-retries: 1
+      log-requests: true
+      log-responses: true

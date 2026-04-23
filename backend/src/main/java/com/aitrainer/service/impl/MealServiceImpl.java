@@ -1,5 +1,6 @@
 package com.aitrainer.service.impl;
 
+import com.aitrainer.agent.NutritionAgent;
 import com.aitrainer.common.constant.MessageConstant;
 import com.aitrainer.common.exception.BusinessException;
 import com.aitrainer.dto.AddExtraExerciseDTO;
@@ -21,6 +22,7 @@ import com.aitrainer.vo.MealVO;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -32,6 +34,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -42,6 +45,11 @@ public class MealServiceImpl implements MealService {
     private final MealMapper mealMapper;
     private final UserProfileMapper userProfileMapper;
     private final ExtraExerciseMapper extraExerciseMapper;
+    private final NutritionAgent nutritionAgent;
+    private final RedisTemplate<String, Object> redisTemplate;
+
+    private static final String FOOD_CACHE_PREFIX = "food_cache:";
+    private static final long FOOD_CACHE_TTL_HOURS = 24;
 
     private static final Map<String, String> MEAL_TYPE_CN = Map.of(
             "breakfast", "早餐",
@@ -359,32 +367,47 @@ public class MealServiceImpl implements MealService {
 
     @Override
     public FoodAnalysisVO analyzeFood(final Long userId, final AnalyzeFoodDTO dto) {
-        // TODO: 后续可接入真实的 AI 分析逻辑
-        // 目前返回固定数据用于测试
-        
+        final String foodName = dto.foodName();
         final int weight = dto.weight() != null ? dto.weight() : 100;
-        
-        // 基于重量的固定估算值（简化版，实际应接入食物数据库或 AI）
-        // 假设每 100g 食物平均热量约 150kcal，蛋白质 10g，脂肪 8g，碳水 15g
-        final int basePer100g = 150;
-        final int proteinPer100g = 10;
-        final int fatPer100g = 8;
-        final int carbsPer100g = 15;
-        
-        final int calories = (int) Math.round(basePer100g * weight / 100.0);
-        final int protein = (int) Math.round(proteinPer100g * weight / 100.0);
-        final int fat = (int) Math.round(fatPer100g * weight / 100.0);
-        final int carbs = (int) Math.round(carbsPer100g * weight / 100.0);
-        
-        log.info("用户 {} 请求 AI 分析: {} ({}g) -> 热量:{} 蛋白质:{} 脂肪:{} 碳水:{}", 
-                userId, dto.foodName(), weight, calories, protein, fat, carbs);
-        
-        return FoodAnalysisVO.builder()
-                .calories(calories)
-                .protein(protein)
-                .fat(fat)
-                .carbs(carbs)
-                .build();
+
+        if (foodName == null || foodName.trim().isEmpty()) {
+            return FoodAnalysisVO.builder()
+                    .calories(0)
+                    .protein(0)
+                    .fat(0)
+                    .carbs(0)
+                    .build();
+        }
+
+        // 1. 构建缓存 key: food_cache:食物名称:重量
+        final String cacheKey = FOOD_CACHE_PREFIX + foodName.trim() + ":" + weight;
+
+        // 2. 先查缓存
+        try {
+            final Object cached = redisTemplate.opsForValue().get(cacheKey);
+            if (cached != null && cached instanceof FoodAnalysisVO cachedVO) {
+                log.info("缓存命中: {} -> 热量:{} 蛋白质:{} 脂肪:{} 碳水:{}",
+                        foodName, cachedVO.getCalories(), cachedVO.getProtein(),
+                        cachedVO.getFat(), cachedVO.getCarbs());
+                return cachedVO;
+            }
+        } catch (Exception e) {
+            log.warn("Redis 缓存读取失败，降级到 AI 分析: {}", e.getMessage());
+        }
+
+        // 3. 缓存没有，调用 AI Agent 进行分析
+        log.info("缓存未命中，调用 AI 分析: {} ({}g)", foodName, weight);
+        final FoodAnalysisVO result = nutritionAgent.analyze(foodName, weight);
+
+        // 4. 存入 Redis 缓存，设置 24 小时过期
+        try {
+            redisTemplate.opsForValue().set(cacheKey, result, FOOD_CACHE_TTL_HOURS, TimeUnit.HOURS);
+            log.info("AI 分析结果已缓存: {}", cacheKey);
+        } catch (Exception e) {
+            log.warn("Redis 缓存写入失败，跳过缓存: {}", e.getMessage());
+        }
+
+        return result;
     }
 
     /**
