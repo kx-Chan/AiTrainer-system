@@ -256,8 +256,23 @@ public class DashboardServiceImpl implements DashboardService {
         final int proteinTargetPercent = nutritionRatios[1];
         final int fatTargetPercent = nutritionRatios[2];
         
-        // 计算目标总热量 (TDEE)
-        final int targetCalories = calculateTargetCalories(profile);
+        // 获取当日项目训练消耗
+        final Integer workoutBurnedVal = mealMapper.sumWorkoutCaloriesByDate(userId, date);
+        final int workoutBurned = workoutBurnedVal != null ? workoutBurnedVal : 0;
+
+        // 获取当日额外运动消耗
+        final List<ExtraExercise> todayExtraExercises = extraExerciseMapper.selectList(
+                new LambdaQueryWrapper<ExtraExercise>()
+                        .eq(ExtraExercise::getUserId, userId)
+                        .eq(ExtraExercise::getExerciseDate, localDate)
+        );
+        final int extraBurned = todayExtraExercises.stream()
+                .mapToInt(e -> e.getCaloriesBurned() != null ? e.getCaloriesBurned() : 0)
+                .sum();
+
+        // 计算目标总热量 = 基础目标(静态) + 当日运动消耗（与 MealServiceImpl 保持一致）
+        final int baseTargetCalories = calculateTargetCalories(profile);
+        final int targetCalories = baseTargetCalories + workoutBurned + extraBurned;
         
         // 计算各营养素目标克数
         final int targetCarbsGrams = (int) (targetCalories * carbsTargetPercent / 100.0 / CARBS_CALORIES_PER_GRAM);
@@ -351,6 +366,8 @@ public class DashboardServiceImpl implements DashboardService {
                 .proteinTargetPercent(proteinTargetPercent)
                 .fatTargetPercent(fatTargetPercent)
                 .targetCalories(targetCalories)
+                .workoutBurnedCalories(workoutBurned)
+                .extraBurnedCalories(extraBurned)
                 .carbsTargetGrams(targetCarbsGrams)
                 .proteinTargetGrams(targetProteinGrams)
                 .fatTargetGrams(targetFatGrams)

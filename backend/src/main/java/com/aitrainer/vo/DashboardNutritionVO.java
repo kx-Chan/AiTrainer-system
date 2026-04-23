@@ -64,8 +64,14 @@ public class DashboardNutritionVO {
     @Schema(description = "脂肪目标占比 (%)，默认20")
     private Integer fatTargetPercent;
 
-    @Schema(description = "目标总热量 (kcal)")
+    @Schema(description = "目标总热量 (kcal)，含运动消耗")
     private Integer targetCalories;
+
+    @Schema(description = "当日项目训练消耗 (kcal)")
+    private Integer workoutBurnedCalories;
+
+    @Schema(description = "当日额外运动消耗 (kcal)")
+    private Integer extraBurnedCalories;
 
     @Schema(description = "碳水化合物目标克数 (g)")
     private Integer carbsTargetGrams;

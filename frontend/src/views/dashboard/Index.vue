@@ -67,13 +67,19 @@
           <div class="nutrition-container" v-if="nutritionData.targetCalories > 0">
             <div class="target-summary">
               <div class="target-info">
-                <span class="target-label">每日目标</span>
+                <span class="target-label">今日应摄入</span>
+                <span class="target-cal-value">{{ nutritionData.targetCalories || 0 }} kcal</span>
               </div>
               <div class="target-values">
                 <span class="target-item carbs">碳水 {{ nutritionData.carbsTargetGrams || 0 }}g</span>
                 <span class="target-item protein">蛋白 {{ nutritionData.proteinTargetGrams || 0 }}g</span>
                 <span class="target-item fat">脂肪 {{ nutritionData.fatTargetGrams || 0 }}g</span>
               </div>
+            </div>
+            <div class="exercise-burned-hint" v-if="nutritionData.workoutBurnedCalories > 0 || nutritionData.extraBurnedCalories > 0">
+              <span class="burned-tag workout-burned" v-if="nutritionData.workoutBurnedCalories > 0">🔥 训练 +{{ nutritionData.workoutBurnedCalories }} kcal</span>
+              <span class="burned-tag extra-burned" v-if="nutritionData.extraBurnedCalories > 0">🏃 额外运动 +{{ nutritionData.extraBurnedCalories }} kcal</span>
+              <span class="burned-note">已计入今日应摄入</span>
             </div>
             
             <div class="nutrition-item">
@@ -309,7 +315,9 @@ const nutritionData = reactive({
   targetCalories: 0,
   carbsTargetGrams: 0,
   proteinTargetGrams: 0,
-  fatTargetGrams: 0
+  fatTargetGrams: 0,
+  workoutBurnedCalories: 0,
+  extraBurnedCalories: 0
 })
 
 // 原始数据（未过滤）
@@ -393,6 +401,9 @@ async function loadNutritionData() {
       nutritionData.carbsTargetGrams = data.carbsTargetGrams || 0
       nutritionData.proteinTargetGrams = data.proteinTargetGrams || 0
       nutritionData.fatTargetGrams = data.fatTargetGrams || 0
+      // 运动消耗（已纳入目标热量计算）
+      nutritionData.workoutBurnedCalories = data.workoutBurnedCalories || 0
+      nutritionData.extraBurnedCalories = data.extraBurnedCalories || 0
     }
   } catch (e) {
     console.error('加载营养数据失败', e)
@@ -589,7 +600,28 @@ onMounted(() => {
   border: 1px solid #d0e8ff;
 }
 .target-label { font-size: 13px; font-weight: 600; color: #606266; }
+.target-cal-value { font-size: 18px; font-weight: 800; color: #409EFF; margin-left: 8px; }
 .target-values { display: flex; gap: 12px; }
+.exercise-burned-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  background: linear-gradient(135deg, #fff8e1 0%, #fff3e0 100%);
+  border-radius: 8px;
+  border: 1px solid #ffe0b2;
+  flex-wrap: wrap;
+}
+.burned-tag {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+.burned-tag.workout-burned { color: #409EFF; background-color: rgba(64, 158, 255, 0.1); }
+.burned-tag.extra-burned { color: #67C23A; background-color: rgba(103, 194, 58, 0.1); }
+.burned-note { font-size: 11px; color: #E6A23C; margin-left: auto; }
 .target-item { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 6px; }
 .target-item.carbs { color: #E6A23C; background-color: rgba(230, 162, 60, 0.1); }
 .target-item.protein { color: #409EFF; background-color: rgba(64, 158, 255, 0.1); }
