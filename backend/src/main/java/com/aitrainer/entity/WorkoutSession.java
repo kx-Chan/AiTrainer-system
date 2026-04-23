@@ -65,9 +65,9 @@ public class WorkoutSession {
     private Integer invalidReps;
 
     /**
-     * 训练总时长（分）。
+     * 训练总时长（秒）。
      */
-    private Integer durationMinutes;
+    private Integer durationSeconds;
 
     /**
      * 消耗热量 (kcal)。

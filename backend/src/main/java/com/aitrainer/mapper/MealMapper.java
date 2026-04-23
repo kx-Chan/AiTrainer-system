@@ -34,7 +34,7 @@ public interface MealMapper extends BaseMapper<Meal> {
      * @return 训练明细列表
      */
     @Select("SELECT w.name AS workoutName, ws.calories_burned AS caloriesBurned, " +
-            "ws.duration_minutes AS durationMinutes, ws.created_at AS createdAt " +
+            "ws.duration_seconds AS durationSeconds, ws.created_at AS createdAt " +
             "FROM workout_sessions ws " +
             "LEFT JOIN workouts w ON ws.workout_id = w.id " +
             "WHERE ws.user_id = #{userId} AND DATE(ws.created_at) = #{date} AND ws.is_deleted = 0 " +

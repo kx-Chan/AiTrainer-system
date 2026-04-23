@@ -41,7 +41,8 @@ public class CollectionItemServiceImpl implements CollectionItemService {
     public boolean isPostFavorited(final Long userId, final Long postId) {
         final LambdaQueryWrapper<CollectionItem> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(CollectionItem::getUserId, userId)
-                .eq(CollectionItem::getPostId, postId);
+                .eq(CollectionItem::getPostId, postId)
+                .eq(CollectionItem::getIsDeleted, 0);
         return collectionItemMapper.exists(wrapper);
     }
 
@@ -56,7 +57,8 @@ public class CollectionItemServiceImpl implements CollectionItemService {
         final LambdaQueryWrapper<CollectionItem> wrapper = new LambdaQueryWrapper<>();
         wrapper.select(CollectionItem::getFolderId)
                 .eq(CollectionItem::getUserId, userId)
-                .eq(CollectionItem::getPostId, postId);
+                .eq(CollectionItem::getPostId, postId)
+                .eq(CollectionItem::getIsDeleted, 0);
 
         return collectionItemMapper.selectList(wrapper).stream()
                 .map(item -> String.valueOf(item.getFolderId()))
@@ -87,26 +89,40 @@ public class CollectionItemServiceImpl implements CollectionItemService {
             throw BusinessException.unauthorized(MessageConstant.FOLDER_NOT_FOUND);
         }
 
-        // 2. 幂等检查
+        // 2. 检查是否已存在活跃的收藏记录（幂等检查）
         if (isAlreadyInFolder(userId, postId, folderId)) {
             return getFavoriteStatus(userId, postId);
         }
 
+        // 3. 判断是否是用户对该推文的首次收藏（用于计数逻辑）
+        boolean isFirstFavoriteForUser = !this.isPostFavorited(userId, postId);
+
+        // 4. 查询是否存在已逻辑删除的记录（绕过 @TableLogic 自动过滤）
+        CollectionItem existingItem = collectionItemMapper.selectOneIncludingDeleted(userId, postId, folderId);
+
+        if (existingItem != null) {
+            // 存在已删除的记录，恢复它
+            collectionItemMapper.restoreById(existingItem.getId(), LocalDateTime.now());
+            log.debug("用户 {} 恢复了对推文 {} 的收藏记录", userId, postId);
+        } else {
+            // 不存在任何记录，插入新记录
+            final CollectionItem item = CollectionItem.builder()
+                    .userId(userId)
+                    .postId(postId)
+                    .folderId(folderId)
+                    .createTime(LocalDateTime.now())
+                    .isDeleted(0)
+                    .build();
+            collectionItemMapper.insert(item);
+            log.debug("用户 {} 新增了对推文 {} 的收藏记录", userId, postId);
+        }
+
         // 3. 核心计数逻辑：首个收藏才加一
-        if (!this.isPostFavorited(userId, postId)) {
+        if (isFirstFavoriteForUser) {
             // 直接通过 Mapper 执行原子更新 SQL
             communityPostMapper.incrementFavoriteCount(postId);
             log.debug("用户 {} 首次收藏推文 {}，Mapper 执行计数 +1", userId, postId);
         }
-
-        // 4. 插入记录
-        final CollectionItem item = CollectionItem.builder()
-                .userId(userId)
-                .postId(postId)
-                .folderId(folderId)
-                .createTime(LocalDateTime.now())
-                .build();
-        collectionItemMapper.insert(item);
 
         return getFavoriteStatus(userId, postId);
     }
@@ -172,6 +188,7 @@ public class CollectionItemServiceImpl implements CollectionItemService {
         return collectionItemMapper.exists(new LambdaQueryWrapper<CollectionItem>()
                 .eq(CollectionItem::getUserId, userId)
                 .eq(CollectionItem::getPostId, postId)
-                .eq(CollectionItem::getFolderId, folderId));
+                .eq(CollectionItem::getFolderId, folderId)
+                .eq(CollectionItem::getIsDeleted, 0));
     }
 }

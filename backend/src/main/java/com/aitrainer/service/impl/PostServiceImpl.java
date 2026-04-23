@@ -688,6 +688,7 @@ public class PostServiceImpl implements PostService {
         LambdaQueryWrapper<CollectionItem> itemWrapper = new LambdaQueryWrapper<>();
         itemWrapper.select(CollectionItem::getPostId) // 💡 只查询 ID，减少 IO
                 .eq(CollectionItem::getFolderId, folderId)
+                .eq(CollectionItem::getIsDeleted, 0) // 过滤已逻辑删除的记录
                 .orderByDesc(CollectionItem::getCreateTime); // 按收藏时间倒序
 
         IPage<CollectionItem> itemPage = collectionItemMapper.selectPage(itemPageParam, itemWrapper);

@@ -121,7 +121,7 @@ public class MealServiceImpl implements MealService {
                 .map(m -> DietSummaryVO.WorkoutBurnedDetailVO.builder()
                         .workoutName(m.get("workoutName") != null ? m.get("workoutName").toString() : "未知项目")
                         .caloriesBurned(m.get("caloriesBurned") != null ? ((Number) m.get("caloriesBurned")).intValue() : 0)
-                        .durationMinutes(m.get("durationMinutes") != null ? ((Number) m.get("durationMinutes")).intValue() : 0)
+                        .durationMinutes(m.get("durationSeconds") != null ? ((Number) m.get("durationSeconds")).intValue() / 60 : 0)
                         .createdAt(m.get("createdAt") != null ? m.get("createdAt").toString() : "")
                         .build())
                 .toList();

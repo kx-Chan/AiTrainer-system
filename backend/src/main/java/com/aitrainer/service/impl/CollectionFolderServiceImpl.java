@@ -326,6 +326,7 @@ public class CollectionFolderServiceImpl implements CollectionFolderService {
         final QueryWrapper<CollectionItem> wrapper = new QueryWrapper<>();
         wrapper.select("folder_id", "COUNT(1) AS total")
                 .in("folder_id", folderIds)
+                .eq("is_deleted", 0)
                 .groupBy("folder_id");
 
         final List<Map<String, Object>> mapList = itemMapper.selectMaps(wrapper);

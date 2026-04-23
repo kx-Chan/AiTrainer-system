@@ -213,8 +213,7 @@ const normalizeAiReport = (raw) => ({
   score: Number(raw?.score ?? 0),
   validReps: Number(raw?.validReps ?? raw?.valid_reps ?? 0),
   invalidReps: Number(raw?.invalidReps ?? raw?.invalid_reps ?? 0),
-  durationSeconds: Number(raw?.durationSeconds ?? raw?.duration_seconds ?? 0),
-  durationMinutes: Number(raw?.durationMinutes ?? raw?.duration_minutes ?? 0),
+  durationSeconds: Number(raw?.durationSeconds ?? raw?.duration_seconds ?? raw?.durationMinutes ?? raw?.duration_minutes ?? 0),
   caloriesBurned: Number(raw?.caloriesBurned ?? raw?.calories_burned ?? raw?.calories ?? 0),
   comment: raw?.comment || ''
 })
@@ -264,11 +263,13 @@ const reportActionText = computed(() => {
 
 const reportDurationText = computed(() => {
   const r = props.post?.aiReport || {}
-  const seconds = Number(r?.durationSeconds ?? r?.duration_seconds ?? 0)
-  if (seconds > 0) return `${seconds} 秒`
-  const minutes = Number(r?.durationMinutes ?? r?.duration_minutes ?? 0)
-  if (minutes > 0) return `${minutes} min`
-  return '0'
+  const totalSeconds = Number(r?.durationSeconds ?? r?.duration_seconds ?? 0)
+  if (totalSeconds <= 0) return '0'
+  const minutes = Math.floor(totalSeconds / 60)
+  const secs = totalSeconds % 60
+  if (minutes > 0 && secs > 0) return `${minutes}分${secs}秒`
+  if (minutes > 0) return `${minutes}分`
+  return `${secs}秒`
 })
 
 const reportCaloriesText = computed(() => {

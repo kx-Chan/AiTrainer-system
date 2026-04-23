@@ -160,7 +160,7 @@
                 <el-tag v-if="log.score" size="small" :type="getGradeType(log.grade)" style="margin-left: 8px;">AI 战报 {{ log.score }} 分</el-tag>
                 <div class="log-detail">
                   <span>🔥 {{ log.caloriesBurned || 0 }} kcal</span>
-                  <span v-if="log.durationMinutes" style="margin-left: 12px;">⏱️ {{ log.durationMinutes }} 分钟</span>
+                  <span v-if="log.durationSeconds" style="margin-left: 12px;">⏱️ {{ formatDuration(log.durationSeconds) }}</span>
                   <span v-if="log.validReps" style="margin-left: 12px;">✅ {{ log.validReps }} 次</span>
                 </div>
                 <div v-if="log.comment" class="log-comment">{{ log.comment }}</div>
@@ -506,6 +506,16 @@ function formatDate(dateStr) {
 function getGradeType(grade) {
   const gradeMap = { 'S': 'success', 'A': 'primary', 'B': 'warning', 'C': 'info' }
   return gradeMap[grade] || 'info'
+}
+
+function formatDuration(seconds) {
+  const totalSeconds = Number(seconds ?? 0)
+  if (totalSeconds <= 0) return '0秒'
+  const minutes = Math.floor(totalSeconds / 60)
+  const secs = totalSeconds % 60
+  if (minutes > 0 && secs > 0) return `${minutes}分${secs}秒`
+  if (minutes > 0) return `${minutes}分`
+  return `${secs}秒`
 }
 
 const isRecordVisible = ref(false)

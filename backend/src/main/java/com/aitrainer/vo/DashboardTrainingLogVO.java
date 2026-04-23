@@ -64,8 +64,8 @@ public class DashboardTrainingLogVO {
         @Schema(description = "有效动作次数")
         private Integer validReps;
 
-        @Schema(description = "训练时长 (分钟)")
-        private Integer durationMinutes;
+        @Schema(description = "训练时长 (秒)")
+        private Integer durationSeconds;
 
         @Schema(description = "消耗热量 (kcal)")
         private Integer caloriesBurned;

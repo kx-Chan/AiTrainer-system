@@ -72,7 +72,7 @@ public class WorkoutSessionServiceImpl implements WorkoutSessionService {
         }
 
         // 3. 组装 VO 并返回
-        final Integer durationSeconds = session.getDurationMinutes() == null ? null : session.getDurationMinutes() * 60;
+        final Integer durationSeconds = session.getDurationSeconds();
         final Integer likes = session.getLikeCount() == null ? 0 : session.getLikeCount();
         final Boolean liked = viewerId == null ? null : workoutSessionLikeMapper.selectCount(
                 new LambdaQueryWrapper<WorkoutSessionLike>()
@@ -186,7 +186,7 @@ public class WorkoutSessionServiceImpl implements WorkoutSessionService {
 
         final int validReps = random.nextInt(10, 31);
         final int invalidReps = random.nextInt(0, 6);
-        final int durationMinutes = random.nextInt(5, 46);
+        final int durationSeconds = random.nextInt(300, 2701); // 5~45 分钟对应的秒数范围
         final int calories = random.nextInt(50, 301);
 
         // 3. 生成 JSON 数据
@@ -221,7 +221,7 @@ public class WorkoutSessionServiceImpl implements WorkoutSessionService {
                 .comment(getMockComment(grade))
                 .validReps(validReps)
                 .invalidReps(invalidReps)
-                .durationMinutes(durationMinutes)
+                .durationSeconds(durationSeconds)
                 .caloriesBurned(calories)
                 .radarScores(radarJson)
                 .snapshots(snapshotsJson)
@@ -301,7 +301,7 @@ public class WorkoutSessionServiceImpl implements WorkoutSessionService {
             log.error("转换战报数据失败, ID: {}", session.getId(), e);
         }
 
-        final Integer durationSeconds = session.getDurationMinutes() == null ? null : session.getDurationMinutes() * 60;
+        final Integer durationSeconds = session.getDurationSeconds();
         final Integer likes = session.getLikeCount() == null ? 0 : session.getLikeCount();
 
         // 判断当前查看者是否点赞过

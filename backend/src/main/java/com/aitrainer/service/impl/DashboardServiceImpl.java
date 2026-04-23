@@ -143,7 +143,7 @@ public class DashboardServiceImpl implements DashboardService {
                         .score(ws.getScore())
                         .grade(ws.getGrade())
                         .validReps(ws.getValidReps())
-                        .durationMinutes(ws.getDurationMinutes())
+                        .durationSeconds(ws.getDurationSeconds())
                         .caloriesBurned(ws.getCaloriesBurned())
                         .comment(ws.getComment())
                         .createdAt(ws.getCreatedAt() != null ? ws.getCreatedAt().format(DATE_FORMATTER) : "")

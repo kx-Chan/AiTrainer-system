@@ -59,7 +59,7 @@
           <el-col :span="12">
             <el-card shadow="hover" class="data-item">
               <div class="data-label">训练时长</div>
-              <div class="data-value">{{ reportData.duration }} <span class="unit">min</span></div>
+              <div class="data-value">{{ formatDuration(reportData.duration) }}</div>
             </el-card>
           </el-col>
           <el-col :span="12">
@@ -144,7 +144,7 @@ const normalizeSession = (raw) => {
         ? raw.snapshotList
         : []
 
-  const duration = Number(raw?.durationMinutes ?? raw?.duration_minutes ?? raw?.duration ?? 0)
+  const duration = Number(raw?.durationSeconds ?? raw?.duration_seconds ?? raw?.durationMinutes ?? raw?.duration_minutes ?? raw?.duration ?? 0)
   const calories = Number(raw?.caloriesBurned ?? raw?.calories_burned ?? raw?.calories ?? 0)
 
   return {
@@ -162,6 +162,16 @@ const normalizeSession = (raw) => {
     radarScores,
     snapshots
   }
+}
+
+const formatDuration = (seconds) => {
+  const totalSeconds = Number(seconds ?? 0)
+  if (totalSeconds <= 0) return '0秒'
+  const minutes = Math.floor(totalSeconds / 60)
+  const secs = totalSeconds % 60
+  if (minutes > 0 && secs > 0) return `${minutes}分${secs}秒`
+  if (minutes > 0) return `${minutes}分`
+  return `${secs}秒`
 }
 
 const fetchReport = async () => {

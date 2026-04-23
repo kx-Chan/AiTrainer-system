@@ -122,7 +122,7 @@
 | comment | TEXT | AI 动作点评建议 | |
 | valid_reps | INT | 有效动作次数 | |
 | invalid_reps | INT | 异常动作次数 | |
-| duration_minutes| INT | 训练时长 (分钟) | |
+| duration_seconds | INT | 训练时长 (秒) | |
 | calories_burned | INT | 消耗热量 (kcal) | |
 | radar_scores | JSON | 五维姿态评分数组 | |
 | snapshots | JSON | AI 纠错抓拍列表 (包含图片 URL 与错误原因) | |

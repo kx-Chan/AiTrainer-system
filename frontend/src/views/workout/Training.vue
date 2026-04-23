@@ -177,11 +177,13 @@ const endValidRepsText = computed(() => String(Number(endSummary.value?.validRep
 const endInvalidRepsText = computed(() => String(Number(endSummary.value?.invalidReps ?? endSummary.value?.invalid_reps ?? 0)))
 
 const endDurationText = computed(() => {
-  const seconds = Number(endSummary.value?.durationSeconds ?? endSummary.value?.duration_seconds ?? 0)
-  if (seconds > 0) return `${seconds} 秒`
-  const minutes = Number(endSummary.value?.durationMinutes ?? endSummary.value?.duration_minutes ?? 0)
-  if (minutes > 0) return `${minutes} min`
-  return '0'
+  const seconds = Number(endSummary.value?.durationSeconds ?? endSummary.value?.duration_seconds ?? endSummary.value?.durationMinutes ?? endSummary.value?.duration_minutes ?? 0)
+  if (seconds <= 0) return '0秒'
+  const minutes = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  if (minutes > 0 && secs > 0) return `${minutes}分${secs}秒`
+  if (minutes > 0) return `${minutes}分`
+  return `${secs}秒`
 })
 
 const endCaloriesText = computed(() => {
