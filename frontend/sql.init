@@ -264,6 +264,7 @@ CREATE TABLE IF NOT EXISTS `extra_exercises` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `user_id` INT NOT NULL COMMENT '用户ID',
     `exercise_name` VARCHAR(100) NOT NULL COMMENT '运动名称',
+    `description` VARCHAR(500) DEFAULT NULL COMMENT '运动描述(如配速、距离等)',
     `calories_burned` INT DEFAULT 0 COMMENT '消耗热量(kcal)',
     `duration_minutes` INT DEFAULT 0 COMMENT '运动时长(分钟)',
     `exercise_date` DATE NOT NULL COMMENT '运动日期',
@@ -272,6 +273,9 @@ CREATE TABLE IF NOT EXISTS `extra_exercises` (
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
     INDEX `idx_user_exercise_date` (`user_id`, `exercise_date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户额外运动消耗记录';
+
+-- 为已有表添加 description 字段
+ALTER TABLE `extra_exercises` ADD COLUMN IF NOT EXISTS `description` VARCHAR(500) DEFAULT NULL COMMENT '运动描述(如配速、距离等)' AFTER `exercise_name`;
 
 SET FOREIGN_KEY_CHECKS = 1;
 

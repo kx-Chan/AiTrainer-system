@@ -24,6 +24,9 @@ public class ExtraExerciseVO {
     @Schema(description = "运动名称")
     private String exerciseName;
 
+    @Schema(description = "运动描述（如配速、距离等）")
+    private String description;
+
     @Schema(description = "消耗热量 (kcal)")
     private Integer caloriesBurned;
 

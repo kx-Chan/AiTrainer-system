@@ -11,6 +11,9 @@ public record AddExtraExerciseDTO(
         @NotBlank(message = "运动名称不能为空")
         String exerciseName,
 
+        @Schema(description = "运动描述（如配速、距离等），描述越精准AI估算越准确", example = "配速5'30\"/km，跑了5公里")
+        String description,
+
         @Schema(description = "消耗热量 (kcal)", example = "300")
         @NotNull(message = "消耗热量不能为空")
         Integer caloriesBurned,

@@ -41,6 +41,11 @@ public class ExtraExercise {
     private String exerciseName;
 
     /**
+     * 运动描述（如配速、距离等）。
+     */
+    private String description;
+
+    /**
      * 消耗热量 (kcal)。
      */
     private Integer caloriesBurned;

@@ -2,10 +2,12 @@ package com.aitrainer.service;
 
 import com.aitrainer.dto.AddExtraExerciseDTO;
 import com.aitrainer.dto.AddMealDTO;
+import com.aitrainer.dto.AnalyzeExerciseDTO;
 import com.aitrainer.dto.AnalyzeFoodDTO;
 import com.aitrainer.dto.UpdateExtraExerciseDTO;
 import com.aitrainer.dto.UpdateMealDTO;
 import com.aitrainer.vo.DietSummaryVO;
+import com.aitrainer.vo.ExerciseAnalysisVO;
 import com.aitrainer.vo.ExtraExerciseVO;
 import com.aitrainer.vo.FoodAnalysisVO;
 import com.aitrainer.vo.MealVO;
@@ -86,4 +88,14 @@ public interface MealService {
      * @return 食物营养分析结果
      */
     FoodAnalysisVO analyzeFood(Long userId, AnalyzeFoodDTO dto);
+
+    /**
+     * AI 智能分析运动消耗（当前为 mock 数据，后续接入 AI Agent）。
+     * 根据运动名称、时长以及用户身体数据估算消耗热量。
+     *
+     * @param userId 用户 ID（用于获取用户身体数据）
+     * @param dto    分析请求参数
+     * @return 运动消耗分析结果
+     */
+    ExerciseAnalysisVO analyzeExercise(Long userId, AnalyzeExerciseDTO dto);
 }

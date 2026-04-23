@@ -26,4 +26,7 @@ export const dietApi = {
 
   /** AI 智能估算食物热量和营养成分（AI调用较慢，超时设为60秒） */
   analyzeFood: (data) => request.post("/meals/analyze", data, { timeout: 60000 }),
+
+  /** AI 智能估算运动消耗热量（AI调用较慢，超时设为60秒） */
+  analyzeExercise: (data) => request.post("/meals/analyze-exercise", data, { timeout: 60000 }),
 };

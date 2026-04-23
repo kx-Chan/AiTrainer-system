@@ -4,9 +4,11 @@ import com.aitrainer.common.result.Result;
 import com.aitrainer.common.security.CustomUser;
 import com.aitrainer.dto.AddExtraExerciseDTO;
 import com.aitrainer.dto.AddMealDTO;
+import com.aitrainer.dto.AnalyzeExerciseDTO;
 import com.aitrainer.dto.AnalyzeFoodDTO;
 import com.aitrainer.dto.UpdateExtraExerciseDTO;
 import com.aitrainer.dto.UpdateMealDTO;
+import com.aitrainer.vo.ExerciseAnalysisVO;
 import com.aitrainer.vo.FoodAnalysisVO;
 import com.aitrainer.service.MealService;
 import com.aitrainer.vo.DietSummaryVO;
@@ -161,5 +163,22 @@ public class MealController {
             @RequestBody final AnalyzeFoodDTO dto) {
         final CustomUser user = (CustomUser) authentication.getPrincipal();
         return Result.success(mealService.analyzeFood(user.getId(), dto));
+    }
+
+    /**
+     * AI 智能分析运动消耗（当前为 mock 数据，后续接入 AI Agent）。
+     * 根据运动名称、时长以及用户身体数据估算消耗热量。
+     *
+     * @param authentication 登录信息
+     * @param dto            分析请求参数
+     * @return 运动消耗分析结果
+     */
+    @Operation(summary = "AI 智能分析运动消耗")
+    @PostMapping("/analyze-exercise")
+    public Result<ExerciseAnalysisVO> analyzeExercise(
+            final Authentication authentication,
+            @RequestBody final AnalyzeExerciseDTO dto) {
+        final CustomUser user = (CustomUser) authentication.getPrincipal();
+        return Result.success(mealService.analyzeExercise(user.getId(), dto));
     }
 }

@@ -1,13 +1,16 @@
 package com.aitrainer.service.impl;
 
+import com.aitrainer.agent.ExerciseAgent;
 import com.aitrainer.agent.NutritionAgent;
 import com.aitrainer.common.constant.MessageConstant;
 import com.aitrainer.common.exception.BusinessException;
 import com.aitrainer.dto.AddExtraExerciseDTO;
 import com.aitrainer.dto.AddMealDTO;
+import com.aitrainer.dto.AnalyzeExerciseDTO;
 import com.aitrainer.dto.AnalyzeFoodDTO;
 import com.aitrainer.dto.UpdateExtraExerciseDTO;
 import com.aitrainer.dto.UpdateMealDTO;
+import com.aitrainer.vo.ExerciseAnalysisVO;
 import com.aitrainer.vo.FoodAnalysisVO;
 import com.aitrainer.entity.ExtraExercise;
 import com.aitrainer.entity.Meal;
@@ -46,6 +49,7 @@ public class MealServiceImpl implements MealService {
     private final UserProfileMapper userProfileMapper;
     private final ExtraExerciseMapper extraExerciseMapper;
     private final NutritionAgent nutritionAgent;
+    private final ExerciseAgent exerciseAgent;
     private final RedisTemplate<String, Object> redisTemplate;
 
     private static final String FOOD_CACHE_PREFIX = "food_cache:";
@@ -298,6 +302,7 @@ public class MealServiceImpl implements MealService {
         final ExtraExercise exercise = ExtraExercise.builder()
                 .userId(userId)
                 .exerciseName(dto.exerciseName())
+                .description(dto.description())
                 .caloriesBurned(dto.caloriesBurned())
                 .durationMinutes(dto.durationMinutes())
                 .exerciseDate(localDate)
@@ -323,6 +328,9 @@ public class MealServiceImpl implements MealService {
 
         if (dto.exerciseName() != null) {
             exercise.setExerciseName(dto.exerciseName());
+        }
+        if (dto.description() != null) {
+            exercise.setDescription(dto.description());
         }
         if (dto.caloriesBurned() != null) {
             exercise.setCaloriesBurned(dto.caloriesBurned());
@@ -358,6 +366,7 @@ public class MealServiceImpl implements MealService {
         return ExtraExerciseVO.builder()
                 .id(exercise.getId())
                 .exerciseName(exercise.getExerciseName())
+                .description(exercise.getDescription())
                 .caloriesBurned(exercise.getCaloriesBurned())
                 .durationMinutes(exercise.getDurationMinutes())
                 .exerciseDate(exercise.getExerciseDate() != null ? exercise.getExerciseDate().toString() : "")
@@ -407,6 +416,38 @@ public class MealServiceImpl implements MealService {
             log.warn("Redis 缓存写入失败，跳过缓存: {}", e.getMessage());
         }
 
+        return result;
+    }
+
+    @Override
+    public ExerciseAnalysisVO analyzeExercise(final Long userId, final AnalyzeExerciseDTO dto) {
+        final String exerciseName = dto.exerciseName();
+        final int durationMinutes = dto.durationMinutes() != null ? dto.durationMinutes() : 30;
+
+        if (exerciseName == null || exerciseName.trim().isEmpty()) {
+            return ExerciseAnalysisVO.builder()
+                    .caloriesBurned(0)
+                    .intensity("未知")
+                    .build();
+        }
+
+        // 获取用户身体数据，传入 AI Agent
+        final UserProfile profile = userProfileMapper.selectById(userId);
+        final int age = (profile != null && profile.getAge() != null && profile.getAge() > 0) ? profile.getAge() : 25;
+        final int height = (profile != null && profile.getHeight() != null) ? profile.getHeight() : 170;
+        final double weight = (profile != null && profile.getWeight() != null) ? profile.getWeight().doubleValue() : 65.0;
+        final String gender = (profile != null && profile.getGender() != null) ? profile.getGender() : "male";
+
+        // 获取运动描述，传入 AI Agent 以更精准地评估运动强度
+        final String description = StringUtils.hasText(dto.description()) ? dto.description() : "无";
+
+        log.info("调用 ExerciseAgent 分析运动消耗: {} ({}分钟), 描述: {}, 用户信息: {}岁, {}cm, {}kg, {}",
+                exerciseName, durationMinutes, description, age, height, weight, gender);
+
+        // 调用 AI Agent 进行运动消耗分析
+        final ExerciseAnalysisVO result = exerciseAgent.analyze(exerciseName, durationMinutes, description, age, height, weight, gender);
+
+        log.info("AI Agent 分析运动消耗结果: {} -> {}kcal ({})", exerciseName, result.getCaloriesBurned(), result.getIntensity());
         return result;
     }
 

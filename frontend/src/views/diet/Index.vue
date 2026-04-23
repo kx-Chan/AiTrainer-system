@@ -88,6 +88,7 @@
           <div class="exercise-item" v-for="ex in summary.extraExercises" :key="ex.id">
             <div class="exercise-info">
               <span class="exercise-name">{{ ex.exerciseName }}</span>
+              <span class="exercise-desc" v-if="ex.description">{{ ex.description }}</span>
               <span class="exercise-detail"><el-icon>
                   <Timer />
                 </el-icon> {{ ex.durationMinutes }} 分钟</span>
@@ -342,25 +343,84 @@
     </el-dialog>
 
     <!-- 额外运动弹窗 -->
-    <el-dialog v-model="exerciseDialogVisible" title="添加额外运动消耗" width="420px">
-      <el-form :model="exerciseForm" label-width="80px">
-        <el-form-item label="运动名称"><el-input v-model="exerciseForm.exerciseName" placeholder="如：跑步、游泳" /></el-form-item>
-        <el-form-item label="消耗热量"><el-input-number v-model="exerciseForm.caloriesBurned" :min="0" :max="9999" /><span
-            style="margin-left:8px">kcal</span></el-form-item>
-        <el-form-item label="运动时长"><el-input-number v-model="exerciseForm.durationMinutes" :min="0" :max="999" /><span
-            style="margin-left:8px">分钟</span></el-form-item>
-      </el-form>
+    <el-dialog v-model="exerciseDialogVisible" title="🏃 添加额外运动消耗" width="500px" destroy-on-close>
+      <div class="add-exercise-form">
+        <div class="exercise-field-row">
+          <span class="form-label">运动名称</span>
+          <el-input v-model="exerciseForm.exerciseName" placeholder="如：跑步、游泳、瑜伽" class="exercise-name-input" @input="maybeDebounceExerciseEstimate">
+            <template #prefix>
+              <el-icon v-if="exerciseForm.loading" class="is-loading"><Loading /></el-icon>
+            </template>
+          </el-input>
+        </div>
+        <div class="exercise-field-row exercise-desc-row">
+          <span class="form-label">运动描述</span>
+          <div class="exercise-desc-wrapper">
+            <el-input v-model="exerciseForm.description" type="textarea" :rows="2" placeholder="如：配速5'30&quot;/km，跑了5公里；自由泳1000米" @input="maybeDebounceExerciseEstimate" />
+            <div class="desc-tip">
+              <el-icon :size="14" color="#E6A23C"><QuestionFilled /></el-icon>
+              <span>描述越精准，AI 估算消耗和强度越准确</span>
+            </div>
+          </div>
+        </div>
+        <div class="exercise-field-row">
+          <span class="form-label">运动时长</span>
+          <div class="input-with-unit">
+            <el-input-number v-model="exerciseForm.durationMinutes" :min="0" :max="999" placeholder="0"
+              controls-position="right" @change="maybeDebounceExerciseEstimate" />
+            <span class="unit-label">分钟</span>
+          </div>
+        </div>
+        <div class="exercise-field-row">
+          <span class="form-label">消耗热量</span>
+          <div class="input-with-unit">
+            <el-input-number v-model="exerciseForm.caloriesBurned" :min="0" :max="9999" placeholder="0"
+              controls-position="right" />
+            <span class="unit-label">千卡(kcal)</span>
+          </div>
+        </div>
+        <!-- AI 估算结果区域 - 加载中骨架屏 -->
+        <div class="exercise-ai-result" v-if="exerciseForm.loading">
+          <span class="ai-analyzing-tag">
+            <el-icon class="is-loading"><Loading /></el-icon>
+            AI 正在估算消耗...
+          </span>
+          <div class="nutrition-skeleton protein-skeleton"></div>
+          <div class="nutrition-skeleton fat-skeleton"></div>
+        </div>
+        <!-- AI 估算结果区域 - 已估算结果 -->
+        <div class="exercise-ai-result" v-else-if="exerciseForm.isAiEstimated">
+          <span class="ai-estimate-tag">
+            <el-icon><Select /></el-icon>
+            AI 已估算
+          </span>
+          <div class="exercise-intensity-badge" :class="getIntensityClass(exerciseForm.intensity)">
+            <span class="badge-value">{{ exerciseForm.intensity }}</span>
+          </div>
+          <div class="ai-disclaimer" style="margin-top:4px">
+            <el-icon><QuestionFilled /></el-icon>
+            <span>消耗数据由 AI 结合您的身体数据估算，仅供参考</span>
+          </div>
+        </div>
+      </div>
       <template #footer>
         <el-button @click="exerciseDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="exerciseSubmitting" @click="handleAddExercise">确认添加</el-button>
+        <el-button type="primary" :loading="exerciseSubmitting" @click="handleAddExercise" :disabled="!isExerciseFormValid">确认添加 ({{ exerciseForm.caloriesBurned || 0 }} kcal)</el-button>
       </template>
     </el-dialog>
 
     <!-- 编辑额外运动弹窗 -->
-    <el-dialog v-model="editExerciseDialogVisible" title="编辑额外运动消耗" width="420px">
+    <el-dialog v-model="editExerciseDialogVisible" title="编辑额外运动消耗" width="480px">
       <el-form :model="editExerciseForm" label-width="80px">
         <el-form-item label="运动名称"><el-input v-model="editExerciseForm.exerciseName"
             placeholder="如：跑步、游泳" /></el-form-item>
+        <el-form-item label="运动描述">
+          <el-input v-model="editExerciseForm.description" type="textarea" :rows="2" placeholder="如：配速5'30&quot;/km，跑了5公里" />
+          <div class="edit-desc-tip">
+            <el-icon :size="12" color="#E6A23C"><QuestionFilled /></el-icon>
+            <span>描述越精准，AI 估算消耗和强度越准确</span>
+          </div>
+        </el-form-item>
         <el-form-item label="消耗热量"><el-input-number v-model="editExerciseForm.caloriesBurned" :min="0"
             :max="9999" /><span style="margin-left:8px">kcal</span></el-form-item>
         <el-form-item label="运动时长"><el-input-number v-model="editExerciseForm.durationMinutes" :min="0"
@@ -646,12 +706,66 @@ async function handleEdit() {
 
 const exerciseDialogVisible = ref(false);
 const exerciseSubmitting = ref(false);
-const exerciseForm = reactive({ exerciseName: "", caloriesBurned: 0, durationMinutes: 30 });
+const exerciseForm = reactive({ exerciseName: "", description: "", caloriesBurned: 0, durationMinutes: 0, loading: false, isAiEstimated: false, intensity: "" });
+
+const isExerciseFormValid = computed(() => exerciseForm.exerciseName && exerciseForm.caloriesBurned > 0);
+
+// 运动AI估算 - 获取强度对应的样式类
+function getIntensityClass(intensity) {
+  if (!intensity) return "medium";
+  if (intensity.includes("极")) return "extreme";
+  if (intensity.includes("高")) return "high";
+  if (intensity.includes("中")) return "medium";
+  if (intensity.includes("低")) return "low";
+  return "medium";
+}
+
+// AI 智能估算运动消耗 - 调用后端分析
+const requestExerciseEstimate = async () => {
+  if (!exerciseForm.exerciseName || exerciseForm.exerciseName.trim().length < 2 || !exerciseForm.durationMinutes || exerciseForm.durationMinutes <= 0) return;
+
+  exerciseForm.loading = true;
+  try {
+    const data = await dietApi.analyzeExercise({
+      exerciseName: exerciseForm.exerciseName,
+      durationMinutes: exerciseForm.durationMinutes,
+      description: exerciseForm.description
+    });
+
+    if (data) {
+      exerciseForm.caloriesBurned = data.caloriesBurned || 0;
+      exerciseForm.intensity = data.intensity || "";
+      exerciseForm.isAiEstimated = true;
+    }
+  } catch (e) {
+    console.error("AI 分析运动消耗失败", e);
+    exerciseForm.isAiEstimated = false;
+  } finally {
+    exerciseForm.loading = false;
+  }
+};
+
+// 防抖版本
+const debouncedExerciseEstimate = debounce(() => {
+  requestExerciseEstimate();
+}, 1500);
+
+// 同时满足运动名称（≥2字）和时长（>0）才触发防抖
+const maybeDebounceExerciseEstimate = () => {
+  if (exerciseForm.exerciseName && exerciseForm.exerciseName.trim().length >= 2 && exerciseForm.durationMinutes > 0) {
+    exerciseForm.isAiEstimated = false; // 重新输入时清除旧标记
+    debouncedExerciseEstimate();
+  }
+};
 
 function showExerciseDialog() {
   exerciseForm.exerciseName = "";
+  exerciseForm.description = "";
   exerciseForm.caloriesBurned = 0;
-  exerciseForm.durationMinutes = 30;
+  exerciseForm.durationMinutes = 0;
+  exerciseForm.loading = false;
+  exerciseForm.isAiEstimated = false;
+  exerciseForm.intensity = "";
   exerciseDialogVisible.value = true;
 }
 
@@ -660,7 +774,13 @@ async function handleAddExercise() {
   if (!exerciseForm.caloriesBurned) return ElMessage.warning("请输入消耗热量");
   exerciseSubmitting.value = true;
   try {
-    await dietApi.addExtraExercise({ ...exerciseForm, date: selectedDate.value });
+    await dietApi.addExtraExercise({
+      exerciseName: exerciseForm.exerciseName,
+      description: exerciseForm.description,
+      caloriesBurned: exerciseForm.caloriesBurned,
+      durationMinutes: exerciseForm.durationMinutes,
+      date: selectedDate.value
+    });
     ElMessage.success("添加成功");
     exerciseDialogVisible.value = false;
     await loadSummary();
@@ -679,11 +799,12 @@ async function handleDeleteExercise(id) {
 
 const editExerciseDialogVisible = ref(false);
 const editExerciseSubmitting = ref(false);
-const editExerciseForm = reactive({ id: null, exerciseName: "", caloriesBurned: 0, durationMinutes: 0 });
+const editExerciseForm = reactive({ id: null, exerciseName: "", description: "", caloriesBurned: 0, durationMinutes: 0 });
 
 function showEditExerciseDialog(row) {
   editExerciseForm.id = row.id;
   editExerciseForm.exerciseName = row.exerciseName;
+  editExerciseForm.description = row.description || "";
   editExerciseForm.caloriesBurned = row.caloriesBurned || 0;
   editExerciseForm.durationMinutes = row.durationMinutes || 0;
   editExerciseDialogVisible.value = true;
@@ -694,7 +815,7 @@ async function handleEditExercise() {
   if (!editExerciseForm.caloriesBurned) return ElMessage.warning("请输入消耗热量");
   editExerciseSubmitting.value = true;
   try {
-    await dietApi.updateExtraExercise(editExerciseForm.id, { exerciseName: editExerciseForm.exerciseName, caloriesBurned: editExerciseForm.caloriesBurned, durationMinutes: editExerciseForm.durationMinutes });
+    await dietApi.updateExtraExercise(editExerciseForm.id, { exerciseName: editExerciseForm.exerciseName, description: editExerciseForm.description, caloriesBurned: editExerciseForm.caloriesBurned, durationMinutes: editExerciseForm.durationMinutes });
     ElMessage.success("修改成功");
     editExerciseDialogVisible.value = false;
     await loadSummary();
@@ -1469,6 +1590,101 @@ onMounted(() => { loadSummary(); window.addEventListener("resize", () => chartIn
 
 .nutrition-inline-item .el-input-number {
   width: 80px;
+}
+
+/* 运动表单样式 */
+.add-exercise-form {
+  padding: 8px 0;
+}
+
+.exercise-field-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.exercise-name-input {
+  flex: 1;
+}
+
+.exercise-ai-result {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #f0faf0 0%, #e8f8e8 100%);
+  border-radius: 8px;
+  border: 1px solid #d4edda;
+  margin-top: 8px;
+}
+
+.exercise-intensity-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.exercise-intensity-badge.low {
+  background: linear-gradient(135deg, #E8F4FD 0%, #D4EDFC 100%);
+  color: #409EFF;
+}
+
+.exercise-intensity-badge.medium {
+  background: linear-gradient(135deg, #F0F9EE 0%, #E4F4DD 100%);
+  color: #67C23A;
+}
+
+.exercise-intensity-badge.high {
+  background: linear-gradient(135deg, #FDF6EC 0%, #FCEBD8 100%);
+  color: #E6A23C;
+}
+
+.exercise-intensity-badge.extreme {
+  background: linear-gradient(135deg, #FDE2E2 0%, #FBC4C4 100%);
+  color: #F56C6C;
+}
+
+/* 运动描述样式 */
+.exercise-desc {
+  font-size: 12px;
+  color: #67C23A;
+  line-height: 1.4;
+  word-break: break-all;
+}
+
+.exercise-desc-row {
+  align-items: flex-start;
+}
+
+.exercise-desc-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.desc-tip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #E6A23C;
+}
+
+.edit-desc-tip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #E6A23C;
+  margin-top: 4px;
 }
 
 @media (max-width: 860px) {
