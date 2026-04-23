@@ -1,5 +1,6 @@
 package com.aitrainer.service.impl;
 
+import com.aitrainer.agent.WorkoutAgent;
 import com.aitrainer.common.constant.MessageConstant;
 import com.aitrainer.common.exception.BusinessException;
 import com.aitrainer.entity.Workout;
@@ -12,6 +13,7 @@ import com.aitrainer.mapper.WorkoutSessionLikeMapper;
 import com.aitrainer.service.OssService;
 import com.aitrainer.service.WorkoutSessionService;
 import com.aitrainer.vo.LikeStatusVO;
+import com.aitrainer.vo.WorkoutReportVO;
 import com.aitrainer.vo.WorkoutSessionVO;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -37,6 +39,7 @@ public class WorkoutSessionServiceImpl implements WorkoutSessionService {
     private final UserProfileMapper userProfileMapper;
     private final OssService ossService;
     private final WorkoutMapper workoutMapper;
+    private final WorkoutAgent workoutAgent;
     private final ObjectMapper objectMapper; // Spring Boot 默认注入的 Jackson 对象
 
     @Override
@@ -179,50 +182,40 @@ public class WorkoutSessionServiceImpl implements WorkoutSessionService {
             throw BusinessException.notFound(MessageConstant.WORKOUT_NOT_FOUND);
         }
 
-        // 2. 随机生成战报指标
+        // 2. 调用 AI 生成逻辑自洽的战报数据
         final ThreadLocalRandom random = ThreadLocalRandom.current();
-        final int score = random.nextInt(60, 101); // 60-100分
-        final String grade = score >= 90 ? "S" : (score >= 80 ? "A" : (score >= 70 ? "B" : "C"));
+        int baseMinutes = random.nextInt(15, 41); // 15-40 分钟基准
+        log.info("请求 AI 为用户 {} 生成 {} 模拟战报 (基准时长: {} 分钟)...", userId, workout.getName(), baseMinutes);
+        
+        WorkoutReportVO aiReport = workoutAgent.generateReport(workout.getName(), baseMinutes);
+        log.info("AI 战报生成成功: score={}, grade={}, calories={}", 
+                aiReport.getScore(), aiReport.getGrade(), aiReport.getCaloriesBurned());
 
-        final int validReps = random.nextInt(10, 31);
-        final int invalidReps = random.nextInt(0, 6);
-        final int durationSeconds = random.nextInt(300, 2701); // 5~45 分钟对应的秒数范围
-        final int calories = random.nextInt(50, 301);
-
-        // 3. 生成 JSON 数据
+        // 3. 序列化雷达图和随机抓拍图
         String radarJson = "";
         String snapshotsJson = "";
         try {
-            // 随机雷达图数据
-            Map<String, Integer> radar = new HashMap<>();
-            radar.put("accuracy", random.nextInt(70, 100));
-            radar.put("power", random.nextInt(70, 100));
-            radar.put("stamina", random.nextInt(70, 100));
-            radar.put("rhythm", random.nextInt(70, 100));
-            radar.put("range", random.nextInt(70, 100));
-            radarJson = objectMapper.writeValueAsString(radar);
-
-            // 随机抓拍图 Key (模拟 OSS 存储路径)
+            radarJson = objectMapper.writeValueAsString(aiReport.getRadar());
             List<String> snaps = Arrays.asList(
                     "mocks/snap_" + random.nextInt(1, 1000) + ".jpg",
                     "mocks/snap_" + random.nextInt(1, 1000) + ".jpg"
             );
             snapshotsJson = objectMapper.writeValueAsString(snaps);
         } catch (JsonProcessingException e) {
-            log.error("随机战报 JSON 序列化失败", e);
+            log.error("战报 JSON 序列化失败", e);
         }
 
         // 4. 入库
         final WorkoutSession session = WorkoutSession.builder()
                 .userId(userId)
                 .workoutId(workoutId)
-                .score(score)
-                .grade(grade)
-                .comment(getMockComment(grade))
-                .validReps(validReps)
-                .invalidReps(invalidReps)
-                .durationSeconds(durationSeconds)
-                .caloriesBurned(calories)
+                .score(aiReport.getScore())
+                .grade(aiReport.getGrade())
+                .comment(aiReport.getComment())
+                .validReps(aiReport.getValidReps())
+                .invalidReps(aiReport.getInvalidReps())
+                .durationSeconds(aiReport.getDurationSeconds())
+                .caloriesBurned(aiReport.getCaloriesBurned())
                 .radarScores(radarJson)
                 .snapshots(snapshotsJson)
                 .likeCount(0)
@@ -231,7 +224,7 @@ public class WorkoutSessionServiceImpl implements WorkoutSessionService {
                 .build();
 
         workoutSessionMapper.insert(session);
-        log.info("用户 {} 成功生成一条 {} 战报, 分数: {}", userId, workoutId, score);
+        log.info("用户 {} 成功生成一条 {} 战报", userId, workoutId);
 
         return session.getId();
     }
@@ -249,15 +242,6 @@ public class WorkoutSessionServiceImpl implements WorkoutSessionService {
                 .map(session -> convertToVO(session, userId))
                 .filter(Objects::nonNull)
                 .toList();
-    }
-
-    private String getMockComment(String grade) {
-        return switch (grade) {
-            case "S" -> "简直完美！动作标准度堪比教练。";
-            case "A" -> "表现非常棒，核心力量控制得很稳。";
-            case "B" -> "不错，注意呼吸节奏，继续加油。";
-            default -> "基础很扎实，下蹲深度可以再加强一点。";
-        };
     }
 
     /**

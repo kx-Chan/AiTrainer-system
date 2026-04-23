@@ -249,7 +249,7 @@ const WORKOUT_NAME_MAP = Object.freeze({
   pushup: '俯卧撑',
   plank: '平板支撑',
   situp: '卷腹',
-  lunge: '弓步蹲',
+  lunge: '箭步蹲',
   good_morning: '早安式体前屈'
 })
 

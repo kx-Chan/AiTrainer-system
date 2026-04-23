@@ -21,7 +21,25 @@
       </div>
     </div>
 
-    <div class="report-content" v-loading="isLoading">
+    <!-- 加载动画：教练正在计算战报 -->
+    <div v-if="isLoading" class="report-loading-overlay">
+      <div class="loading-content">
+        <div class="loading-icon-wrapper">
+          <div class="dumbbell-loader">
+            <div class="dumbbell-bar"></div>
+            <div class="dumbbell-weight left"></div>
+            <div class="dumbbell-weight right"></div>
+          </div>
+        </div>
+        <div class="loading-text">教练正在拼命计算你的战报...</div>
+        <div class="loading-sub-text">AI 正在分析你的每一个动作细节，请稍候 ⏳</div>
+        <div class="loading-dots">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="report-content" v-show="!isLoading">
       <div class="left-panel">
         <el-card shadow="never" class="score-card dark-tech-card">
           <div class="score-header">本次综合表现</div>
@@ -498,6 +516,142 @@ onBeforeUnmount(() => {
 
   100% {
     box-shadow: 0 0 0 0 rgba(245, 108, 108, 0);
+  }
+}
+
+/* ===== AI 战报加载动画 ===== */
+.report-loading-overlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  animation: floatUp 0.5s ease;
+}
+
+@keyframes floatUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.loading-icon-wrapper {
+  width: 120px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 哑铃动画 */
+.dumbbell-loader {
+  position: relative;
+  width: 100px;
+  height: 20px;
+  animation: dumbbellPulse 1.2s ease-in-out infinite;
+}
+
+.dumbbell-bar {
+  position: absolute;
+  top: 7px;
+  left: 15px;
+  right: 15px;
+  height: 6px;
+  background: linear-gradient(90deg, #409EFF, #79bbff);
+  border-radius: 3px;
+}
+
+.dumbbell-weight {
+  position: absolute;
+  top: 0;
+  width: 18px;
+  height: 20px;
+  border-radius: 4px;
+}
+
+.dumbbell-weight.left {
+  left: 0;
+  background: linear-gradient(135deg, #E6A23C, #f0c78a);
+  animation: weightLeft 1.2s ease-in-out infinite;
+}
+
+.dumbbell-weight.right {
+  right: 0;
+  background: linear-gradient(135deg, #E6A23C, #f0c78a);
+  animation: weightRight 1.2s ease-in-out infinite;
+}
+
+@keyframes dumbbellPulse {
+  0%, 100% { transform: rotate(-8deg) scale(1); }
+  50% { transform: rotate(8deg) scale(1.1); }
+}
+
+@keyframes weightLeft {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(1.3); }
+}
+
+@keyframes weightRight {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(1.3); }
+}
+
+.loading-text {
+  font-size: 22px;
+  font-weight: 700;
+  color: #303133;
+  letter-spacing: 1px;
+}
+
+.loading-sub-text {
+  font-size: 14px;
+  color: #909399;
+}
+
+.loading-dots {
+  display: flex;
+  gap: 8px;
+}
+
+.loading-dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #409EFF;
+  animation: dotBounce 1.4s ease-in-out infinite;
+}
+
+.loading-dots span:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.loading-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.loading-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes dotBounce {
+  0%, 80%, 100% {
+    transform: scale(0.6);
+    opacity: 0.4;
+  }
+  40% {
+    transform: scale(1.2);
+    opacity: 1;
   }
 }
 </style>
