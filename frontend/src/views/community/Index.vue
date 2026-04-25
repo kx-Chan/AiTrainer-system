@@ -96,23 +96,16 @@
             </div>
           </el-card>
           
-          <!-- 热门话题 -->
-          <el-card class="sidebar-card trending-card" shadow="never">
+          <!-- 打卡日历 -->
+          <el-card class="sidebar-card checkin-card" shadow="never">
             <template #header>
               <div class="sidebar-header">
                 <span><el-icon>
-                    <Discount />
-                  </el-icon> 热门话题</span>
+                    <Calendar />
+                  </el-icon> 打卡日历</span>
               </div>
             </template>
-            <div class="trending-list">
-              <div class="trending-item" v-for="(tag, index) in trendingTags" :key="index"
-                @click="quickSearch(tag.name)">
-                <span class="tag-hash">#</span>
-                <span class="tag-name">{{ tag.name }}</span>
-                <span class="tag-hot">{{ tag.hot }} 浏览</span>
-              </div>
-            </div>
+            <CheckInCalendar :user-id="userId" />
           </el-card>
         </div>
 
@@ -138,12 +131,13 @@
 import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter, useRoute } from 'vue-router'
-import { EditPen, Histogram, Discount, Search, Back } from '@element-plus/icons-vue'
+import { EditPen, Histogram, Discount, Search, Back, Calendar } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import request from '@/utils/request'
 import { useUserStore } from '@/store/userStore'
 import Publisher from '@/components/community/Publisher.vue'
 import PostItem from '@/components/community/PostItem.vue'
+import CheckInCalendar from '@/components/workout/CheckInCalendar.vue'
 import { workoutApi } from '@/api/workout'
 import { getAiCoachFeedback } from '@/api/dashboard'
 

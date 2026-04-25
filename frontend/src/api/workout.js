@@ -11,4 +11,7 @@ export const workoutApi = {
   // 点赞逻辑
   likeSession: (id) => request.post(`/workout/sessions/${id}/like`),
   unlikeSession: (id) => request.delete(`/workout/sessions/${id}/like`),
+
+  // 获取打卡日历
+  getCheckInDates: (year, month) => request.get("/workout/sessions/checkin-dates", { params: { year, month } }),
 };

@@ -3,6 +3,7 @@ package com.aitrainer.service;
 import com.aitrainer.vo.LikeStatusVO;
 import com.aitrainer.vo.WorkoutSessionVO;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public interface WorkoutSessionService {
@@ -48,4 +49,13 @@ public interface WorkoutSessionService {
      * @return
      */
     List<WorkoutSessionVO> listMyWorkoutSessions(Long userId);
+
+    /**
+     * 获取用户某年某月的打卡日期列表
+     * @param userId 用户ID
+     * @param year 年份
+     * @param month 月份
+     * @return 打卡日期列表
+     */
+    List<LocalDate> getCheckInDates(Long userId, int year, int month);
 }

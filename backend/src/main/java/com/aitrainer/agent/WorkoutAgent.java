@@ -1,3 +1,4 @@
+
 package com.aitrainer.agent;
 
 import com.aitrainer.vo.WorkoutReportVO;
@@ -29,7 +30,18 @@ public interface WorkoutAgent {
            - 高强度运动（如波比跳、HIIT）消耗热量应较高，有效次数适中
            - 低强度运动（如散步、拉伸）消耗热量应较低
            - 时长越长，总消耗热量越高，但后程疲劳可能导致无效次数增加
-        3. 运动次数与时长的比例必须符合真实生理极限，且必须扣除组间歇时间：
+        3. 【核心修复】热量消耗估算必须极度保守，严格遵循实际运动热量消耗规律：
+           - 【关键原则】一个人在不死亡的情况下，持续运动的功率上限约为 3-5 倍基础代谢率
+           - 普通体重（60-80kg）的人，力量训练实际消耗约为每分钟 4-8 kcal，绝不能超过 10 kcal/分钟
+           - 参考常见运动的实际消耗：
+             * 力量训练（深蹲、硬拉等）：约 5-7 kcal/分钟
+             * 高强度间歇（波比跳、HIIT）：约 8-10 kcal/分钟
+             * 中等强度（俯卧撑、卷腹）：约 6-8 kcal/分钟
+             * 低强度（拉伸、瑜伽）：约 3-5 kcal/分钟
+           - 【计算公式】热量消耗 = 实际做功时间（分钟）× 该类型平均消耗（kcal/分钟）
+           - 记住：用户训练的大部分时间是组间休息！力量训练实际做功时间仅占总时长的 30%-40%！
+           - 【硬性限制】无论什么运动，1小时训练消耗绝不能超过 500 kcal，30分钟绝不能超过 250 kcal
+        4. 运动次数与时长的比例必须符合真实生理极限，且必须扣除组间歇时间：
            【关键】用户训练的时长中包含了大量组间休息时间，实际做功时间远少于总时长！
            - 力量训练（深蹲、硬拉、箭步蹲等）：每做 1 组（8-15次），需休息 60-120 秒
              实际做功时间仅占总时长的 30%-40%
@@ -45,16 +57,16 @@ public interface WorkoutAgent {
            
            validReps 的计算公式：先算实际做功分钟 = 总分钟 × 做功占比，再做功分钟 × 每分钟次数
            validReps 绝不能超过这个估算值！
-        4. 评价多样：comment 需根据 grade(S/A/B/C) 给出专业的教练点评，
+        5. 评价多样：comment 需根据 grade(S/A/B/C) 给出专业的教练点评，
            S级：极致夸赞，细节丰富
            A级：积极肯定，给出提升建议
            B级：鼓励为主，指出改进方向
            C级：温和建议，强调基础训练
            点评要具体到运动项目，不要泛泛而谈。
-        5. 雷达图五维（accuracy精准度, power力量, stamina耐力, rhythm节奏, range幅度）
+        6. 雷达图五维（accuracy精准度, power力量, stamina耐力, rhythm节奏, range幅度）
            评分应与运动项目特征匹配，如瑜伽的range应偏高，举重的power应偏高。
-        6. 必须严格返回 JSON，不要任何解释文字。
-        7. score 范围 60-100，对应 grade：S(≥90), A(≥80), B(≥70), C(<70)。
+        7. 必须严格返回 JSON，不要任何解释文字。
+        8. score 范围 60-100，对应 grade：S(≥90), A(≥80), B(≥70), C(<70)。
         
         示例格式：
         {
@@ -63,7 +75,7 @@ public interface WorkoutAgent {
           "validReps": 85,
           "invalidReps": 3,
           "durationSeconds": 1200,
-          "caloriesBurned": 280,
+          "caloriesBurned": 140,
           "comment": "深蹲训练表现完美！组间休息控制得当，下蹲深度标准，节奏稳定。",
           "radar": {"accuracy":95, "power":88, "stamina":90, "rhythm":92, "range":85}
         }
@@ -71,3 +83,5 @@ public interface WorkoutAgent {
     @UserMessage("请生成一份运动战报。项目：{{workoutName}}，大致时长：{{minutes}}分钟左右。")
     WorkoutReportVO generateReport(@V("workoutName") String workoutName, @V("minutes") int minutes);
 }
+
+

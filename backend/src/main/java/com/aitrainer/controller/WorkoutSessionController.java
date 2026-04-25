@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -56,7 +57,7 @@ public class WorkoutSessionController {
         return Result.success(workoutSessionService.unlikeWorkoutSession(user.getId(), sessionId));
     }
 
-    @Operation(summary = "模拟生成战报", description = "随机生成一份 AI 训练结果并入库")
+    @Operation(summary = "模拟生成战报", description = "随机生成一条 AI 训练结果并入库")
     @PostMapping
     public Result<Long> createSession(
             final Authentication authentication,
@@ -84,6 +85,16 @@ public class WorkoutSessionController {
     public Result<List<WorkoutSessionVO>> getMySessions(final Authentication authentication) {
         final CustomUser user = (CustomUser) authentication.getPrincipal();
         return Result.success(workoutSessionService.listMyWorkoutSessions(user.getId()));
+    }
+
+    @Operation(summary = "获取用户打卡日历")
+    @GetMapping("/checkin-dates")
+    public Result<List<LocalDate>> getCheckInDates(
+            final Authentication authentication,
+            @RequestParam final int year,
+            @RequestParam final int month) {
+        final CustomUser user = (CustomUser) authentication.getPrincipal();
+        return Result.success(workoutSessionService.getCheckInDates(user.getId(), year, month));
     }
 }
 

@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
@@ -322,6 +323,11 @@ public class WorkoutSessionServiceImpl implements WorkoutSessionService {
                 .likes(likes)
                 .liked(liked)
                 .build();
+    }
+
+    @Override
+    public List<LocalDate> getCheckInDates(Long userId, int year, int month) {
+        return workoutSessionMapper.getCheckInDates(userId, year, month);
     }
 
 }
