@@ -3,6 +3,7 @@ package com.aitrainer.service.impl;
 import com.aitrainer.entity.AiCoachChatHistory;
 import com.aitrainer.mapper.AiCoachChatHistoryMapper;
 import com.aitrainer.service.AiCoachChatHistoryService;
+import com.aitrainer.vo.AiCoachSessionVO;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * AI 教练聊天历史服务实现。
@@ -78,6 +80,43 @@ public class AiCoachChatHistoryServiceImpl implements AiCoachChatHistoryService 
     }
 
     @Override
+    public List<AiCoachSessionVO> getUserSessions(final Long userId, final int limit) {
+        // 获取所有会话 ID
+        final List<String> sessionIds = chatHistoryMapper.findSessionIdsByUserId(userId);
+        
+        if (sessionIds.isEmpty()) {
+            return List.of();
+        }
+
+        // 限制数量
+        final List<String> limitedSessionIds = sessionIds.stream()
+                .limit(limit)
+                .collect(Collectors.toList());
+
+        // 构建会话详情
+        return limitedSessionIds.stream()
+                .map(sessionId -> {
+                    final String firstMessage = chatHistoryMapper.getFirstUserMessage(userId, sessionId);
+                    final LocalDateTime lastTime = chatHistoryMapper.getLastMessageTime(userId, sessionId);
+                    final int messageCount = chatHistoryMapper.getMessageCount(userId, sessionId);
+                    
+                    // 获取第一条消息的分析类型
+                    final List<AiCoachChatHistory> history = chatHistoryMapper.findBySessionId(userId, sessionId, 1);
+                    final String analysisType = history.isEmpty() ? "comprehensive" : history.get(0).getAnalysisType();
+
+                    return AiCoachSessionVO.builder()
+                            .sessionId(sessionId)
+                            .title(truncateTitle(firstMessage, 50))
+                            .analysisType(analysisType != null ? analysisType : "comprehensive")
+                            .messageCount(messageCount)
+                            .lastMessageTime(lastTime)
+                            .createdAt(lastTime) // 使用最后消息时间作为创建时间的近似
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public boolean deleteSession(final Long userId, final String sessionId) {
         final int deleted = chatHistoryMapper.delete(new LambdaQueryWrapper<AiCoachChatHistory>()
                 .eq(AiCoachChatHistory::getUserId, userId)
@@ -85,6 +124,11 @@ public class AiCoachChatHistoryServiceImpl implements AiCoachChatHistoryService 
         
         log.info("删除会话: userId={}, sessionId={}, deleted={}", userId, sessionId, deleted);
         return deleted > 0;
+    }
+
+    @Override
+    public AiCoachChatHistory getAssistantReplyByQuestionId(final Long userId, final String sessionId, final Long questionId) {
+        return chatHistoryMapper.findAssistantReplyByQuestionId(userId, sessionId, questionId);
     }
 
     /**
@@ -102,5 +146,20 @@ public class AiCoachChatHistoryServiceImpl implements AiCoachChatHistoryService 
         
         // 截取前200个字符作为摘要
         return content.substring(0, 200) + "...";
+    }
+
+    /**
+     * 截取标题，保留指定长度。
+     */
+    private String truncateTitle(final String title, final int maxLength) {
+        if (title == null || title.isEmpty()) {
+            return "新对话";
+        }
+        
+        if (title.length() <= maxLength) {
+            return title;
+        }
+        
+        return title.substring(0, maxLength) + "...";
     }
 }

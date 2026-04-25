@@ -2,7 +2,50 @@
   <div class="agent-container">
     <el-row :gutter="24" class="layout-row">
 
-      <el-col :span="12" class="col-panel">
+      <!-- 历史会话侧边栏 -->
+      <el-col :span="4" class="col-panel sidebar-panel">
+        <el-card shadow="never" class="history-card glass-panel">
+          <template #header>
+            <div class="history-header">
+              <span class="history-title">对话历史</span>
+              <el-button text size="small" @click="loadSessions" :loading="loadingSessions">
+                <el-icon><Refresh /></el-icon>
+              </el-button>
+            </div>
+          </template>
+          <div class="history-list">
+            <div v-if="sessionList.length === 0 && !loadingSessions" class="empty-history">
+              <p>暂无历史对话</p>
+            </div>
+            <div 
+              v-for="session in sessionList" 
+              :key="session.sessionId"
+              :class="['session-item', { active: session.sessionId === currentSessionId }]"
+              @click="restoreSession(session)"
+            >
+              <div class="session-info">
+                <div class="session-title">{{ session.title }}</div>
+                <div class="session-meta">
+                  <el-icon size="12"><Clock /></el-icon>
+                  {{ formatTime(session.lastMessageTime) }}
+                </div>
+              </div>
+              <el-dropdown trigger="click" @command="(cmd) => handleSessionCommand(cmd, session)">
+                <el-icon class="session-action"><MoreFilled /></el-icon>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item command="delete">
+                      <el-icon><Delete /></el-icon> 删除
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+
+      <el-col :span="10" class="col-panel">
         <el-card shadow="never" class="chat-card glass-panel">
           <template #header>
             <div class="chat-header">
@@ -16,7 +59,7 @@
                   <span class="sub-text">AiTrainer 智能分析系统</span>
                 </div>
               </div>
-              <el-button plain round size="small" @click="resetChat"><el-icon>
+              <el-button plain round size="small" @click="startNewChat"><el-icon>
                   <Refresh />
                 </el-icon> 新对话</el-button>
             </div>
@@ -82,20 +125,26 @@
                     <Loading />
                   </el-icon> {{ msg.content }}
                 </div>
-                <div v-else class="message-bubble" v-html="msg.content"></div>
+                <div v-else :class="['message-bubble', { 'clickable': msg.role === 'user' && msg.id }]" 
+                     v-html="msg.content"
+                     @click="msg.role === 'user' && msg.id && handleQuestionClick(msg.id)">
+                </div>
+                <div v-if="msg.role === 'user' && msg.id" class="click-hint">
+                  <el-icon size="12"><View /></el-icon> 点击查看分析
+                </div>
               </div>
             </div>
           </div>
 
           <!-- 快捷提问 -->
           <div class="quick-prompts" v-if="messageList.length === 1">
-            <div class="prompt-card" @click="sendQuickPrompt('请分析我最近的训练表现，给出改进建议')">
+            <div class="prompt-card" v-if="analysisType !== 'diet'" @click="sendQuickPrompt('请分析我最近的训练表现，给出改进建议')">
               <el-icon size="20" color="#409EFF">
                 <TrendCharts />
               </el-icon>
               <span>分析训练表现</span>
             </div>
-            <div class="prompt-card" @click="sendQuickPrompt('请分析我的饮食习惯，帮我优化营养搭配')">
+            <div class="prompt-card" v-if="analysisType !== 'training'" @click="sendQuickPrompt('请分析我的饮食习惯，帮我优化营养搭配')">
               <el-icon size="20" color="#67C23A">
                 <Food />
               </el-icon>
@@ -124,7 +173,7 @@
         </el-card>
       </el-col>
 
-      <el-col :span="12" class="col-panel">
+      <el-col :span="10" class="col-panel">
         <el-card shadow="never" class="result-card glass-panel">
 
           <div v-if="!currentAnalysis && !isAiThinking" class="empty-state">
@@ -180,12 +229,12 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick, watch } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ref, computed, nextTick, onMounted } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Position, Refresh, Loading, TrendCharts,
   Food, IceTea, Setting, Clock,
-  Trophy, DataAnalysis, InfoFilled
+  Trophy, DataAnalysis, InfoFilled, MoreFilled, Delete, View
 } from '@element-plus/icons-vue'
 import { aiCoachApi } from '@/api/aiCoach'
 import { marked } from 'marked'
@@ -215,12 +264,56 @@ const messageList = ref([
 // 会话 ID（用于保持上下文）
 const currentSessionId = ref(null)
 
+// 当前会话的分析类型
+const currentSessionAnalysisType = ref('comprehensive')
+
 // 当前分析结果
 const currentAnalysis = ref(null)
+
+// localStorage 持久化
+const STORAGE_KEY = 'ai_coach_session_state'
+
+// 保存会话状态到 localStorage
+const saveSessionState = () => {
+  if (currentSessionId.value) {
+    const state = {
+      sessionId: currentSessionId.value,
+      analysisType: analysisType.value,
+      analysisResult: currentAnalysis.value
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+  } else {
+    localStorage.removeItem(STORAGE_KEY)
+  }
+}
+
+// 从 localStorage 恢复会话状态
+const restoreSessionState = () => {
+  const saved = localStorage.getItem(STORAGE_KEY)
+  if (saved) {
+    try {
+      const state = JSON.parse(saved)
+      if (state.sessionId) {
+        currentSessionId.value = state.sessionId
+        analysisType.value = state.analysisType || 'comprehensive'
+        currentSessionAnalysisType.value = state.analysisType || 'comprehensive'
+        currentAnalysis.value = state.analysisResult || null
+        return true
+      }
+    } catch (e) {
+      console.error('恢复会话状态失败:', e)
+    }
+  }
+  return false
+}
 
 // Loading 进度状态
 const loadingProgress = ref(0)
 const loadingProgressText = ref('正在准备分析...')
+
+// 会话列表
+const sessionList = ref([])
+const loadingSessions = ref(false)
 
 // 计算显示的天数文本
 const getLoadingDaysText = computed(() => {
@@ -333,19 +426,114 @@ const formattedAnalysisResult = computed(() => {
   return marked.parse(currentAnalysis.value.analysisResult)
 })
 
-// 监听分析类型变化，自动调整数据选择
-watch(analysisType, (newType) => {
-  if (newType === 'training') {
-    includeTrainingData.value = true
-    includeDietData.value = false
-  } else if (newType === 'diet') {
-    includeTrainingData.value = false
-    includeDietData.value = true
-  } else {
-    includeTrainingData.value = true
-    includeDietData.value = true
+// 加载会话列表
+const loadSessions = async () => {
+  loadingSessions.value = true
+  try {
+    const res = await aiCoachApi.getSessionDetails(20)
+    sessionList.value = res || []
+  } catch (error) {
+    console.error('加载会话列表失败:', error)
+  } finally {
+    loadingSessions.value = false
   }
-})
+}
+
+// 恢复会话
+const restoreSession = async (session) => {
+  if (currentSessionId.value === session.sessionId) return
+  
+  try {
+    // 加载该会话的聊天历史
+    const history = await aiCoachApi.getChatHistory(session.sessionId, 50)
+    
+    // 设置当前会话 ID 和分析类型
+    currentSessionId.value = session.sessionId
+    analysisType.value = session.analysisType || 'comprehensive'
+    currentSessionAnalysisType.value = session.analysisType || 'comprehensive'
+    
+    // 清空消息列表并重新填充
+    messageList.value = []
+    if (history && history.length > 0) {
+      for (const msg of history) {
+        if (msg.role === 'user') {
+          // 给用户消息添加 id，用于点击事件
+          messageList.value.push({ role: 'user', type: 'text', content: msg.content, id: msg.id })
+        } else if (msg.role === 'assistant') {
+          messageList.value.push({ role: 'ai', type: 'text', content: '好的，让我来分析您的问题。' })
+        }
+      }
+    } else {
+      messageList.value.push({ role: 'ai', type: 'text', content: '你好！我是你的专属 AI 综合私教。请选择分析模式和数据范围，然后输入你的问题。' })
+    }
+    
+    // 清空分析结果
+    currentAnalysis.value = null
+    
+    ElMessage.success('已恢复对话')
+  } catch (error) {
+    console.error('恢复会话失败:', error)
+    ElMessage.error('恢复对话失败')
+  }
+}
+
+// 处理会话操作
+const handleSessionCommand = async (command, session) => {
+  if (command === 'delete') {
+    try {
+      await ElMessageBox.confirm('确定要删除这个对话吗？', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      })
+      
+      await aiCoachApi.deleteSession(session.sessionId)
+      
+      // 如果删除的是当前会话，清空
+      if (currentSessionId.value === session.sessionId) {
+        startNewChat()
+      }
+      
+      // 刷新会话列表
+      await loadSessions()
+      ElMessage.success('删除成功')
+    } catch (error) {
+      if (error !== 'cancel') {
+        console.error('删除会话失败:', error)
+        ElMessage.error('删除失败')
+      }
+    }
+  }
+}
+
+// 开始新对话
+const startNewChat = () => {
+  // 重置会话 ID，开启新对话
+  currentSessionId.value = null
+  messageList.value = [
+    { role: 'ai', type: 'text', content: '你好！我是你的专属 AI 综合私教。我可以帮你分析训练和饮食数据，给出专业建议。请选择分析模式和数据范围，然后输入你的问题。' }
+  ]
+  currentAnalysis.value = null
+  analysisType.value = 'comprehensive'
+  currentSessionAnalysisType.value = 'comprehensive'
+  // 清除 localStorage
+  localStorage.removeItem(STORAGE_KEY)
+}
+
+// 格式化时间
+const formatTime = (timeStr) => {
+  if (!timeStr) return ''
+  const date = new Date(timeStr)
+  const now = new Date()
+  const diff = now - date
+  
+  if (diff < 60000) return '刚刚'
+  if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前'
+  if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前'
+  if (diff < 604800000) return Math.floor(diff / 86400000) + '天前'
+  
+  return date.toLocaleDateString()
+}
 
 const scrollToBottom = async () => {
   await nextTick()
@@ -357,6 +545,53 @@ const scrollToBottom = async () => {
 const sendQuickPrompt = (text) => {
   inputText.value = text
   handleSend()
+}
+
+// 点击提问消息，获取对应的 AI 回复并展示在右侧面板
+const handleQuestionClick = async (questionId) => {
+  if (!currentSessionId.value) {
+    ElMessage.warning('当前没有活跃的会话')
+    return
+  }
+  
+  // 设置加载状态
+  isAiThinking.value = true
+  currentAnalysis.value = null
+  
+  try {
+    const reply = await aiCoachApi.getAssistantReply(currentSessionId.value, questionId)
+    
+    if (reply && reply.content) {
+      // 解析 AI 回复内容（JSON 格式）
+      try {
+        const parsedContent = JSON.parse(reply.content)
+        currentAnalysis.value = {
+          analysisResult: parsedContent.analysisResult || parsedContent.result || reply.content,
+          trainingDataSummary: parsedContent.trainingDataSummary || null,
+          dietDataSummary: parsedContent.dietDataSummary || null
+        }
+        // 更新分析类型显示
+        if (reply.analysisType) {
+          analysisType.value = reply.analysisType
+        }
+      } catch (parseError) {
+        // 如果不是 JSON，直接作为文本展示
+        currentAnalysis.value = {
+          analysisResult: reply.content
+        }
+      }
+      ElMessage.success('已加载历史分析结果')
+    } else {
+      ElMessage.warning('未找到该提问对应的 AI 分析结果')
+      currentAnalysis.value = null
+    }
+  } catch (error) {
+    console.error('获取 AI 回复失败:', error)
+    ElMessage.error('获取分析结果失败')
+    currentAnalysis.value = null
+  } finally {
+    isAiThinking.value = false
+  }
 }
 
 const handleSend = async () => {
@@ -405,6 +640,10 @@ const handleSend = async () => {
     currentAnalysis.value = response
     if (response.sessionId) {
       currentSessionId.value = response.sessionId
+      // 保存状态到 localStorage
+      saveSessionState()
+      // 刷新会话列表
+      loadSessions()
     }
 
     ElMessage.success('分析完成')
@@ -424,20 +663,37 @@ const handleSend = async () => {
   }
 }
 
-const resetChat = () => {
-  // 重置会话 ID，开启新对话
-  currentSessionId.value = null
-  messageList.value = [
-    { role: 'ai', type: 'text', content: '你好！我是你的专属 AI 综合私教。我可以帮你分析训练和饮食数据，给出专业建议。请选择分析模式和数据范围，然后输入你的问题。' }
-  ]
-  currentAnalysis.value = null
-  ElMessage.success('已开启新对话')
-}
+// 组件挂载时加载会话列表并恢复状态
+onMounted(async () => {
+  await loadSessions()
+  
+  // 尝试恢复之前的会话状态
+  const restored = restoreSessionState()
+  if (restored && currentSessionId.value) {
+    // 异步加载聊天历史，但不阻塞页面
+    try {
+      const history = await aiCoachApi.getChatHistory(currentSessionId.value, 50)
+      if (history && history.length > 0) {
+        messageList.value = []
+        for (const msg of history) {
+          if (msg.role === 'user') {
+            // 给用户消息添加 id，用于点击事件
+            messageList.value.push({ role: 'user', type: 'text', content: msg.content, id: msg.id })
+          } else if (msg.role === 'assistant') {
+            messageList.value.push({ role: 'ai', type: 'text', content: '好的，让我来分析您的问题。' })
+          }
+        }
+      }
+    } catch (e) {
+      console.error('恢复聊天历史失败:', e)
+    }
+  }
+})
 </script>
 
 <style scoped>
 .agent-container {
-  max-width: 1400px;
+  max-width: 1600px;
   margin: 0 auto;
   height: calc(100vh - 100px);
   padding-bottom: 20px;
@@ -459,11 +715,109 @@ const resetChat = () => {
   padding-right: 12px;
 }
 
+.sidebar-panel {
+  max-width: 280px;
+  flex: 0 0 280px;
+}
+
 .glass-panel {
   background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.5);
   box-shadow: 0 8px 32px rgba(31, 38, 135, 0.05);
+}
+
+.history-card {
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.history-card :deep(.el-card__header) {
+  padding: 14px 16px;
+  border-bottom: 1px solid #f0f2f5;
+}
+
+.history-card :deep(.el-card__body) {
+  padding: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.history-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.history-list {
+  height: calc(100vh - 200px);
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.empty-history {
+  padding: 20px;
+  text-align: center;
+  color: #909399;
+  font-size: 13px;
+}
+
+.session-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 4px;
+}
+
+.session-item:hover {
+  background-color: #f5f7fa;
+}
+
+.session-item.active {
+  background-color: #ecf5ff;
+  border-left: 3px solid #409EFF;
+}
+
+.session-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.session-title {
+  font-size: 13px;
+  color: #303133;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+
+.session-meta {
+  font-size: 11px;
+  color: #909399;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.session-action {
+  color: #909399;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.session-action:hover {
+  color: #409EFF;
 }
 
 .chat-card {
@@ -636,6 +990,31 @@ const resetChat = () => {
   color: #ffffff;
   border-top-right-radius: 4px;
   box-shadow: 0 4px 12px rgba(64, 158, 255, 0.2);
+}
+
+.message-item.user .message-bubble.clickable {
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.message-item.user .message-bubble.clickable:hover {
+  transform: scale(1.02);
+  box-shadow: 0 6px 16px rgba(64, 158, 255, 0.3);
+}
+
+.click-hint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #909399;
+  margin-top: 4px;
+  opacity: 0.7;
+}
+
+.message-item.user:hover .click-hint {
+  opacity: 1;
+  color: #409EFF;
 }
 
 .thinking-box {

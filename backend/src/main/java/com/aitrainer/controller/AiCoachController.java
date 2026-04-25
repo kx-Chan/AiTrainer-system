@@ -7,6 +7,7 @@ import com.aitrainer.entity.AiCoachChatHistory;
 import com.aitrainer.service.AiCoachChatHistoryService;
 import com.aitrainer.service.AiCoachService;
 import com.aitrainer.vo.AiCoachAnalyzeResponseVO;
+import com.aitrainer.vo.AiCoachSessionVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -99,5 +100,47 @@ public class AiCoachController {
             @PathVariable final String sessionId) {
         final CustomUser user = (CustomUser) authentication.getPrincipal();
         return Result.success(chatHistoryService.deleteSession(user.getId(), sessionId));
+    }
+
+    /**
+     * 获取用户的所有会话详情列表。
+     *
+     * @param authentication 登录信息
+     * @param limit          限制数量
+     * @return 会话详情列表
+     */
+    @Operation(summary = "获取会话详情列表")
+    @GetMapping("/sessions/detail")
+    public Result<List<AiCoachSessionVO>> getSessionDetails(
+            final Authentication authentication,
+            @RequestParam(defaultValue = "20") final int limit) {
+        final CustomUser user = (CustomUser) authentication.getPrincipal();
+        return Result.success(chatHistoryService.getUserSessions(user.getId(), limit));
+    }
+
+    /**
+     * 根据提问 ID 获取对应的 AI 回复。
+     * 实现消息锚定功能：点击左侧提问，右侧展示对应的 AI 分析结果。
+     *
+     * @param authentication 登录信息
+     * @param sessionId      会话 ID
+     * @param questionId     提问消息的 ID
+     * @return AI 回复消息
+     */
+    @Operation(summary = "获取提问对应的AI回复")
+    @GetMapping("/question/{questionId}/reply")
+    public Result<AiCoachChatHistory> getAssistantReply(
+            final Authentication authentication,
+            @RequestParam final String sessionId,
+            @PathVariable final Long questionId) {
+        final CustomUser user = (CustomUser) authentication.getPrincipal();
+        final AiCoachChatHistory reply = chatHistoryService.getAssistantReplyByQuestionId(
+                user.getId(), sessionId, questionId);
+        
+        if (reply == null) {
+            log.warn("未找到提问对应的AI回复: questionId={}, sessionId={}", questionId, sessionId);
+        }
+        
+        return Result.success(reply);
     }
 }
