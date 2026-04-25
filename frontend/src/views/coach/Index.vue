@@ -8,13 +8,12 @@
             <div class="chat-header">
               <div class="agent-title">
                 <div class="ai-avatar-wrapper">
-                  <el-avatar :size="36"
-                    :src="currentRole === 'coach' ? 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png' : 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'" />
+                  <el-avatar :size="36" src="https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png" />
                   <div class="online-dot"></div>
                 </div>
                 <div class="title-text">
-                  <span class="gradient-text">{{ currentRole === 'coach' ? '铁面硬核私教' : '贴心营养管家' }}</span>
-                  <span class="sub-text">AiTrainer Multi-Agent 系统</span>
+                  <span class="gradient-text">AI 综合私教</span>
+                  <span class="sub-text">AiTrainer 智能分析系统</span>
                 </div>
               </div>
               <el-button plain round size="small" @click="resetChat"><el-icon>
@@ -23,26 +22,59 @@
             </div>
           </template>
 
-          <div class="role-selector-bar">
-            <el-radio-group v-model="currentRole" size="default" @change="handleRoleChange">
-              <el-radio-button label="coach">
-                <el-icon>
-                  <User />
-                </el-icon> 运动课表模式
-              </el-radio-button>
-              <el-radio-button label="nutritionist">
-                <el-icon>
-                  <IceTea />
-                </el-icon> 营养膳食模式
-              </el-radio-button>
-            </el-radio-group>
+          <!-- 分析类型选择 -->
+          <div class="analysis-options">
+            <div class="option-section">
+              <div class="section-title">
+                <el-icon><Setting /></el-icon>
+                分析模式
+              </div>
+              <el-radio-group v-model="analysisType" size="default" class="analysis-type-group">
+                <el-radio-button label="training">
+                  <el-icon><Trophy /></el-icon> 主分析训练
+                </el-radio-button>
+                <el-radio-button label="diet">
+                  <el-icon><IceTea /></el-icon> 主分析饮食
+                </el-radio-button>
+                <el-radio-button label="comprehensive">
+                  <el-icon><DataAnalysis /></el-icon> 综合分析
+                </el-radio-button>
+              </el-radio-group>
+            </div>
+
+            <div class="option-section">
+              <div class="section-title">
+                <el-icon><Clock /></el-icon>
+                数据范围
+              </div>
+              <div class="data-options">
+                <div class="data-option-item">
+                  <el-checkbox v-model="includeTrainingData" :disabled="analysisType === 'diet'">
+                    训练数据
+                  </el-checkbox>
+                  <el-radio-group v-model="trainingDays" size="small" :disabled="!includeTrainingData || analysisType === 'diet'">
+                    <el-radio-button :label="7">近7天</el-radio-button>
+                    <el-radio-button :label="30">近30天</el-radio-button>
+                  </el-radio-group>
+                </div>
+                <div class="data-option-item">
+                  <el-checkbox v-model="includeDietData" :disabled="analysisType === 'training'">
+                    饮食数据
+                  </el-checkbox>
+                  <el-radio-group v-model="dietDays" size="small" :disabled="!includeDietData || analysisType === 'training'">
+                    <el-radio-button :label="7">近7天</el-radio-button>
+                    <el-radio-button :label="30">近30天</el-radio-button>
+                  </el-radio-group>
+                </div>
+              </div>
+            </div>
           </div>
 
+          <!-- 聊天窗口 -->
           <div class="chat-window" ref="chatWindowRef">
             <div v-for="(msg, index) in messageList" :key="index" :class="['message-item', msg.role]">
               <div class="message-avatar" v-if="msg.role === 'ai'">
-                <el-avatar :size="40"
-                  :src="currentRole === 'coach' ? 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png' : 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'" />
+                <el-avatar :size="40" src="https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png" />
               </div>
               <div class="message-bubble-wrapper">
                 <div v-if="msg.type === 'thinking'" class="thinking-box">
@@ -55,30 +87,35 @@
             </div>
           </div>
 
+          <!-- 快捷提问 -->
           <div class="quick-prompts" v-if="messageList.length === 1">
-            <div class="prompt-card" @click="sendQuickPrompt('分析我本周的深蹲数据，并生成专属课表')">
+            <div class="prompt-card" @click="sendQuickPrompt('请分析我最近的训练表现，给出改进建议')">
               <el-icon size="20" color="#409EFF">
                 <TrendCharts />
               </el-icon>
-              <span>分析数据并生成课表</span>
+              <span>分析训练表现</span>
             </div>
-            <div class="prompt-card" @click="sendQuickPrompt('我只有宿舍养生壶，帮我配一份减脂晚餐')">
-              <el-icon size="20" color="#E6A23C">
+            <div class="prompt-card" @click="sendQuickPrompt('请分析我的饮食习惯，帮我优化营养搭配')">
+              <el-icon size="20" color="#67C23A">
                 <Food />
               </el-icon>
-              <span>宿舍党专属减脂餐</span>
+              <span>优化饮食搭配</span>
             </div>
           </div>
 
+          <!-- 输入区域 -->
           <div class="chat-input-area">
             <el-input v-model="inputText" type="textarea" :autosize="{ minRows: 2, maxRows: 4 }"
-              :placeholder="currentRole === 'coach' ? '问问动作要领...' : '这个能吃吗？怎么配餐？'" @keydown.enter.prevent="handleSend"
+              placeholder="请输入您想咨询的问题..." @keydown.enter.prevent="handleSend"
               :disabled="isAiThinking" class="mac-input" />
             <div class="input-actions">
-              <span class="tip-text">当前模式：{{ currentRole === 'coach' ? '训练增强' : '营养管理' }}</span>
+              <span class="tip-text">
+                <el-icon><InfoFilled /></el-icon>
+                {{ getAnalysisTypeTip }}
+              </span>
               <el-button type="primary" round size="large" :disabled="!inputText || isAiThinking" @click="handleSend"
-                class="send-btn">
-                发送 <el-icon class="el-icon--right">
+                class="send-btn" :loading="isAiThinking">
+                发送 <el-icon class="el-icon--right" v-if="!isAiThinking">
                   <Position />
                 </el-icon>
               </el-button>
@@ -90,59 +127,51 @@
       <el-col :span="12" class="col-panel">
         <el-card shadow="never" class="result-card glass-panel">
 
-          <div v-if="!generatedPlan" class="empty-state">
+          <div v-if="!currentAnalysis && !isAiThinking" class="empty-state">
             <div class="artifact-icon">✨</div>
-            <h3>AiTrainer Artifacts</h3>
-            <p>生成的训练计划、图表和食谱将在这里结构化呈现</p>
+            <h3>AI 分析结果</h3>
+            <p>选择分析模式和数据范围，输入问题后，AI 将为您生成专业分析</p>
           </div>
 
-          <div v-else class="generated-content slide-in">
+          <div v-else-if="isAiThinking && !currentAnalysis" class="loading-state">
+            <el-icon class="loading-icon" :size="48"><Loading /></el-icon>
+            <h3>AI 教练正在深度查阅你最近 {{ getLoadingDaysText }} 的汗水记录</h3>
+            <p>请耐心等待，深度分析需要一些时间...</p>
+            <div class="loading-progress">
+              <el-progress :percentage="loadingProgress" :stroke-width="8" :show-text="false" />
+              <span class="progress-text">{{ loadingProgressText }}</span>
+            </div>
+          </div>
+
+          <div v-else class="analysis-content slide-in">
             <div class="result-header">
-              <h2><el-icon color="#409EFF">
-                  <DocumentChecked />
-                </el-icon> 您的专属定制方案</h2>
-              <el-button type="primary" plain round size="small"><el-icon>
-                  <Download />
-                </el-icon> 导出至手机</el-button>
+              <h2>
+                <el-icon :color="getAnalysisTypeColor">
+                  <component :is="getAnalysisTypeIcon" />
+                </el-icon>
+                {{ getAnalysisTypeTitle }}
+              </h2>
+              <el-tag :type="getAnalysisTypeTag">{{ getAnalysisTypeLabel }}</el-tag>
             </div>
 
-            <el-tabs v-model="activePlanTab" class="custom-tabs">
-              <el-tab-pane label="🏋️ 智能训练课表" name="workout">
-                <el-alert title="AI 洞察：您的数据反馈显示近期下肢力量处于增长期，已为您调整容量。" type="success" :closable="false"
-                  style="margin-bottom: 24px;" />
-                <el-timeline>
-                  <el-timeline-item v-for="(day, index) in generatedPlan.workouts" :key="index" :timestamp="day.date"
-                    placement="top" :type="day.type">
-                    <el-card shadow="hover" class="plan-card">
-                      <h4>{{ day.title }}</h4>
-                      <div class="plan-details">
-                        <el-tag v-for="action in day.actions" :key="action" size="default" type="info" effect="plain"
-                          class="action-tag">{{ action }}</el-tag>
-                      </div>
-                      <p class="plan-tip"><el-icon color="#E6A23C">
-                          <Warning />
-                        </el-icon> {{ day.tip }}</p>
-                    </el-card>
-                  </el-timeline-item>
-                </el-timeline>
-              </el-tab-pane>
+            <!-- 数据摘要 -->
+            <el-collapse v-if="dataSummary" class="data-summary-collapse">
+              <el-collapse-item title="📊 数据摘要" name="summary">
+                <div class="data-summary-content">
+                  <div v-if="currentAnalysis?.trainingDataSummary" class="summary-section">
+                    <h4><el-icon><Trophy /></el-icon> 训练数据</h4>
+                    <pre>{{ currentAnalysis.trainingDataSummary }}</pre>
+                  </div>
+                  <div v-if="currentAnalysis?.dietDataSummary" class="summary-section">
+                    <h4><el-icon><IceTea /></el-icon> 饮食数据</h4>
+                    <pre>{{ currentAnalysis.dietDataSummary }}</pre>
+                  </div>
+                </div>
+              </el-collapse-item>
+            </el-collapse>
 
-              <el-tab-pane label="🥗 营养与饮食" name="diet">
-                <el-row :gutter="16">
-                  <el-col :span="24" v-for="meal in generatedPlan.diets" :key="meal.name" style="margin-bottom: 16px;">
-                    <el-card shadow="hover" class="meal-card" :class="meal.theme">
-                      <div class="meal-header">
-                        <span class="meal-name">{{ meal.name }}</span>
-                        <span class="meal-calo">{{ meal.calo }} kcal</span>
-                      </div>
-                      <ul class="meal-items">
-                        <li v-for="item in meal.items" :key="item">{{ item }}</li>
-                      </ul>
-                    </el-card>
-                  </el-col>
-                </el-row>
-              </el-tab-pane>
-            </el-tabs>
+            <!-- 分析结果 -->
+            <div class="analysis-result" v-html="formattedAnalysisResult"></div>
           </div>
         </el-card>
       </el-col>
@@ -151,38 +180,172 @@
 </template>
 
 <script setup>
-import { ref, reactive, nextTick, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, computed, nextTick, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
-  Position, Refresh, Loading, TrendCharts, Download,
-  Warning, Food, DocumentChecked, User, IceTea
+  Position, Refresh, Loading, TrendCharts,
+  Food, IceTea, Setting, Clock,
+  Trophy, DataAnalysis, InfoFilled
 } from '@element-plus/icons-vue'
+import { aiCoachApi } from '@/api/aiCoach'
+import { marked } from 'marked'
 
-const route = useRoute()
+// 配置 marked 选项
+marked.setOptions({
+  breaks: true,
+  gfm: true,
+})
+
 const chatWindowRef = ref(null)
 
+// 分析选项
+const analysisType = ref('comprehensive')
+const includeTrainingData = ref(true)
+const trainingDays = ref(7)
+const includeDietData = ref(true)
+const dietDays = ref(7)
+
+// 聊天状态
 const inputText = ref('')
 const isAiThinking = ref(false)
-const activePlanTab = ref('workout')
-const currentRole = ref('coach') // 🏆 新增：默认角色为教练
-
-const messageList = reactive([
-  { role: 'ai', type: 'text', content: '你好！我是你的专属 AI 教练。我已经接入了你最近 30 天的体征数据和战报。今天想让我帮你分析什么？' }
+const messageList = ref([
+  { role: 'ai', type: 'text', content: '你好！我是你的专属 AI 综合私教。我可以帮你分析训练和饮食数据，给出专业建议。请选择分析模式和数据范围，然后输入你的问题。' }
 ])
 
-const generatedPlan = ref(null)
+// 会话 ID（用于保持上下文）
+const currentSessionId = ref(null)
 
-// 🏆 新增：切换角色时的交互
-const handleRoleChange = (role) => {
-  if (role === 'coach') {
-    ElMessage({ message: '已切换至【铁面私教】模式：专注于动作规范与训练强度。', type: 'primary', plain: true })
-    activePlanTab.value = 'workout' // 自动切换右侧面板
-  } else {
-    ElMessage({ message: '已切换至【营养管家】模式：专注于每日热量与精准配餐。', type: 'success', plain: true })
-    activePlanTab.value = 'diet' // 自动切换右侧面板
+// 当前分析结果
+const currentAnalysis = ref(null)
+
+// Loading 进度状态
+const loadingProgress = ref(0)
+const loadingProgressText = ref('正在准备分析...')
+
+// 计算显示的天数文本
+const getLoadingDaysText = computed(() => {
+  const days = []
+  if (includeTrainingData.value && trainingDays.value) {
+    days.push(`${trainingDays.value}天训练`)
   }
+  if (includeDietData.value && dietDays.value) {
+    days.push(`${dietDays.value}天饮食`)
+  }
+  return days.join('和')
+})
+
+// 开始 Loading 动画
+let loadingTimer = null
+const startLoadingAnimation = () => {
+  loadingProgress.value = 0
+  loadingProgressText.value = '正在调取您的数据...'
+  
+  loadingTimer = setInterval(() => {
+    if (loadingProgress.value < 85) {
+      loadingProgress.value += Math.random() * 15
+      if (loadingProgress.value > 85) loadingProgress.value = 85
+      
+      if (loadingProgress.value < 30) {
+        loadingProgressText.value = '正在调取您的数据...'
+      } else if (loadingProgress.value < 60) {
+        loadingProgressText.value = '正在分析训练数据...'
+      } else if (loadingProgress.value < 80) {
+        loadingProgressText.value = '正在分析饮食数据...'
+      } else {
+        loadingProgressText.value = '正在生成分析报告...'
+      }
+    }
+  }, 1000)
 }
+
+// 停止 Loading 动画
+const stopLoadingAnimation = () => {
+  if (loadingTimer) {
+    clearInterval(loadingTimer)
+    loadingTimer = null
+  }
+  loadingProgress.value = 100
+  loadingProgressText.value = '分析完成！'
+}
+
+// 计算属性
+const getAnalysisTypeTip = computed(() => {
+  const tips = {
+    training: '训练分析模式：专注于分析您的训练数据',
+    diet: '饮食分析模式：专注于分析您的饮食数据',
+    comprehensive: '综合分析模式：全面分析训练和饮食数据'
+  }
+  return tips[analysisType.value]
+})
+
+const getAnalysisTypeColor = computed(() => {
+  const colors = {
+    training: '#409EFF',
+    diet: '#67C23A',
+    comprehensive: '#E6A23C'
+  }
+  return colors[analysisType.value]
+})
+
+const getAnalysisTypeIcon = computed(() => {
+  const icons = {
+    training: Trophy,
+    diet: IceTea,
+    comprehensive: DataAnalysis
+  }
+  return icons[analysisType.value]
+})
+
+const getAnalysisTypeTitle = computed(() => {
+  const titles = {
+    training: '训练分析报告',
+    diet: '饮食分析报告',
+    comprehensive: '综合分析报告'
+  }
+  return titles[analysisType.value]
+})
+
+const getAnalysisTypeLabel = computed(() => {
+  const labels = {
+    training: '训练分析',
+    diet: '饮食分析',
+    comprehensive: '综合分析'
+  }
+  return labels[analysisType.value]
+})
+
+const getAnalysisTypeTag = computed(() => {
+  const tags = {
+    training: '',
+    diet: 'success',
+    comprehensive: 'warning'
+  }
+  return tags[analysisType.value]
+})
+
+const dataSummary = computed(() => {
+  return currentAnalysis.value?.trainingDataSummary || currentAnalysis.value?.dietDataSummary
+})
+
+const formattedAnalysisResult = computed(() => {
+  if (!currentAnalysis.value?.analysisResult) return ''
+  // 使用 marked 正确渲染 Markdown
+  return marked.parse(currentAnalysis.value.analysisResult)
+})
+
+// 监听分析类型变化，自动调整数据选择
+watch(analysisType, (newType) => {
+  if (newType === 'training') {
+    includeTrainingData.value = true
+    includeDietData.value = false
+  } else if (newType === 'diet') {
+    includeTrainingData.value = false
+    includeDietData.value = true
+  } else {
+    includeTrainingData.value = true
+    includeDietData.value = true
+  }
+})
 
 const scrollToBottom = async () => {
   await nextTick()
@@ -196,66 +359,80 @@ const sendQuickPrompt = (text) => {
   handleSend()
 }
 
-const handleSend = () => {
+const handleSend = async () => {
   if (!inputText.value.trim() || isAiThinking.value) return
 
   const userText = inputText.value
-  messageList.push({ role: 'user', type: 'text', content: userText })
+  messageList.value.push({ role: 'user', type: 'text', content: userText })
   inputText.value = ''
   isAiThinking.value = true
+  currentAnalysis.value = null
   scrollToBottom()
 
-  setTimeout(() => {
-    messageList.push({ role: 'ai', type: 'thinking', content: `Agent 正在调取您的${currentRole.value === 'coach' ? '动作训练' : '饮食补剂'}数据流水...` })
+  // 添加思考中消息
+  messageList.value.push({ role: 'ai', type: 'thinking', content: '正在调取您的数据...' })
+  scrollToBottom()
+
+  // 开始 Loading 动画
+  startLoadingAnimation()
+
+  try {
+    // 调用 API，传入 sessionId 以保持上下文
+    const response = await aiCoachApi.analyze({
+      analysisType: analysisType.value,
+      question: userText,
+      includeTrainingData: includeTrainingData.value,
+      trainingDays: trainingDays.value,
+      includeDietData: includeDietData.value,
+      dietDays: dietDays.value,
+      sessionId: currentSessionId.value // 传入当前会话 ID
+    })
+
+    // 停止 Loading 动画
+    stopLoadingAnimation()
+
+    // 移除思考中消息
+    messageList.value.pop()
+
+    // 添加 AI 回复
+    messageList.value.push({
+      role: 'ai',
+      type: 'text',
+      content: '分析完成！请查看右侧面板获取详细分析结果。'
+    })
+
+    // 保存分析结果和会话 ID
+    currentAnalysis.value = response
+    if (response.sessionId) {
+      currentSessionId.value = response.sessionId
+    }
+
+    ElMessage.success('分析完成')
+  } catch (error) {
+    console.error('AI 分析失败:', error)
+    stopLoadingAnimation()
+    messageList.value.pop()
+    messageList.value.push({
+      role: 'ai',
+      type: 'text',
+      content: '抱歉，分析过程中出现了一些问题。请稍后再试。'
+    })
+    ElMessage.error('分析失败，请重试')
+  } finally {
+    isAiThinking.value = false
     scrollToBottom()
-
-    setTimeout(() => {
-      messageList.pop()
-      messageList.push({ role: 'ai', type: 'thinking', content: `正在调用 ${currentRole.value === 'coach' ? 'Vision-Coach' : 'Diet-Master'} 模型生成深度解析方案...` })
-      scrollToBottom()
-
-      setTimeout(() => {
-        messageList.pop()
-        messageList.push({
-          role: 'ai',
-          type: 'text',
-          content: currentRole.value === 'coach'
-            ? '分析完毕！我已经针对你的下蹲深度问题定制了<strong>突破性训练方案</strong>，请查看右侧面板。'
-            : '膳食解析完毕！由于你目前处于减脂平台期，我为你优化了<strong>碳水循环食谱</strong>，已在右侧同步更新。'
-        })
-        isAiThinking.value = false
-        scrollToBottom()
-        renderRightPanel()
-      }, 2000)
-    }, 1500)
-  }, 1000)
+  }
 }
 
 const resetChat = () => {
-  messageList.splice(1)
-  generatedPlan.value = null
+  // 重置会话 ID，开启新对话
+  currentSessionId.value = null
+  messageList.value = [
+    { role: 'ai', type: 'text', content: '你好！我是你的专属 AI 综合私教。我可以帮你分析训练和饮食数据，给出专业建议。请选择分析模式和数据范围，然后输入你的问题。' }
+  ]
+  currentAnalysis.value = null
+  ElMessage.success('已开启新对话')
 }
-
-const renderRightPanel = () => {
-  generatedPlan.value = {
-    workouts: [
-      { date: '明天 (突破日)', type: 'warning', title: '下肢爆发力与深度强行突破', actions: ['AI 杠铃深蹲 5x10', '保加利亚分腿蹲 4x12'], tip: '核心目标：增加下蹲行程。' },
-      { date: '后天 (消耗日)', type: 'primary', title: '高强度 HIIT', actions: ['波比跳 20x4', '登山跑 30s x4'], tip: '打破代谢停滞的关键。' }
-    ],
-    diets: [
-      { name: '早餐 (高蛋白)', theme: 'bg-blue', calo: 350, items: ['无糖脱脂牛奶 250ml', '全麦吐司 1 片', '水煮蛋 2 个'] },
-      { name: '午餐 (控制碳水)', theme: 'bg-green', calo: 550, items: ['鸡胸肉 150g', '西兰花 200g', '紫薯 100g'] }
-    ]
-  }
-}
-
-onMounted(() => {
-  if (route.query.auto === 'bottleneck') {
-    setTimeout(() => {
-      sendQuickPrompt('分析我最近的训练瓶颈，并生成突破计划！')
-    }, 500)
-  }
-})
 </script>
 
 <style scoped>
@@ -313,56 +490,6 @@ onMounted(() => {
   border-bottom: 1px solid #f0f2f5;
 }
 
-/* ================= 角色切换栏：文字显形修复 ================= */
-.role-selector-bar {
-  background-color: #fcfdfe;
-  padding: 12px;
-  display: flex;
-  justify-content: center;
-  border-bottom: 1px solid #f0f2f5;
-  z-index: 10;
-}
-
-/* 1. 基础样式：未选中时的样子 */
-:deep(.el-radio-button__inner) {
-  border: 1px solid #dcdfe6 !important;
-  background: #ffffff !important;
-  color: #606266 !important;
-  /* 默认灰色文字 */
-  border-radius: 8px !important;
-  margin: 0 6px;
-  padding: 8px 20px;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: all 0.3s ease;
-  box-shadow: none !important;
-}
-
-/* 2. 移除按钮之间的粘连感 */
-:deep(.el-radio-button:first-child .el-radio-button__inner) {
-  border-left: 1px solid #dcdfe6 !important;
-  border-radius: 8px !important;
-}
-
-/* 3. 核心修复：无论选中哪个模式，都呈现“绿色选中 + 绿色文字” */
-/* .is-active 是选中的状态，我们强制让它的文字颜色变为深绿色 */
-:deep(.el-radio-button.is-active .el-radio-button__inner) {
-  background-color: #f0f9eb !important;
-  /* 浅绿色背景 */
-  border-color: #67C23A !important;
-  /* 绿色边框 */
-  color: #67C23A !important;
-  /* 🚨 关键：强制显示绿色字体，解决消失问题 */
-}
-
-/* 4. 鼠标浮动上去的微光效果（可选） */
-:deep(.el-radio-button__inner:hover) {
-  color: #67C23A;
-  background-color: #f9fdf8 !important;
-}
-
 .ai-avatar-wrapper {
   position: relative;
 }
@@ -403,6 +530,61 @@ onMounted(() => {
   color: #909399;
   text-transform: uppercase;
   letter-spacing: 1px;
+}
+
+/* 分析选项样式 */
+.analysis-options {
+  padding: 16px 20px;
+  background-color: #fafbfc;
+  border-bottom: 1px solid #f0f2f5;
+}
+
+.option-section {
+  margin-bottom: 16px;
+}
+
+.option-section:last-child {
+  margin-bottom: 0;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #606266;
+  margin-bottom: 10px;
+}
+
+.analysis-type-group {
+  width: 100%;
+}
+
+.analysis-type-group :deep(.el-radio-button__inner) {
+  width: 100%;
+  border-radius: 8px !important;
+  margin: 0 4px;
+}
+
+.analysis-type-group :deep(.el-radio-button:first-child .el-radio-button__inner) {
+  border-radius: 8px !important;
+}
+
+.data-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.data-option-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #ebeef5;
 }
 
 .chat-window {
@@ -446,9 +628,7 @@ onMounted(() => {
   border-top-left-radius: 4px;
   color: #303133;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.02);
-  /* 🏆 核心：通过 v-bind 实现动态边框颜色 */
-  border-left: 4px solid v-bind("currentRole === 'coach' ? '#409EFF' : '#67C23A'");
-  transition: border-left-color 0.5s ease;
+  border-left: 4px solid #409EFF;
 }
 
 .message-item.user .message-bubble {
@@ -525,17 +705,49 @@ onMounted(() => {
 }
 
 .tip-text {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 12px;
-  color: #c0c4cc;
+  color: #909399;
 }
 
 .result-card {
   flex: 1;
   border-radius: 16px;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
-.empty-state {
+.result-card :deep(.el-card__body) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+}
+
+.result-card :deep(.el-collapse) {
+  border: none;
+}
+
+.result-card :deep(.el-collapse-item__header) {
+  background: #f5f7fa;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-weight: 600;
+  color: #409EFF;
+}
+
+.result-card :deep(.el-collapse-item__wrap) {
+  border: none;
+}
+
+.result-card :deep(.el-collapse-item__content) {
+  padding: 12px 0;
+}
+
+.empty-state, .loading-state {
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -550,22 +762,51 @@ onMounted(() => {
   animation: float 3s ease-in-out infinite;
 }
 
-@keyframes float {
-  0% {
-    transform: translateY(0px);
-  }
-
-  50% {
-    transform: translateY(-10px);
-  }
-
-  100% {
-    transform: translateY(0px);
-  }
+.loading-icon {
+  color: #409EFF;
+  margin-bottom: 16px;
+  animation: spin 1s linear infinite;
 }
 
-.generated-content {
-  padding: 30px;
+.loading-progress {
+  width: 80%;
+  max-width: 300px;
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.loading-progress :deep(.el-progress__text) {
+  display: none;
+}
+
+.progress-text {
+  font-size: 13px;
+  color: #909399;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.analysis-content {
+  padding: 24px;
+  min-height: calc(100vh - 180px);
+  overflow-y: auto;
 }
 
 .slide-in {
@@ -577,7 +818,6 @@ onMounted(() => {
     opacity: 0;
     transform: translateY(40px);
   }
-
   to {
     opacity: 1;
     transform: translateY(0);
@@ -588,61 +828,170 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #ebeef5;
 }
 
-.plan-card {
-  border-radius: 12px;
-  margin-bottom: 16px;
-  border-left: 4px solid #409EFF;
-}
-
-.plan-details {
+.result-header h2 {
   display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-bottom: 12px;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 18px;
+  color: #303133;
 }
 
-.plan-tip {
-  font-size: 13px;
-  color: #606266;
+.data-summary-collapse {
+  margin-bottom: 20px;
+}
+
+.data-summary-content {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.summary-section {
+  margin-bottom: 16px;
+}
+
+.summary-section:last-child {
+  margin-bottom: 0;
+}
+
+.summary-section h4 {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: #fff8e6;
-  padding: 8px 12px;
-  border-radius: 6px;
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: #606266;
 }
 
-.meal-card {
-  border-radius: 12px;
-  color: #fff;
-  border: none;
-  padding: 18px;
-}
-
-.bg-blue {
-  background: linear-gradient(135deg, #7ec0ee 0%, #409EFF 100%);
-}
-
-.bg-green {
-  background: linear-gradient(135deg, #a8e063 0%, #56ab2f 100%);
-}
-
-.meal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  padding-bottom: 10px;
-}
-
-.meal-items {
-  padding-left: 20px;
+.summary-section pre {
   margin: 0;
+  padding: 12px;
+  background: #f5f7fa;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.analysis-result {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  padding-bottom: 40px;
   font-size: 14px;
   line-height: 1.8;
+  color: #303133;
+}
+
+/* Markdown 标题样式 */
+.analysis-result :deep(h1) {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 20px 0 16px 0;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #409EFF;
+  color: #303133;
+}
+
+.analysis-result :deep(h2) {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 18px 0 14px 0;
+  padding-left: 12px;
+  color: #409EFF;
+  border-left: 4px solid #409EFF;
+}
+
+.analysis-result :deep(h3) {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 16px 0 12px 0;
+  color: #606266;
+}
+
+/* 列表样式 */
+.analysis-result :deep(ul), .analysis-result :deep(ol) {
+  padding-left: 24px;
+  margin: 12px 0;
+}
+
+.analysis-result :deep(li) {
+  margin: 8px 0;
+  line-height: 1.6;
+}
+
+.analysis-result :deep(li::marker) {
+  color: #409EFF;
+}
+
+/* 段落样式 */
+.analysis-result :deep(p) {
+  margin: 12px 0;
+  line-height: 1.8;
+}
+
+/* 强调样式 */
+.analysis-result :deep(strong) {
+  color: #409EFF;
+  font-weight: 600;
+}
+
+/* 表格样式 */
+.analysis-result :deep(table) {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.analysis-result :deep(th), .analysis-result :deep(td) {
+  border: 1px solid #ebeef5;
+  padding: 10px 14px;
+  text-align: left;
+}
+
+.analysis-result :deep(th) {
+  background: #f5f7fa;
+  font-weight: 600;
+  color: #606266;
+}
+
+.analysis-result :deep(tr:nth-child(even)) {
+  background: #fafafa;
+}
+
+/* 代码块样式 */
+.analysis-result :deep(code) {
+  background: #f5f7fa;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #E6A23C;
+}
+
+.analysis-result :deep(pre) {
+  background: #f5f7fa;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin: 12px 0;
+  overflow-x: auto;
+}
+
+/* 引用样式 */
+.analysis-result :deep(blockquote) {
+  border-left: 4px solid #409EFF;
+  padding-left: 16px;
+  margin: 12px 0;
+  color: #606266;
+  background: #f5f7fa;
+  border-radius: 4px;
+  padding: 12px 16px;
 }
 </style>

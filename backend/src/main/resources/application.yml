@@ -61,7 +61,8 @@ langchain4j:
       api-key: ${AI_API_KEY:}
       model-name: ${AI_MODEL:claude-sonnet-4-6}
       base-url: ${AI_BASE_URL:https://ai.sandboxai.top/v1/}
-      timeout: 60s
+      timeout: 120s
+      max-tokens: 2000
       max-retries: 1
       log-requests: true
       log-responses: true
