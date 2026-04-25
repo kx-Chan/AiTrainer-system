@@ -28,9 +28,21 @@ export function getTrainingLogs(startDate, endDate) {
  * @param {string} date 日期 (yyyy-MM-dd)，不传则默认今天
  */
 export function getNutritionRatio(date) {
-  return request({
-    url: "/dashboard/nutrition",
-    method: "get",
-    params: date ? { date } : {},
-  });
+    return request({
+        url: "/dashboard/nutrition",
+        method: "get",
+        params: date ? { date } : {},
+    });
+}
+
+/**
+ * 获取 AI 私教每日碎碎念
+ * @param {string} date 日期 (yyyy-MM-dd)，不传则默认今天
+ */
+export function getAiCoachFeedback(date) {
+    return request({
+        url: "/dashboard/ai-coach-feedback",
+        method: "get",
+        params: date ? { date } : {},
+    });
 }

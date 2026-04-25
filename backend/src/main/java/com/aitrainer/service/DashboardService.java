@@ -1,5 +1,6 @@
 package com.aitrainer.service;
 
+import com.aitrainer.vo.AiCoachFeedbackVO;
 import com.aitrainer.vo.DashboardCalorieVO;
 import com.aitrainer.vo.DashboardNutritionVO;
 import com.aitrainer.vo.DashboardTrainingLogVO;
@@ -37,4 +38,13 @@ public interface DashboardService {
      * @return 营养摄入配比 VO
      */
     DashboardNutritionVO getNutritionRatio(Long userId, String date);
+
+    /**
+     * 获取 AI 私教每日碎碎念反馈。
+     *
+     * @param userId 用户 ID
+     * @param date   日期字符串 (yyyy-MM-dd)，为 null 则默认今天
+     * @return AI 私教反馈 VO
+     */
+    AiCoachFeedbackVO getAiCoachFeedback(Long userId, String date);
 }

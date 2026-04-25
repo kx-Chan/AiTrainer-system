@@ -2,9 +2,6 @@
   <div class="dashboard-container">
     <div class="page-header">
       <h2 class="page-title">数据看板 Dashboard</h2>
-      <el-button type="primary" size="large" round class="report-btn" @click="generateWeeklyReport" :loading="isGenerating">
-        <el-icon><Document /></el-icon> {{ isGenerating ? '正在生成...' : '生成本周健康周报' }}
-      </el-button>
     </div>
 
     <el-row :gutter="24" class="metric-row">
@@ -40,7 +37,6 @@
           <template #header>
             <div class="card-header">
               <span class="header-title"><el-icon><Timer /></el-icon> 近7天卡路里消耗趋势</span>
-              <el-button type="warning" plain size="small" round @click="goToAICoach">✨ AI 瓶颈分析</el-button>
             </div>
           </template>
           <div class="chart-container">
@@ -282,9 +278,8 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, nextTick } from 'vue'
-import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { DataBoard, QuestionFilled, Camera, Trophy, DataLine, Food, Odometer, Timer, PieChart, Document, Calendar, Dish, Promotion } from '@element-plus/icons-vue'
+import { DataBoard, DataLine, Food, Odometer, Timer, PieChart, Calendar, Promotion } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import { getLast7DaysCalories, getTrainingLogs, getNutritionRatio } from '@/api/dashboard'
 
@@ -537,21 +532,6 @@ const saveDailyRecord = () => {
   ElMessage.success('今日体征已记录！后端 user_body_data 流水表已更新。')
 }
 
-const router = useRouter()
-const isGenerating = ref(false)
-
-const goToAICoach = () => { router.push('/coach?auto=bottleneck') }
-
-const generateWeeklyReport = () => {
-  isGenerating.value = true
-  ElMessage.success('正在调取本周数据，AI 正在深度分析中...')
-  setTimeout(() => {
-    isGenerating.value = false
-    ElMessage({ message: '周报生成完毕！即将跳转至 AI 私教解析页面...', type: 'success', duration: 3000 })
-    setTimeout(() => { router.push('/coach?auto=weekly_report') }, 1500)
-  }, 2000)
-}
-
 onMounted(() => {
   loadCalorieData()
   loadTrainingLogs()
@@ -564,7 +544,6 @@ onMounted(() => {
 .dashboard-container { max-width: 1600px; margin: 0 auto; padding-bottom: 40px; }
 .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
 .page-title { margin: 0; font-size: 24px; color: #303133; }
-.report-btn { box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3); font-weight: bold; letter-spacing: 1px; }
 .metric-row { margin-bottom: 24px; }
 .metric-card { border-radius: 12px; border: none; text-align: center; padding: 10px 0; transition: transform 0.2s; }
 .metric-card:hover { transform: translateY(-2px); }

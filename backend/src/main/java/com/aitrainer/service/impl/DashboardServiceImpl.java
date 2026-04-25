@@ -1,5 +1,6 @@
 package com.aitrainer.service.impl;
 
+import com.aitrainer.agent.AiCoachAgent;
 import com.aitrainer.entity.ExtraExercise;
 import com.aitrainer.entity.Meal;
 import com.aitrainer.entity.UserProfile;
@@ -11,6 +12,7 @@ import com.aitrainer.mapper.UserProfileMapper;
 import com.aitrainer.mapper.WorkoutMapper;
 import com.aitrainer.mapper.WorkoutSessionMapper;
 import com.aitrainer.service.DashboardService;
+import com.aitrainer.vo.AiCoachFeedbackVO;
 import com.aitrainer.vo.DashboardCalorieVO;
 import com.aitrainer.vo.DashboardNutritionVO;
 import com.aitrainer.vo.DashboardTrainingLogVO;
@@ -43,6 +45,7 @@ public class DashboardServiceImpl implements DashboardService {
     private final WorkoutMapper workoutMapper;
     private final MealMapper mealMapper;
     private final UserProfileMapper userProfileMapper;
+    private final AiCoachAgent aiCoachAgent;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     
@@ -463,5 +466,104 @@ public class DashboardServiceImpl implements DashboardService {
             case "snack" -> 4;
             default -> 5;
         };
+    }
+
+    @Override
+    public AiCoachFeedbackVO getAiCoachFeedback(final Long userId, final String dateStr) {
+        final String date = StringUtils.hasText(dateStr) ? dateStr : LocalDate.now().format(DATE_FORMATTER);
+        final LocalDate localDate = LocalDate.parse(date);
+        final LocalDateTime dayStart = localDate.atStartOfDay();
+        final LocalDateTime dayEnd = localDate.atTime(LocalTime.MAX);
+
+        // 1. 收集当日运动数据
+        final List<WorkoutSession> workoutSessions = workoutSessionMapper.selectList(
+                new LambdaQueryWrapper<WorkoutSession>()
+                        .eq(WorkoutSession::getUserId, userId)
+                        .ge(WorkoutSession::getCreatedAt, dayStart)
+                        .le(WorkoutSession::getCreatedAt, dayEnd)
+        );
+
+        final List<ExtraExercise> extraExercises = extraExerciseMapper.selectList(
+                new LambdaQueryWrapper<ExtraExercise>()
+                        .eq(ExtraExercise::getUserId, userId)
+                        .eq(ExtraExercise::getExerciseDate, localDate)
+        );
+
+        // 构建运动数据摘要
+        final StringBuilder workoutData = new StringBuilder();
+        final int totalWorkoutCal = workoutSessions.stream()
+                .mapToInt(ws -> ws.getCaloriesBurned() != null ? ws.getCaloriesBurned() : 0)
+                .sum();
+        final int totalExtraCal = extraExercises.stream()
+                .mapToInt(ee -> ee.getCaloriesBurned() != null ? ee.getCaloriesBurned() : 0)
+                .sum();
+
+        if (!workoutSessions.isEmpty()) {
+            workoutData.append("项目训练：")
+                    .append(workoutSessions.size()).append("次，")
+                    .append("消耗").append(totalWorkoutCal).append("卡路里；");
+        }
+        if (!extraExercises.isEmpty()) {
+            workoutData.append("额外运动：")
+                    .append(extraExercises.size()).append("次，")
+                    .append("消耗").append(totalExtraCal).append("卡路里");
+        }
+        if (workoutSessions.isEmpty() && extraExercises.isEmpty()) {
+            workoutData.append("今日暂无运动记录");
+        }
+
+        // 2. 收集当日饮食数据
+        final List<Meal> meals = mealMapper.selectList(
+                new LambdaQueryWrapper<Meal>()
+                        .eq(Meal::getUserId, userId)
+                        .ge(Meal::getMealTime, dayStart)
+                        .le(Meal::getMealTime, dayEnd)
+        );
+
+        // 构建饮食数据摘要
+        final StringBuilder nutritionData = new StringBuilder();
+        if (!meals.isEmpty()) {
+            final int totalCal = meals.stream()
+                    .mapToInt(m -> m.getCalories() != null ? m.getCalories() : 0)
+                    .sum();
+            final int totalCarbs = meals.stream()
+                    .mapToInt(m -> m.getCarbs() != null ? m.getCarbs() : 0)
+                    .sum();
+            final int totalProtein = meals.stream()
+                    .mapToInt(m -> m.getProtein() != null ? m.getProtein() : 0)
+                    .sum();
+            final int totalFat = meals.stream()
+                    .mapToInt(m -> m.getFat() != null ? m.getFat() : 0)
+                    .sum();
+
+            nutritionData.append("今日已记录")
+                    .append(meals.size()).append("餐，")
+                    .append("总热量").append(totalCal).append("卡路里，")
+                    .append("碳水").append(totalCarbs).append("g，")
+                    .append("蛋白质").append(totalProtein).append("g，")
+                    .append("脂肪").append(totalFat).append("g");
+        } else {
+            nutritionData.append("今日暂无饮食记录");
+        }
+
+        // 3. 调用 AI Agent 生成反馈
+        try {
+            final AiCoachAgent.AiCoachFeedback aiFeedback = aiCoachAgent.generateFeedback(
+                    workoutData.toString(),
+                    nutritionData.toString()
+            );
+
+            return AiCoachFeedbackVO.builder()
+                    .workoutFeedback(aiFeedback.getWorkoutFeedback())
+                    .nutritionFeedback(aiFeedback.getNutritionFeedback())
+                    .build();
+        } catch (final Exception e) {
+            log.error("AI Coach feedback generation failed", e);
+            // 返回默认反馈
+            return AiCoachFeedbackVO.builder()
+                    .workoutFeedback("坚持就是胜利，继续加油！")
+                    .nutritionFeedback("注意保持饮食均衡哦！")
+                    .build();
+        }
     }
 }

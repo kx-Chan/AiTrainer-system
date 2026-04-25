@@ -3,6 +3,7 @@ package com.aitrainer.controller;
 import com.aitrainer.common.result.Result;
 import com.aitrainer.common.security.CustomUser;
 import com.aitrainer.service.DashboardService;
+import com.aitrainer.vo.AiCoachFeedbackVO;
 import com.aitrainer.vo.DashboardCalorieVO;
 import com.aitrainer.vo.DashboardNutritionVO;
 import com.aitrainer.vo.DashboardTrainingLogVO;
@@ -71,5 +72,21 @@ public class DashboardController {
             @RequestParam(required = false) final String date) {
         final CustomUser user = (CustomUser) authentication.getPrincipal();
         return Result.success(dashboardService.getNutritionRatio(user.getId(), date));
+    }
+
+    /**
+     * 获取 AI 私教每日碎碎念反馈。
+     *
+     * @param authentication 登录信息
+     * @param date          日期字符串 (yyyy-MM-dd)，不传则默认今天
+     * @return AI 私教反馈数据
+     */
+    @Operation(summary = "获取 AI 私教每日碎碎念")
+    @GetMapping("/ai-coach-feedback")
+    public Result<AiCoachFeedbackVO> getAiCoachFeedback(
+            final Authentication authentication,
+            @RequestParam(required = false) final String date) {
+        final CustomUser user = (CustomUser) authentication.getPrincipal();
+        return Result.success(dashboardService.getAiCoachFeedback(user.getId(), date));
     }
 }

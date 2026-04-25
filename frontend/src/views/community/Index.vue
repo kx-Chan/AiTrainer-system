@@ -58,31 +58,45 @@
             </el-input>
           </div>
 
-          <el-card class="sidebar-card leaderboard-card" shadow="never">
+          <!-- AI 私教每日碎碎念 -->
+          <el-card class="sidebar-card ai-coach-card" shadow="never">
             <template #header>
               <div class="sidebar-header">
-                <span><el-icon>
-                    <Histogram />
-                  </el-icon> 深圳大学深蹲英雄榜</span>
-                <el-button link type="primary" size="small">本周排名</el-button>
+                <span>🧠 AI 私教每日碎碎念</span>
+                <el-button link type="primary" size="small" @click="loadAiCoachFeedback" :loading="loadingAiCoach">
+                  刷新
+                </el-button>
               </div>
             </template>
-            <div class="leaderboard-list">
-              <div v-for="(hero, index) in leaderboard" :key="index" class="hero-item">
-                <div class="hero-rank" :class="'rank-' + (index + 1)">{{ index + 1 }}</div>
-                <el-avatar :size="32" :src="hero.avatar" :style="{ cursor: hero.userId ? 'pointer' : 'default' }"
-                  @click="hero.userId && goToSpace(hero.userId)" />
-                <div class="hero-name" :style="{ cursor: hero.userId ? 'pointer' : 'default' }"
-                  @click="hero.userId && goToSpace(hero.userId)">
-                  {{ hero.name }}
+            <div class="ai-coach-content">
+              <div class="ai-coach-header">
+                <el-avatar :size="60" class="ai-avatar">
+                  <img src="https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png" alt="AI私教">
+                </el-avatar>
+                <div class="ai-coach-title">你的专属 AI 健身教练</div>
+              </div>
+              
+              <!-- 运动点评 -->
+              <div class="feedback-item workout-feedback">
+                <div class="feedback-icon">💪</div>
+                <div class="feedback-bubble">
+                  <div class="feedback-label">运动点评</div>
+                  <div class="feedback-text">{{ aiCoachFeedback.workoutFeedback }}</div>
                 </div>
-                <div class="hero-score">{{ hero.score }} 个</div>
+              </div>
+              
+              <!-- 营养提醒 -->
+              <div class="feedback-item nutrition-feedback">
+                <div class="feedback-icon">🥗</div>
+                <div class="feedback-bubble">
+                  <div class="feedback-label">营养提醒</div>
+                  <div class="feedback-text">{{ aiCoachFeedback.nutritionFeedback }}</div>
+                </div>
               </div>
             </div>
-            <el-button class="view-all-btn" text type="primary"
-              style="width: 100%; margin-top: 10px;">查看完整榜单</el-button>
           </el-card>
-
+          
+          <!-- 热门话题 -->
           <el-card class="sidebar-card trending-card" shadow="never">
             <template #header>
               <div class="sidebar-header">
@@ -131,6 +145,7 @@ import { useUserStore } from '@/store/userStore'
 import Publisher from '@/components/community/Publisher.vue'
 import PostItem from '@/components/community/PostItem.vue'
 import { workoutApi } from '@/api/workout'
+import { getAiCoachFeedback } from '@/api/dashboard'
 
 const router = useRouter()
 const route = useRoute()
@@ -378,6 +393,27 @@ const trendingTags = reactive([
   { name: '红鸟营备战日常', hot: '3.1w' }
 ])
 
+// AI 教练数据
+const aiCoachFeedback = ref({
+  workoutFeedback: '坚持就是胜利，继续加油！',
+  nutritionFeedback: '注意保持饮食均衡哦！'
+})
+const loadingAiCoach = ref(false)
+
+const loadAiCoachFeedback = async () => {
+  try {
+    loadingAiCoach.value = true
+    const data = await getAiCoachFeedback()
+    if (data) {
+      aiCoachFeedback.value = data
+    }
+  } catch (e) {
+    console.error('获取 AI 教练反馈失败', e)
+  } finally {
+    loadingAiCoach.value = false
+  }
+}
+
 const recommendedTopicNames = computed(() => trendingTags.map(tag => tag.name))
 
 const hydrateAiReports = async (posts) => {
@@ -506,6 +542,7 @@ onMounted(async () => {
     return
   }
   await reloadDiscover()
+  loadAiCoachFeedback()
 })
 
 watch(() => route.query?.postId, async (n, o) => {
@@ -746,6 +783,99 @@ watch(() => route.query?.postId, async (n, o) => {
 
 .btn-content span {
   margin-top: 2px;
+}
+
+/* AI 教练卡片样式 */
+.ai-coach-card {
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e9f2 100%);
+  border: 1px solid #e4e9f2;
+}
+
+.ai-coach-card .sidebar-header {
+  color: #409EFF;
+}
+
+.ai-coach-content {
+  padding: 8px 0;
+}
+
+.ai-coach-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 0;
+  border-bottom: 1px dashed #dcdfe6;
+  margin-bottom: 16px;
+}
+
+.ai-avatar {
+  border: 3px solid #409EFF;
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+  margin-bottom: 8px;
+}
+
+.ai-coach-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.feedback-item {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  align-items: flex-start;
+}
+
+.feedback-item:last-child {
+  margin-bottom: 0;
+}
+
+.feedback-icon {
+  font-size: 28px;
+  flex-shrink: 0;
+}
+
+.feedback-bubble {
+  flex: 1;
+  background: white;
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  position: relative;
+}
+
+.feedback-bubble::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: 14px;
+  width: 0;
+  height: 0;
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-right: 8px solid white;
+}
+
+.feedback-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #909399;
+  margin-bottom: 4px;
+}
+
+.workout-feedback .feedback-label {
+  color: #E6A23C;
+}
+
+.nutrition-feedback .feedback-label {
+  color: #67C23A;
+}
+
+.feedback-text {
+  font-size: 13px;
+  color: #303133;
+  line-height: 1.5;
 }
 </style>
 
