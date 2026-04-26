@@ -18,9 +18,10 @@ public interface AiCoachChatHistoryService {
      * @param role         消息角色
      * @param content      消息内容
      * @param analysisType 分析类型
+     * @param replyTo      关联的提问消息 ID（assistant 消息需要填写对应的 user 消息 ID）
      * @return 保存的消息
      */
-    AiCoachChatHistory saveMessage(Long userId, String sessionId, String role, String content, String analysisType);
+    AiCoachChatHistory saveMessage(Long userId, String sessionId, String role, String content, String analysisType, Long replyTo);
 
     /**
      * 获取会话的聊天历史。

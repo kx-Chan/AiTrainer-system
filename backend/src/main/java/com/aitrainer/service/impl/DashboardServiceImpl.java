@@ -475,6 +475,8 @@ public class DashboardServiceImpl implements DashboardService {
         final LocalDateTime dayStart = localDate.atStartOfDay();
         final LocalDateTime dayEnd = localDate.atTime(LocalTime.MAX);
 
+        String now = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+
         // 1. 收集当日运动数据
         final List<WorkoutSession> workoutSessions = workoutSessionMapper.selectList(
                 new LambdaQueryWrapper<WorkoutSession>()
@@ -549,6 +551,7 @@ public class DashboardServiceImpl implements DashboardService {
         // 3. 调用 AI Agent 生成反馈
         try {
             final AiCoachAgent.AiCoachFeedback aiFeedback = aiCoachAgent.generateFeedback(
+                    now,
                     workoutData.toString(),
                     nutritionData.toString()
             );

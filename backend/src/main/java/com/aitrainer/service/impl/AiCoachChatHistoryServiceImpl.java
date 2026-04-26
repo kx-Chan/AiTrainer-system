@@ -30,18 +30,20 @@ public class AiCoachChatHistoryServiceImpl implements AiCoachChatHistoryService 
 
     @Override
     public AiCoachChatHistory saveMessage(final Long userId, final String sessionId, 
-                                          final String role, final String content, final String analysisType) {
+                                          final String role, final String content, 
+                                          final String analysisType, final Long replyTo) {
         final AiCoachChatHistory message = AiCoachChatHistory.builder()
                 .userId(userId)
                 .sessionId(sessionId)
                 .role(role)
                 .content(content)
                 .analysisType(analysisType)
+                .replyTo(replyTo)
                 .createdAt(LocalDateTime.now())
                 .build();
 
         chatHistoryMapper.insert(message);
-        log.debug("保存聊天消息: userId={}, sessionId={}, role={}", userId, sessionId, role);
+        log.debug("保存聊天消息: userId={}, sessionId={}, role={}, replyTo={}", userId, sessionId, role, replyTo);
         return message;
     }
 

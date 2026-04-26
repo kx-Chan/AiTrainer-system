@@ -34,6 +34,15 @@ public final class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     public Result<Void> handleGeneralException(final Exception ex) {
+        // 检查是否是 AI 服务相关异常（502、503、超时、连接失败等）
+        String message = ex.getMessage();
+        if (message != null && (message.contains("502") || message.contains("503") || 
+                                 message.contains("timeout") || message.contains("connection") ||
+                                 message.contains("OpenAiHttpException"))) {
+            log.error("AI 服务异常: {}", message, ex);
+            return Result.error(ResultCode.ERROR, "AI 服务暂时不可用，请稍后重试");
+        }
+        
         log.error("发生未捕获的系统异常", ex);
         return Result.error(ResultCode.ERROR, "发生意外错误");
     }

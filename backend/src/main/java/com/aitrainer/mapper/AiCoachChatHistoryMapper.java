@@ -103,8 +103,8 @@ public interface AiCoachChatHistoryMapper extends BaseMapper<AiCoachChatHistory>
     int deleteBySessionId(@Param("userId") Long userId, @Param("sessionId") String sessionId);
 
     /**
-     * 根据提问 ID 获取对应的 AI 回复（找邻居法）。
-     * 找到提问之后的第一条 assistant 角色消息。
+     * 根据提问 ID 获取对应的 AI 回复（血缘关系法）。
+     * 通过 reply_to 字段直接查找关联的 AI 回复。
      *
      * @param userId     用户 ID
      * @param sessionId  会话 ID
@@ -115,9 +115,8 @@ public interface AiCoachChatHistoryMapper extends BaseMapper<AiCoachChatHistory>
             SELECT * FROM ai_coach_chat_history
             WHERE user_id = #{userId}
               AND session_id = #{sessionId}
-              AND id > #{questionId}
+              AND reply_to = #{questionId}
               AND role = 'assistant'
-            ORDER BY id ASC
             LIMIT 1
             """)
     AiCoachChatHistory findAssistantReplyByQuestionId(

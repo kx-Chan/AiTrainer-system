@@ -82,10 +82,13 @@
                 <el-radio-button label="comprehensive">
                   <el-icon><DataAnalysis /></el-icon> 综合分析
                 </el-radio-button>
+                <el-radio-button label="chat">
+                  <el-icon><ChatLineSquare /></el-icon> 闲聊模式
+                </el-radio-button>
               </el-radio-group>
             </div>
 
-            <div class="option-section">
+            <div class="option-section" v-show="analysisType !== 'chat'">
               <div class="section-title">
                 <el-icon><Clock /></el-icon>
                 数据范围
@@ -125,19 +128,19 @@
                     <Loading />
                   </el-icon> {{ msg.content }}
                 </div>
-                <div v-else :class="['message-bubble', { 'clickable': msg.role === 'user' && msg.id }]" 
+                <div v-else :class="['message-bubble', { 'clickable': msg.role === 'ai' && msg.questionId }]" 
                      v-html="msg.content"
-                     @click="msg.role === 'user' && msg.id && handleQuestionClick(msg.id)">
+                     @click="msg.role === 'ai' && msg.questionId && handleQuestionClick(msg.questionId)">
                 </div>
-                <div v-if="msg.role === 'user' && msg.id" class="click-hint">
-                  <el-icon size="12"><View /></el-icon> 点击查看分析
+                <div v-if="msg.role === 'ai' && msg.questionId" class="click-hint">
+                  <el-icon size="12"><View /></el-icon> 点击查看回复
                 </div>
               </div>
             </div>
           </div>
 
           <!-- 快捷提问 -->
-          <div class="quick-prompts" v-if="messageList.length === 1">
+          <div class="quick-prompts" v-if="messageList.length === 1 && analysisType !== 'chat'">
             <div class="prompt-card" v-if="analysisType !== 'diet'" @click="sendQuickPrompt('请分析我最近的训练表现，给出改进建议')">
               <el-icon size="20" color="#409EFF">
                 <TrendCharts />
@@ -177,9 +180,23 @@
         <el-card shadow="never" class="result-card glass-panel">
 
           <div v-if="!currentAnalysis && !isAiThinking" class="empty-state">
-            <div class="artifact-icon">✨</div>
-            <h3>AI 分析结果</h3>
-            <p>选择分析模式和数据范围，输入问题后，AI 将为您生成专业分析</p>
+            <div class="artifact-icon">🏋️</div>
+            <h3>训练看板预览</h3>
+            <p class="empty-hint">告诉我你今天的饮食或训练，我将在这里为你生成专业分析。</p>
+            <div class="empty-suggestions">
+              <div class="suggestion-item" @click="switchToAnalysisMode('training')">
+                <el-icon><TrendCharts /></el-icon>
+                <span>分析训练表现</span>
+              </div>
+              <div class="suggestion-item" @click="switchToAnalysisMode('diet')">
+                <el-icon><Food /></el-icon>
+                <span>查看饮食分析</span>
+              </div>
+              <div class="suggestion-item" @click="switchToAnalysisMode('comprehensive')">
+                <el-icon><Trophy /></el-icon>
+                <span>制定训练计划</span>
+              </div>
+            </div>
           </div>
 
           <div v-else-if="isAiThinking && !currentAnalysis" class="loading-state">
@@ -193,16 +210,6 @@
           </div>
 
           <div v-else class="analysis-content slide-in">
-            <div class="result-header">
-              <h2>
-                <el-icon :color="getAnalysisTypeColor">
-                  <component :is="getAnalysisTypeIcon" />
-                </el-icon>
-                {{ getAnalysisTypeTitle }}
-              </h2>
-              <el-tag :type="getAnalysisTypeTag">{{ getAnalysisTypeLabel }}</el-tag>
-            </div>
-
             <!-- 数据摘要 -->
             <el-collapse v-if="dataSummary" class="data-summary-collapse">
               <el-collapse-item title="📊 数据摘要" name="summary">
@@ -234,7 +241,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Position, Refresh, Loading, TrendCharts,
   Food, IceTea, Setting, Clock,
-  Trophy, DataAnalysis, InfoFilled, MoreFilled, Delete, View
+  Trophy, DataAnalysis, InfoFilled, MoreFilled, Delete, View, ChatLineSquare
 } from '@element-plus/icons-vue'
 import { aiCoachApi } from '@/api/aiCoach'
 import { marked } from 'marked'
@@ -258,7 +265,7 @@ const dietDays = ref(7)
 const inputText = ref('')
 const isAiThinking = ref(false)
 const messageList = ref([
-  { role: 'ai', type: 'text', content: '你好！我是你的专属 AI 综合私教。我可以帮你分析训练和饮食数据，给出专业建议。请选择分析模式和数据范围，然后输入你的问题。' }
+  { role: 'ai', type: 'text', content: '你好！我是你的专属 AI 健身教练 💪 今天训练了吗？告诉我你的训练或饮食情况，我来帮你做专业分析！' }
 ])
 
 // 会话 ID（用于保持上下文）
@@ -366,16 +373,19 @@ const getAnalysisTypeTip = computed(() => {
   const tips = {
     training: '训练分析模式：专注于分析您的训练数据',
     diet: '饮食分析模式：专注于分析您的饮食数据',
-    comprehensive: '综合分析模式：全面分析训练和饮食数据'
+    comprehensive: '综合分析模式：全面分析训练和饮食数据',
+    chat: '闲聊模式：轻松聊天，无需数据分析'
   }
   return tips[analysisType.value]
 })
 
+// 直接使用后端返回的 analysisType（后端已根据实际数据判断报告类型）
 const getAnalysisTypeColor = computed(() => {
   const colors = {
     training: '#409EFF',
     diet: '#67C23A',
-    comprehensive: '#E6A23C'
+    comprehensive: '#E6A23C',
+    chat: '#909399'
   }
   return colors[analysisType.value]
 })
@@ -384,25 +394,22 @@ const getAnalysisTypeIcon = computed(() => {
   const icons = {
     training: Trophy,
     diet: IceTea,
-    comprehensive: DataAnalysis
+    comprehensive: DataAnalysis,
+    chat: ChatLineSquare
   }
   return icons[analysisType.value]
 })
 
 const getAnalysisTypeTitle = computed(() => {
-  const titles = {
-    training: '训练分析报告',
-    diet: '饮食分析报告',
-    comprehensive: '综合分析报告'
-  }
-  return titles[analysisType.value]
+  return '分析报告'
 })
 
 const getAnalysisTypeLabel = computed(() => {
   const labels = {
     training: '训练分析',
     diet: '饮食分析',
-    comprehensive: '综合分析'
+    comprehensive: '综合分析',
+    chat: '闲聊模式'
   }
   return labels[analysisType.value]
 })
@@ -411,7 +418,8 @@ const getAnalysisTypeTag = computed(() => {
   const tags = {
     training: '',
     diet: 'success',
-    comprehensive: 'warning'
+    comprehensive: 'warning',
+    chat: 'info'
   }
   return tags[analysisType.value]
 })
@@ -443,6 +451,11 @@ const loadSessions = async () => {
 const restoreSession = async (session) => {
   if (currentSessionId.value === session.sessionId) return
   
+  // 先清空右侧分析结果，确保不会显示旧内容
+  currentAnalysis.value = null
+  // 清空消息列表
+  messageList.value = []
+  
   try {
     // 加载该会话的聊天历史
     const history = await aiCoachApi.getChatHistory(session.sessionId, 50)
@@ -452,27 +465,39 @@ const restoreSession = async (session) => {
     analysisType.value = session.analysisType || 'comprehensive'
     currentSessionAnalysisType.value = session.analysisType || 'comprehensive'
     
-    // 清空消息列表并重新填充
-    messageList.value = []
+    // 判断是否为闲聊类型：只有当 analysisType === 'chat' 时才是闲聊
+    const isChatSession = session.analysisType === 'chat'
+    
+    // 清空分析结果
+    currentAnalysis.value = null
+    
     if (history && history.length > 0) {
-      for (const msg of history) {
+      for (let i = 0; i < history.length; i++) {
+        const msg = history[i]
         if (msg.role === 'user') {
-          // 给用户消息添加 id，用于点击事件
-          messageList.value.push({ role: 'user', type: 'text', content: msg.content, id: msg.id })
+          messageList.value.push({ role: 'user', type: 'text', content: msg.content })
         } else if (msg.role === 'assistant') {
-          messageList.value.push({ role: 'ai', type: 'text', content: '好的，让我来分析您的问题。' })
+          // 所有类型统一显示"已生成回复"，点击查看详细内容
+          messageList.value.push({ 
+            role: 'ai', 
+            type: 'text', 
+            content: '💬 已生成回复',
+            questionId: msg.id // 使用消息自己的 ID
+          })
         }
       }
     } else {
       messageList.value.push({ role: 'ai', type: 'text', content: '你好！我是你的专属 AI 综合私教。请选择分析模式和数据范围，然后输入你的问题。' })
     }
     
-    // 清空分析结果
-    currentAnalysis.value = null
+    // 滚动到最新消息
+    scrollToBottom()
     
     ElMessage.success('已恢复对话')
   } catch (error) {
     console.error('恢复会话失败:', error)
+    messageList.value = [{ role: 'ai', type: 'text', content: '恢复对话失败，请重试。' }]
+    currentAnalysis.value = null
     ElMessage.error('恢复对话失败')
   }
 }
@@ -542,6 +567,25 @@ const scrollToBottom = async () => {
   }
 }
 
+// 切换到指定分析模式并自动发送快捷提示
+const switchToAnalysisMode = (mode) => {
+  // 切换分析模式
+  analysisType.value = mode
+  currentSessionAnalysisType.value = mode
+  
+  // 根据模式设置对应的快捷提示语
+  const prompts = {
+    training: '请分析我最近的训练表现，给出改进建议',
+    diet: '请分析我的饮食习惯，帮我优化营养搭配',
+    comprehensive: '给我一个本周的训练计划'
+  }
+  
+  const prompt = prompts[mode]
+  if (prompt) {
+    sendQuickPrompt(prompt)
+  }
+}
+
 const sendQuickPrompt = (text) => {
   inputText.value = text
   handleSend()
@@ -605,11 +649,8 @@ const handleSend = async () => {
   scrollToBottom()
 
   // 添加思考中消息
-  messageList.value.push({ role: 'ai', type: 'thinking', content: '正在调取您的数据...' })
+  messageList.value.push({ role: 'ai', type: 'thinking', content: '让我想想...' })
   scrollToBottom()
-
-  // 开始 Loading 动画
-  startLoadingAnimation()
 
   try {
     // 调用 API，传入 sessionId 以保持上下文
@@ -623,21 +664,58 @@ const handleSend = async () => {
       sessionId: currentSessionId.value // 传入当前会话 ID
     })
 
-    // 停止 Loading 动画
-    stopLoadingAnimation()
-
     // 移除思考中消息
     messageList.value.pop()
 
-    // 添加 AI 回复
-    messageList.value.push({
-      role: 'ai',
-      type: 'text',
-      content: '分析完成！请查看右侧面板获取详细分析结果。'
-    })
+    // 判断响应类型
+    if (response.responseType === 'chat') {
+      // 闲聊回复：显示简短提示，点击可查看回复
+      messageList.value.push({
+        role: 'ai',
+        type: 'text',
+        content: '💬 已生成回复',
+        questionId: response.sessionId // 使用 sessionId 作为标识
+      })
+      // 保存回复内容到右侧
+      currentAnalysis.value = {
+        analysisResult: response.analysisResult || '好的，有什么我可以帮助你的吗？'
+      }
+    } else {
+      // 分析回复：开始 loading 动画，显示分析结果
+      // 添加思考中消息用于 loading
+      messageList.value.push({ role: 'ai', type: 'thinking', content: '正在调取您的数据...' })
+      scrollToBottom()
 
-    // 保存分析结果和会话 ID
-    currentAnalysis.value = response
+      // 开始 Loading 动画
+      startLoadingAnimation()
+
+      // 等待一小段时间让动画显示
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      // 停止 Loading 动画
+      stopLoadingAnimation()
+
+      // 移除思考中消息
+      messageList.value.pop()
+
+      // 添加 AI 回复 - 显示简短提示，点击可查看回复
+      messageList.value.push({
+        role: 'ai',
+        type: 'text',
+        content: '💬 已生成回复',
+        questionId: response.sessionId // 使用 sessionId 作为标识
+      })
+
+      // 保存分析结果和会话 ID
+      currentAnalysis.value = response
+      // 更新报告类型（使用后端返回的实际分析类型，而不是用户选择的模式）
+      if (response.analysisType) {
+        analysisType.value = response.analysisType
+      }
+      ElMessage.success('分析完成')
+    }
+
+    // 保存会话 ID
     if (response.sessionId) {
       currentSessionId.value = response.sessionId
       // 保存状态到 localStorage
@@ -645,11 +723,8 @@ const handleSend = async () => {
       // 刷新会话列表
       loadSessions()
     }
-
-    ElMessage.success('分析完成')
   } catch (error) {
     console.error('AI 分析失败:', error)
-    stopLoadingAnimation()
     messageList.value.pop()
     messageList.value.push({
       role: 'ai',
@@ -670,22 +745,38 @@ onMounted(async () => {
   // 尝试恢复之前的会话状态
   const restored = restoreSessionState()
   if (restored && currentSessionId.value) {
+    // 先清空右侧分析结果，确保不会显示旧内容
+    currentAnalysis.value = null
+    messageList.value = []
+    
     // 异步加载聊天历史，但不阻塞页面
     try {
       const history = await aiCoachApi.getChatHistory(currentSessionId.value, 50)
       if (history && history.length > 0) {
-        messageList.value = []
+        // 判断是否为闲聊类型：只有当 analysisType === 'chat' 时才是闲聊
+        const isChatSession = analysisType.value === 'chat'
+        
         for (const msg of history) {
           if (msg.role === 'user') {
-            // 给用户消息添加 id，用于点击事件
-            messageList.value.push({ role: 'user', type: 'text', content: msg.content, id: msg.id })
+            messageList.value.push({ role: 'user', type: 'text', content: msg.content })
           } else if (msg.role === 'assistant') {
-            messageList.value.push({ role: 'ai', type: 'text', content: '好的，让我来分析您的问题。' })
+            // 所有类型统一显示"已生成回复"，点击查看详细内容
+            messageList.value.push({ 
+              role: 'ai', 
+              type: 'text', 
+              content: '💬 已生成回复',
+              questionId: msg.id // 使用消息自己的 ID
+            })
           }
         }
+        
+        // 滚动到最新消息
+        scrollToBottom()
       }
     } catch (e) {
       console.error('恢复聊天历史失败:', e)
+      messageList.value = [{ role: 'ai', type: 'text', content: '恢复对话失败，请刷新页面重试。' }]
+      currentAnalysis.value = null
     }
   }
 })
@@ -1002,6 +1093,19 @@ onMounted(async () => {
   box-shadow: 0 6px 16px rgba(64, 158, 255, 0.3);
 }
 
+/* AI 消息可点击样式 */
+.message-item.ai .message-bubble.clickable {
+  cursor: pointer;
+  transition: all 0.2s;
+  border-left-width: 4px;
+}
+
+.message-item.ai .message-bubble.clickable:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 16px rgba(64, 158, 255, 0.2);
+  border-left-color: #67C23A;
+}
+
 .click-hint {
   display: flex;
   align-items: center;
@@ -1012,7 +1116,8 @@ onMounted(async () => {
   opacity: 0.7;
 }
 
-.message-item.user:hover .click-hint {
+.message-item.user:hover .click-hint,
+.message-item.ai:hover .click-hint {
   opacity: 1;
   color: #409EFF;
 }
@@ -1139,6 +1244,48 @@ onMounted(async () => {
   font-size: 48px;
   margin-bottom: 20px;
   animation: float 3s ease-in-out infinite;
+}
+
+.empty-hint {
+  font-size: 14px;
+  color: #606266;
+  text-align: center;
+  max-width: 300px;
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+
+.empty-suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 280px;
+}
+
+.suggestion-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  background: #fff;
+  border: 1px solid #ebeef5;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 14px;
+  color: #303133;
+}
+
+.suggestion-item:hover {
+  border-color: #409EFF;
+  background: #ecf5ff;
+  transform: translateX(4px);
+}
+
+.suggestion-item .el-icon {
+  font-size: 20px;
+  color: #409EFF;
 }
 
 .loading-icon {

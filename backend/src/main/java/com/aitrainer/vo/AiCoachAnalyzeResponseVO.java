@@ -16,6 +16,9 @@ import lombok.NoArgsConstructor;
 @Schema(description = "AI 私教分析结果")
 public class AiCoachAnalyzeResponseVO {
 
+    @Schema(description = "响应类型：chat-闲聊回复, analysis-分析报告")
+    private String responseType;
+
     @Schema(description = "分析类型：training-训练分析, diet-饮食分析, comprehensive-综合分析")
     private String analysisType;
 

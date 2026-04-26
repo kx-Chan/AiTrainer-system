@@ -27,7 +27,7 @@ public class AiCoachSessionVO {
     private String title;
 
     /**
-     * 分析类型：training-训练分析, diet-饮食分析, comprehensive-综合分析。
+     * 分析类型：training-训练分析, diet-饮食分析, comprehensive-综合分析, chat-闲聊。
      */
     private String analysisType;
 

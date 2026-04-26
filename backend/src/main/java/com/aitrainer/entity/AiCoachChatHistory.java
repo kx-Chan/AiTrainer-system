@@ -45,9 +45,15 @@ public class AiCoachChatHistory {
     private String content;
 
     /**
-     * 分析类型：training-训练分析, diet-饮食分析, comprehensive-综合分析。
+     * 分析类型：training-训练分析, diet-饮食分析, comprehensive-综合分析, chat-闲聊。
      */
     private String analysisType;
+
+    /**
+     * 关联提问的消息 ID。
+     * 用于建立问答之间的显式血缘关系，避免"猜"主人。
+     */
+    private Long replyTo;
 
     /**
      * 创建时间。
