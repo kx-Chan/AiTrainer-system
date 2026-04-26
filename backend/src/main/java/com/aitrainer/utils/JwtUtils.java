@@ -38,10 +38,23 @@ public final class JwtUtils {
      * @return JWT 令牌。
      */
     public String generateToken(final Long userId, final String username) {
-        log.info("正在为用户 {} (ID: {}) 生成令牌", username, userId);
+        return generateToken(userId, username, 0);
+    }
+
+    /**
+     * 为指定用户生成 JWT 令牌（带 tokenVersion）。
+     *
+     * @param userId       用户 ID。
+     * @param username     用户名。
+     * @param tokenVersion Token 版本号。
+     * @return JWT 令牌。
+     */
+    public String generateToken(final Long userId, final String username, final Integer tokenVersion) {
+        log.info("正在为用户 {} (ID: {}) 生成令牌，版本: {}", username, userId, tokenVersion);
         return Jwts.builder()
                 .setSubject(username)
                 .claim("userId", userId)
+                .claim("tokenVersion", tokenVersion != null ? tokenVersion : 0)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(key, SignatureAlgorithm.HS256)
@@ -82,5 +95,16 @@ public final class JwtUtils {
      */
     public Long getUserIdFromToken(final String token) {
         return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody().get("userId", Long.class);
+    }
+
+    /**
+     * 从 JWT 令牌中提取 Token 版本号。
+     *
+     * @param token JWT 令牌。
+     * @return Token 版本号，默认为 0。
+     */
+    public Integer getTokenVersionFromToken(final String token) {
+        Integer version = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody().get("tokenVersion", Integer.class);
+        return version != null ? version : 0;
     }
 }

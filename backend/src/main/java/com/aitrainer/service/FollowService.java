@@ -50,4 +50,11 @@ public interface FollowService {
      * @return
      */
     Boolean checkIfFollowing(Long currentUserId, Long targetUserId);
+
+    /**
+     * 解绑用户的所有关注关系（注销时调用）
+     * 包括：删除该用户的关注记录、删除该用户的粉丝记录
+     * @param userId 用户 ID
+     */
+    void unbindAllFollowRelations(Long userId);
 }

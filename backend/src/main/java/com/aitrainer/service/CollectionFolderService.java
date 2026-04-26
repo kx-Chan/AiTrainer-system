@@ -55,4 +55,11 @@ public interface CollectionFolderService {
      * @return
      */
     List<FolderVO> listPublicFoldersByUserId(Long targetUserId);
+
+    /**
+     * 删除用户所有非默认收藏夹（注销时调用）
+     * 默认收藏夹将设置为私密（is_public=0）
+     * @param userId 用户ID
+     */
+    void deleteNonDefaultFoldersForUser(Long userId);
 }

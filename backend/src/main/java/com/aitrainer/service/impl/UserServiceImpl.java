@@ -4,6 +4,8 @@ import com.aitrainer.common.constant.MessageConstant;
 import com.aitrainer.common.exception.BusinessException;
 import com.aitrainer.dto.RegisterRequestDTO;
 import com.aitrainer.service.CollectionFolderService;
+import com.aitrainer.service.FollowService;
+import com.aitrainer.service.ProfileService;
 import com.aitrainer.utils.JwtUtils;
 import com.aitrainer.dto.LoginRequestDTO;
 import com.aitrainer.mapper.UserMapper;
@@ -12,6 +14,7 @@ import com.aitrainer.service.UserService;
 import com.aitrainer.service.VerificationService;
 import com.aitrainer.vo.LoginVO;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -33,6 +36,8 @@ public class UserServiceImpl implements UserService {
     private final JwtUtils jwtUtils;
     private final VerificationService verificationService;
     private final CollectionFolderService collectionFolderService;
+    private final FollowService followService;
+    private final ProfileService profileService;
 
     /**
      * 验证用户身份并返回登录视图对象。
@@ -277,5 +282,73 @@ public class UserServiceImpl implements UserService {
     @Override
     public void updateById(User user) {
         userMapper.updateById(user);
+    }
+
+    /**
+     * 注销用户账户（敏感数据脱敏 + Token失效）
+     *
+     * @param userId   用户 ID。
+     * @param password 密码（用于验证身份）。
+     */
+    @Override
+    @Transactional
+    public void deactivateAccount(final Long userId, final String password) {
+        log.info("开始注销用户账户: {}", userId);
+
+        // 1. 获取用户
+        final User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw BusinessException.notFound(MessageConstant.USER_NOT_FOUND);
+        }
+
+        // 2. 检查是否已注销
+        if (user.getStatus() != null && user.getStatus() == -1) {
+            throw BusinessException.badRequest(MessageConstant.ACCOUNT_ALREADY_DEACTIVATED);
+        }
+
+        // 3. 验证密码
+        if (!passwordEncoder.matches(password, user.getPasswordHash())) {
+            throw BusinessException.badRequest(MessageConstant.PASSWORD_INCORRECT);
+        }
+
+        // 4. 解绑社交关系链
+        followService.unbindAllFollowRelations(userId);
+
+        // 5. 清理收藏夹（删除非默认收藏夹，设置默认收藏夹为私密）
+        collectionFolderService.deleteNonDefaultFoldersForUser(userId);
+
+        // 6. 更新用户昵称为"该用户已注销"（UserProfile 表）
+        profileService.updateNickname(userId, "该用户已注销");
+
+        // 7. 使用 LambdaUpdateWrapper 进行精确更新
+        String randomSalt = String.valueOf(System.currentTimeMillis()) + "_" + String.valueOf((int)(Math.random() * 10000));
+        LambdaUpdateWrapper<User> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(User::getId, userId)
+                .set(User::getUsername, "deleted_" + userId + "_" + randomSalt)
+                .set(User::getEmail, "deleted_" + userId + "@deleted.com")
+                .set(User::getPasswordHash, passwordEncoder.encode(randomSalt))
+                .set(User::getAvatar, null) // 👈 这样写，MyBatis Plus 才会强制更新为 null
+                .set(User::getStatus, -1)
+                .set(User::getFollowingCount, 0)
+                .set(User::getFollowerCount, 0)
+                .set(User::getTokenVersion, (user.getTokenVersion() != null ? user.getTokenVersion() : 0) + 1)
+                .set(User::getUpdatedAt, LocalDateTime.now());
+
+        userMapper.update(null, updateWrapper);
+
+        log.info("用户 {} 账户注销成功", userId);
+    }
+
+    /**
+     * 检查用户是否已注销
+     *
+     * @param userId 用户 ID。
+     * @return 已注销返回 true。
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public boolean isDeactivated(final Long userId) {
+        final User user = userMapper.selectById(userId);
+        return user != null && user.getStatus() != null && user.getStatus() == -1;
     }
 }

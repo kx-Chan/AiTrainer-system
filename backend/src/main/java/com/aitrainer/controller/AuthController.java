@@ -1,5 +1,6 @@
 package com.aitrainer.controller;
 
+import com.aitrainer.dto.DeactivateAccountDTO;
 import com.aitrainer.dto.LoginRequestDTO;
 import com.aitrainer.dto.RegisterRequestDTO;
 import com.aitrainer.dto.ChangePasswordDTO;
@@ -128,5 +129,29 @@ public final class AuthController {
     @GetMapping("/check-email")
     public Result<Boolean> checkEmail(@RequestParam String email) {
         return Result.success(userService.checkEmailExists(email));
+    }
+
+    /**
+     * 注销用户账户。
+     * <p>
+     * 注销后会：
+     * 1. 敏感数据脱敏（邮箱、密码、头像等）
+     * 2. 解绑社交关系链（关注/粉丝）
+     * 3. 使所有 Token 失效
+     * </p>
+     *
+     * @param authentication 认证信息。
+     * @param request        注销请求（包含密码用于验证身份）。
+     * @return 统一响应载体。
+     */
+    @Operation(summary = "注销账户", description = "注销用户账户，清除敏感数据并使所有Token失效")
+    @PostMapping("/deactivate")
+    public Result<String> deactivateAccount(
+            final Authentication authentication,
+            @Validated @RequestBody final DeactivateAccountDTO request) {
+        final CustomUser user = (CustomUser) authentication.getPrincipal();
+        log.info("收到账户注销请求: userId={}", user.getId());
+        userService.deactivateAccount(user.getId(), request.getPassword());
+        return Result.success(MessageConstant.DEACTIVATION_SUCCESS);
     }
 }

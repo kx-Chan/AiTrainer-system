@@ -68,4 +68,10 @@ public final class MessageConstant {
     public static final String EXTRA_EXERCISE_UPDATE_FORBIDDEN = "权限不足，无法编辑该额外运动记录";
     public static final String EXTRA_EXERCISE_DELETE_FORBIDDEN = "权限不足，无法删除该额外运动记录";
 
+    // --- 用户注销相关 ---
+    public static final String ACCOUNT_ALREADY_DEACTIVATED = "该账号已注销";
+    public static final String USER_DEACTIVATED = "账号已注销，无法执行此操作";
+    public static final String DEACTIVATION_PASSWORD_INCORRECT = "密码错误，无法注销账号";
+    public static final String DEACTIVATION_SUCCESS = "账号已成功注销";
+
 }

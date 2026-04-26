@@ -42,4 +42,10 @@ public class UserSpaceVO {
 
     @Schema(description = "当前登录用户是否已关注此人")
     private Boolean isFollowing;
+
+    @Schema(description = "用户状态：-1表示已注销")
+    private Integer status;
+
+    @Schema(description = "是否已注销")
+    private Boolean deactivated;
 }

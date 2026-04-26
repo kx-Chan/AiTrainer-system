@@ -5,10 +5,10 @@ import com.aitrainer.common.exception.BusinessException;
 import com.aitrainer.entity.User;
 import com.aitrainer.entity.UserFollows;
 import com.aitrainer.mapper.UserFollowsMapper;
+import com.aitrainer.mapper.UserMapper;
 import com.aitrainer.service.FollowService;
 import com.aitrainer.service.OssService;
 import com.aitrainer.service.ProfileService;
-import com.aitrainer.service.UserService;
 import com.aitrainer.vo.FollowUserVO;
 import com.aitrainer.vo.PageResultVO;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -33,7 +33,7 @@ public class FollowServiceImpl implements FollowService {
     private static final String DEFAULT_AVATAR_URL = "https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png";
 
     private final UserFollowsMapper userFollowsMapper;
-    private final UserService userService;
+    private final UserMapper userMapper;
     private final ProfileService profileService;
     private final OssService ossService;
 
@@ -54,7 +54,7 @@ public class FollowServiceImpl implements FollowService {
                 .orderByDesc(UserFollows::getCreatedAt);
         userFollowsMapper.selectPage(mpPage, wrapper);
         // 先从 User 实体类拿到这个 count
-        final User self = userService.getById(userId);
+        final User self = userMapper.selectById(userId);
         long totalCount = self == null || self.getFollowingCount() == null ? 0 : self.getFollowingCount();
 
         // 把被关注者的id取出来，放在一个list
@@ -85,7 +85,7 @@ public class FollowServiceImpl implements FollowService {
                 .eq(UserFollows::getFollowedId, userId)
                 .orderByDesc(UserFollows::getCreatedAt);
         userFollowsMapper.selectPage(mpPage, wrapper);
-        final User self = userService.getById(userId);
+        final User self = userMapper.selectById(userId);
         long totalCount = self == null || self.getFollowerCount() == null ? 0 : self.getFollowerCount();
 
         final List<Long> ids = mpPage.getRecords().stream()
@@ -133,6 +133,15 @@ public class FollowServiceImpl implements FollowService {
             throw BusinessException.badRequest(MessageConstant.CANNOT_FOLLOW_SELF);
         }
 
+        // 检查目标用户是否已注销
+        final User targetUser = userMapper.selectById(targetUserId);
+        if (targetUser == null) {
+            throw BusinessException.notFound(MessageConstant.USER_NOT_FOUND);
+        }
+        if (targetUser.getStatus() != null && targetUser.getStatus() == -1) {
+            throw BusinessException.badRequest(MessageConstant.USER_DEACTIVATED);
+        }
+
         final Long count = userFollowsMapper.selectCount(new LambdaQueryWrapper<UserFollows>()
                 .eq(UserFollows::getFollowerId, userId)
                 .eq(UserFollows::getFollowedId, targetUserId));
@@ -146,17 +155,24 @@ public class FollowServiceImpl implements FollowService {
                 .createdAt(LocalDateTime.now())
                 .build());
 
-        final User follower = userService.getById(userId);
+        // 直接使用 userMapper 避免循环依赖
+        final User follower = userMapper.selectById(userId);
         if (follower == null) {
             throw BusinessException.notFound(MessageConstant.USER_NOT_FOUND);
         }
-        final User followed = userService.getById(targetUserId);
+        final User followed = userMapper.selectById(targetUserId);
         if (followed == null) {
             throw BusinessException.notFound(MessageConstant.USER_NOT_FOUND);
         }
 
-        userService.increaseFollowingCount(userId);
-        userService.increaseFollowerCount(targetUserId);
+        // 直接更新数据库
+        final int newFollowing = (follower.getFollowingCount() != null ? follower.getFollowingCount() : 0) + 1;
+        follower.setFollowingCount(newFollowing);
+        userMapper.updateById(follower);
+
+        final int newFollower = (followed.getFollowerCount() != null ? followed.getFollowerCount() : 0) + 1;
+        followed.setFollowerCount(newFollower);
+        userMapper.updateById(followed);
     }
 
     /**
@@ -189,17 +205,24 @@ public class FollowServiceImpl implements FollowService {
                 .eq(UserFollows::getFollowerId, userId)
                 .eq(UserFollows::getFollowedId, targetUserId));
 
-        final User follower = userService.getById(userId);
+        // 直接使用 userMapper 避免循环依赖
+        final User follower = userMapper.selectById(userId);
         if (follower == null) {
             throw BusinessException.notFound(MessageConstant.USER_NOT_FOUND);
         }
-        final User followed = userService.getById(targetUserId);
+        final User followed = userMapper.selectById(targetUserId);
         if (followed == null) {
             throw BusinessException.notFound(MessageConstant.USER_NOT_FOUND);
         }
 
-        userService.decreaseFollowingCount(userId);
-        userService.decreaseFollowerCount(targetUserId);
+        // 直接更新数据库
+        final int newFollowing = Math.max(0, (follower.getFollowingCount() != null ? follower.getFollowingCount() : 0) - 1);
+        follower.setFollowingCount(newFollowing);
+        userMapper.updateById(follower);
+
+        final int newFollower = Math.max(0, (followed.getFollowerCount() != null ? followed.getFollowerCount() : 0) - 1);
+        followed.setFollowerCount(newFollower);
+        userMapper.updateById(followed);
     }
 
     /**
@@ -247,8 +270,8 @@ public class FollowServiceImpl implements FollowService {
             return List.of();
         }
 
-        // 获取user对象列表
-        final List<User> users = userService.listByIds(userIds);
+        // 获取user对象列表（直接使用userMapper避免循环依赖）
+        final List<User> users = userMapper.selectBatchIds(userIds);
         final Map<Long, User> userMap = new HashMap<>();
         for (final User u : users) {
             userMap.put(u.getId(), u);
@@ -294,5 +317,62 @@ public class FollowServiceImpl implements FollowService {
             return DEFAULT_AVATAR_URL;
         }
         return url;
+    }
+
+    /**
+     * 解绑用户的所有关注关系（注销时调用）
+     * 包括：删除该用户的关注记录、删除该用户的粉丝记录
+     * @param userId 用户 ID
+     */
+    @Override
+    @Transactional
+    public void unbindAllFollowRelations(final Long userId) {
+        if (userId == null) {
+            return;
+        }
+
+        // 1. 获取该用户关注的所有人，需要减少他们的粉丝数
+        final List<Long> followedIds = userFollowsMapper.selectList(
+                new LambdaQueryWrapper<UserFollows>()
+                        .eq(UserFollows::getFollowerId, userId))
+                .stream()
+                .map(UserFollows::getFollowedId)
+                .toList();
+
+        // 2. 获取该用户的所有粉丝，需要减少他们的关注数
+        final List<Long> followerIds = userFollowsMapper.selectList(
+                new LambdaQueryWrapper<UserFollows>()
+                        .eq(UserFollows::getFollowedId, userId))
+                .stream()
+                .map(UserFollows::getFollowerId)
+                .toList();
+
+        // 3. 减少被关注用户的粉丝数（直接操作数据库，避免循环依赖）
+        for (final Long followedId : followedIds) {
+            final User user = userMapper.selectById(followedId);
+            if (user != null) {
+                final int newCount = Math.max(0, (user.getFollowerCount() != null ? user.getFollowerCount() : 0) - 1);
+                user.setFollowerCount(newCount);
+                userMapper.updateById(user);
+            }
+        }
+
+        // 4. 减少粉丝用户的关注数（直接操作数据库，避免循环依赖）
+        for (final Long followerId : followerIds) {
+            final User user = userMapper.selectById(followerId);
+            if (user != null) {
+                final int newCount = Math.max(0, (user.getFollowingCount() != null ? user.getFollowingCount() : 0) - 1);
+                user.setFollowingCount(newCount);
+                userMapper.updateById(user);
+            }
+        }
+
+        // 5. 删除该用户的所有关注记录（作为关注者）
+        userFollowsMapper.delete(new LambdaQueryWrapper<UserFollows>()
+                .eq(UserFollows::getFollowerId, userId));
+
+        // 6. 删除该用户的所有粉丝记录（作为被关注者）
+        userFollowsMapper.delete(new LambdaQueryWrapper<UserFollows>()
+                .eq(UserFollows::getFollowedId, userId));
     }
 }

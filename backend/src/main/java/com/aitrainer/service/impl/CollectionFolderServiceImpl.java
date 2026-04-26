@@ -315,6 +315,36 @@ public class CollectionFolderServiceImpl implements CollectionFolderService {
     }
 
     /**
+     * 删除用户所有非默认收藏夹（注销时调用）
+     * 默认收藏夹将设置为私密（is_public=0）
+     * @param userId 用户ID
+     */
+    @Override
+    @Transactional
+    public void deleteNonDefaultFoldersForUser(final Long userId) {
+        if (userId == null) {
+            return;
+        }
+        
+        log.info("开始清理用户 {} 的收藏夹", userId);
+        
+        // 1. 逻辑删除所有非默认收藏夹
+        LambdaQueryWrapper<CollectionFolder> deleteWrapper = new LambdaQueryWrapper<>();
+        deleteWrapper.eq(CollectionFolder::getUserId, userId)
+                .eq(CollectionFolder::getIsDefault, 0); // 非默认收藏夹
+        int deletedCount = folderMapper.delete(deleteWrapper);
+        
+        // 2. 将默认收藏夹设置为私密（is_public=0）
+        LambdaUpdateWrapper<CollectionFolder> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(CollectionFolder::getUserId, userId)
+                .eq(CollectionFolder::getIsDefault, 1) // 默认收藏夹
+                .set(CollectionFolder::getIsPublic, 0); // 设置为私密
+        folderMapper.update(null, updateWrapper);
+        
+        log.info("用户 {} 收藏夹清理完成：删除 {} 个非默认收藏夹，默认收藏夹已设为私密", userId, deletedCount);
+    }
+
+    /**
      * 私有辅助方法：直接通过 Mapper 批量获取文件夹内的推文数量
      */
     private Map<Long, Integer> batchFetchItemCounts(List<Long> folderIds) {

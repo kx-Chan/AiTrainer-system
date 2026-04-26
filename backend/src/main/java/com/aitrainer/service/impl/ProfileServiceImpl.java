@@ -11,8 +11,8 @@ import com.aitrainer.service.ProfileService;
 import com.aitrainer.service.UserService;
 import com.aitrainer.dto.OnboardingProfileDTO;
 import com.aitrainer.vo.UserProfileVO;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,7 +22,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class ProfileServiceImpl implements ProfileService {
 
     private static final String DEFAULT_AVATAR_URL = "https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png";
@@ -30,6 +29,14 @@ public class ProfileServiceImpl implements ProfileService {
     private final UserService userService;
     private final UserProfileMapper userProfileMapper;
     private final OssService ossService;
+
+    public ProfileServiceImpl(@Lazy UserService userService, 
+                              UserProfileMapper userProfileMapper, 
+                              OssService ossService) {
+        this.userService = userService;
+        this.userProfileMapper = userProfileMapper;
+        this.ossService = ossService;
+    }
 
     /**
      * 保存用户初始信息
@@ -169,6 +176,32 @@ public class ProfileServiceImpl implements ProfileService {
         final List<UserProfile> list = userProfileMapper.selectList(
                 new LambdaQueryWrapper<UserProfile>().like(UserProfile::getNickname, keyword));
         return list.stream().map(UserProfile::getUserId).toList();
+    }
+
+    /**
+     * 更新用户昵称（用于注销时设置"该用户已注销"）
+     * @param userId   用户 ID。
+     * @param nickname 新昵称。
+     */
+    @Override
+    @Transactional
+    public void updateNickname(final Long userId, final String nickname) {
+        final UserProfile profile = userProfileMapper.selectById(userId);
+        if (profile != null) {
+            profile.setNickname(nickname);
+            profile.setUpdatedAt(LocalDateTime.now());
+            userProfileMapper.updateById(profile);
+            log.info("已更新用户 ID: {} 的昵称为: {}", userId, nickname);
+        } else {
+            // 如果用户资料不存在，创建一条新的
+            final UserProfile newProfile = UserProfile.builder()
+                    .userId(userId)
+                    .nickname(nickname)
+                    .updatedAt(LocalDateTime.now())
+                    .build();
+            userProfileMapper.insert(newProfile);
+            log.info("已为用户 ID: {} 创建资料并设置昵称为: {}", userId, nickname);
+        }
     }
 
     private String resolveAvatarUrl(final String objectKey) {

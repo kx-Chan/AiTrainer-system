@@ -47,4 +47,12 @@ public interface ProfileService {
      * @return 用户ID列表
      */
     java.util.List<Long> searchUserIdsByNicknameLike(String keyword);
+
+    /**
+     * 更新用户昵称（用于注销时设置"该用户已注销"）
+     *
+     * @param userId   用户 ID。
+     * @param nickname 新昵称。
+     */
+    void updateNickname(Long userId, String nickname);
 }

@@ -1,10 +1,13 @@
 package com.aitrainer.controller;
 
+import com.aitrainer.common.constant.MessageConstant;
+import com.aitrainer.common.exception.BusinessException;
 import com.aitrainer.common.result.Result;
 import com.aitrainer.common.security.CustomUser;
 import com.aitrainer.service.FollowService;
 import com.aitrainer.service.PrivacyService;
 import com.aitrainer.service.UserDynamicsService;
+import com.aitrainer.service.UserService;
 import com.aitrainer.service.UserSpaceService;
 import com.aitrainer.vo.*;
 import io.swagger.v3.oas.annotations.Operation;
@@ -31,6 +34,18 @@ public final class UserSpaceController {
     private final FollowService followService;
     private final UserDynamicsService userDynamicsService;
     private final PrivacyService  privacyService;
+    private final UserService userService;
+
+    /**
+     * 检查目标用户是否已注销，如果已注销则抛出异常。
+     *
+     * @param userId 用户 ID
+     */
+    private void checkUserNotDeactivated(final Long userId) {
+        if (userService.isDeactivated(userId)) {
+            throw BusinessException.badRequest(MessageConstant.USER_DEACTIVATED);
+        }
+    }
 
     @Operation(summary = "获取用户空间资料", description = "访问他人或自己的空间主页资料，包含关注状态判断")
     @GetMapping("/{userId}/profile")
@@ -41,7 +56,16 @@ public final class UserSpaceController {
         final CustomUser currentUser = (CustomUser) authentication.getPrincipal();
         log.info("用户 {} 正在访问用户 {} 的空间", currentUser.getId(), userId);
 
+        // 检查目标用户是否已注销，如果已注销则返回特殊标记
+        final boolean isDeactivated = userService.isDeactivated(userId);
+        
         final UserSpaceVO vo = userSpaceService.getSpaceProfile(currentUser.getId(), userId);
+        
+        // 如果目标用户已注销，设置特殊标记让前端显示空白状态
+        if (isDeactivated) {
+            vo.setDeactivated(true);
+        }
+        
         return Result.success(vo);
     }
 

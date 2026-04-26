@@ -10,8 +10,7 @@
         <div class="user-details">
           <div class="name-row">
             <h2 class="user-name">{{ userInfo.nickname || '用户' }}</h2>
-            <el-tag v-if="userInfo.goal" type="warning" effect="light" round size="small">目标: {{ userInfo.goal
-              }}</el-tag>
+            <el-tag v-if="userInfo.goal" type="warning" effect="light" round size="small">目标: {{ GOAL_LABELS[userInfo.goal] || userInfo.goal || '未设置' }}</el-tag>
             <el-tag v-if="userInfo.isPro" type="warning" size="small" effect="dark" round>PRO</el-tag>
 
             <div class="action-btns">
@@ -19,7 +18,7 @@
                 <el-button round plain @click="editProfile">编辑资料</el-button>
                 <el-button circle icon="Setting" @click="router.push('/settings')" />
               </template>
-              <template v-else>
+              <template v-else-if="!isDeactivated">
                 <el-button :type="userInfo.isFollowing ? 'info' : 'primary'" round :loading="followLoading"
                   :disabled="followLoading" @click="handleFollow">
                   {{ userInfo.isFollowing ? '已关注' : '+ 关注' }}
@@ -105,7 +104,7 @@
             </el-radio-group>
           </div>
 
-          <div v-if="!isMe" class="message-input-area">
+          <div v-if="!isMe && !isDeactivated" class="message-input-area">
             <el-input v-model="newGuestbookContent" type="textarea" :rows="3" placeholder="给空间主人留言..." maxlength="200"
               show-word-limit />
             <div class="input-actions">
@@ -113,6 +112,10 @@
                 @click="submitGuestbook">发布留言</el-button>
             </div>
           </div>
+
+          <!-- 已注销用户提示 -->
+          <el-alert v-if="isDeactivated && !isMe" type="warning" show-icon :closable="false"
+            title="该用户已注销账号" description="此账号已被注销，无法进行关注、留言等操作。" style="margin-bottom: 16px;" />
 
           <div v-loading="guestbookLoading" class="message-list">
             <el-empty v-if="guestbookList.length === 0" description="暂无留言" />
@@ -181,11 +184,25 @@ import PostItem from '@/components/community/PostItem.vue'
 import request from '@/utils/request'
 import { workoutApi } from '@/api/workout'
 
+// 目标标签映射
+const GOAL_LABELS = {
+  lose: '减脂降重',
+  gain: '增肌塑形',
+  maintain: '保持身材'
+}
+
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const targetUserId = computed(() => route.params.id)
 const isMe = computed(() => userStore.userId === Number(targetUserId.value))
+
+// 判断用户是否已注销（status = -1 或 deactivated = true）
+const isDeactivated = computed(() => 
+  userInfo.value?.status === -1 || 
+  userInfo.value?.deactivated === true ||
+  userInfo.value?.nickname === '该用户已注销'
+)
 
 
 const activeTab = ref('posts')

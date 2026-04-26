@@ -79,4 +79,14 @@ public class User {
      * 软删除标记。
      */
     private LocalDateTime deletedAt;
+
+    /**
+     * 用户状态：0-正常，-1-已注销
+     */
+    private Integer status;
+
+    /**
+     * Token版本号，用于注销时使旧Token失效
+     */
+    private Integer tokenVersion;
 }

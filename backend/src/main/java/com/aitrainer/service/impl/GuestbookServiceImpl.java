@@ -8,6 +8,7 @@ import com.aitrainer.entity.Guestbook;
 import com.aitrainer.mapper.GuestbookMapper;
 import com.aitrainer.service.GuestbookService;
 import com.aitrainer.service.ProfileService;
+import com.aitrainer.service.UserService;
 import com.aitrainer.vo.GuestbookVO;
 import com.aitrainer.vo.PageResultVO;
 import com.aitrainer.vo.UserProfileVO;
@@ -31,6 +32,7 @@ public class GuestbookServiceImpl implements GuestbookService {
 
     private final GuestbookMapper guestbookMapper;
     private final ProfileService profileService; // 用于获取留言者的头像和昵称
+    private final UserService userService; // 用于检查用户是否已注销
 
     /**
      * 获取收到的留言的分页查询
@@ -106,6 +108,12 @@ public class GuestbookServiceImpl implements GuestbookService {
         if (fromUserId.equals(dto.toUserId())) {
             throw BusinessException.badRequest(MessageConstant.CANNOT_LEAVE_MSG_TO_SELF);
         }
+        
+        // 检查目标用户是否已注销
+        if (userService.isDeactivated(dto.toUserId())) {
+            throw BusinessException.badRequest(MessageConstant.USER_DEACTIVATED);
+        }
+        
         Guestbook msg = new Guestbook();
         msg.setFromUserId(fromUserId);
         msg.setToUserId(dto.toUserId());

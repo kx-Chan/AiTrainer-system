@@ -108,4 +108,21 @@ public interface UserService {
      * @param user
      */
     void updateById(User user);
+
+    /**
+     * 注销用户账户（敏感数据脱敏 + Token失效）
+     *
+     * @param userId      用户 ID。
+     * @param password    密码（用于验证身份）。
+     * @return 注销是否成功。
+     */
+    void deactivateAccount(Long userId, String password);
+
+    /**
+     * 检查用户是否已注销
+     *
+     * @param userId 用户 ID。
+     * @return 已注销返回 true。
+     */
+    boolean isDeactivated(Long userId);
 }

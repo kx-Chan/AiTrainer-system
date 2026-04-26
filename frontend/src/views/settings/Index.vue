@@ -91,7 +91,7 @@
                 <span class="title">注销账号</span>
                 <span class="desc">此操作不可逆，将永久删除您的所有数据。</span>
               </div>
-              <el-button type="danger" plain>注销</el-button>
+              <el-button type="danger" plain :loading="isDeactivating" @click="handleDeactivateAccount">注销</el-button>
             </div>
           </div>
         </el-tab-pane>
@@ -103,10 +103,11 @@
 <script setup>
 import { reactive, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { Lock, Key, CircleCheck, View, DArrowRight } from '@element-plus/icons-vue'
 import request from '@/utils/request'
 import { privacyApi } from '@/api/userSpace'
+import { authApi } from '@/api/auth'
 
 const router = useRouter()
 
@@ -213,6 +214,53 @@ const savePrivacySettings = async () => {
 onMounted(() => {
   fetchPrivacySettings()
 })
+
+// 注销账号处理
+const isDeactivating = ref(false)
+
+const handleDeactivateAccount = async () => {
+  try {
+    // 弹出确认对话框，要求用户输入密码
+    const { value: password } = await ElMessageBox.prompt(
+      '请输入您的密码以确认注销账号（此操作不可逆）',
+      '注销账号确认',
+      {
+        confirmButtonText: '确认注销',
+        cancelButtonText: '取消',
+        inputType: 'password',
+        confirmButtonClass: 'el-button--danger',
+        beforeClose: (action, instance, done) => {
+          if (action === 'confirm') {
+            if (!instance.inputValue) {
+              ElMessage.warning('请输入密码')
+              return
+            }
+            done()
+          } else {
+            done()
+          }
+        }
+      }
+    )
+
+    if (!password) return
+
+    isDeactivating.value = true
+    await authApi.deactivateAccount({ password })
+
+    ElMessage.success('账号已注销，感谢您的使用')
+    // 清除本地存储的token
+    localStorage.removeItem('jwt_token')
+    // 跳转到登录页
+    router.push('/login')
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('注销失败:', error)
+    }
+  } finally {
+    isDeactivating.value = false
+  }
+}
 </script>
 
 <style scoped>
