@@ -131,8 +131,10 @@ public class AiCoachServiceImpl implements AiCoachService {
             final String analysisType) {
         
         String response;
+        boolean isSuccess = false;
         try {
             response = aiCoachChatAgent.chat(question, profileDataSummary);
+            isSuccess = true;
         } catch (final Exception e) {
             log.error("闲聊回复生成失败", e);
             response = "你好！我是你的专属 AI 健身教练。有什么我可以帮助你的吗？";
@@ -141,17 +143,19 @@ public class AiCoachServiceImpl implements AiCoachService {
         // 闲聊模式固定使用 "chat" 作为 analysisType
         final String chatAnalysisType = "chat";
 
-        // 保存对话历史（建立血缘关系）
-        try {
-            // 保存用户提问，获取提问消息的 ID
-            final AiCoachChatHistory userMessage = chatHistoryService.saveMessage(
-                    userId, sessionId, "user", question, chatAnalysisType, null);
-            
-            // 保存 AI 回复，关联到用户提问
-            chatHistoryService.saveMessage(
-                    userId, sessionId, "assistant", response, chatAnalysisType, userMessage.getId());
-        } catch (final Exception e) {
-            log.error("保存聊天历史失败", e);
+        // 只有在成功获取回复时才保存对话历史
+        if (isSuccess) {
+            try {
+                // 保存用户提问，获取提问消息的 ID
+                final AiCoachChatHistory userMessage = chatHistoryService.saveMessage(
+                        userId, sessionId, "user", question, chatAnalysisType, null);
+                
+                // 保存 AI 回复，关联到用户提问
+                chatHistoryService.saveMessage(
+                        userId, sessionId, "assistant", response, chatAnalysisType, userMessage.getId());
+            } catch (final Exception e) {
+                log.error("保存聊天历史失败", e);
+            }
         }
 
         return AiCoachAnalyzeResponseVO.builder()
@@ -192,6 +196,7 @@ public class AiCoachServiceImpl implements AiCoachService {
 
         // 5. 根据分析类型调用对应的 Agent 方法
         String analysisResult;
+        boolean isSuccess = false;
         final String analysisType = dto.getAnalysisType();
         try {
             if ("training".equals(analysisType)) {
@@ -224,6 +229,7 @@ public class AiCoachServiceImpl implements AiCoachService {
                         profileDataSummary
                 );
             }
+            isSuccess = true;
         } catch (final Exception e) {
             log.error("AI 分析失败", e);
             analysisResult = "抱歉，分析过程中出现了一些问题。请稍后再试或简化您的问题。";
@@ -253,17 +259,19 @@ public class AiCoachServiceImpl implements AiCoachService {
             actualAnalysisType = "comprehensive";
         }
 
-        // 8. 保存对话历史（建立血缘关系，使用实际的报告类型）
-        try {
-            // 保存用户提问，获取提问消息的 ID
-            final AiCoachChatHistory userMessage = chatHistoryService.saveMessage(
-                    userId, sessionId, "user", dto.getQuestion(), actualAnalysisType, null);
-            
-            // 保存 AI 回复，关联到用户提问
-            chatHistoryService.saveMessage(
-                    userId, sessionId, "assistant", analysisResult, actualAnalysisType, userMessage.getId());
-        } catch (final Exception e) {
-            log.error("保存聊天历史失败", e);
+        // 8. 只有在成功获取回复时才保存对话历史
+        if (isSuccess) {
+            try {
+                // 保存用户提问，获取提问消息的 ID
+                final AiCoachChatHistory userMessage = chatHistoryService.saveMessage(
+                        userId, sessionId, "user", dto.getQuestion(), actualAnalysisType, null);
+                
+                // 保存 AI 回复，关联到用户提问
+                chatHistoryService.saveMessage(
+                        userId, sessionId, "assistant", analysisResult, actualAnalysisType, userMessage.getId());
+            } catch (final Exception e) {
+                log.error("保存聊天历史失败", e);
+            }
         }
 
         // 9. 构建响应
