@@ -478,11 +478,12 @@ const restoreSession = async (session) => {
           messageList.value.push({ role: 'user', type: 'text', content: msg.content })
         } else if (msg.role === 'assistant') {
           // 所有类型统一显示"已生成回复"，点击查看详细内容
+          // msg.replyTo 是该 AI 回复所对应的用户提问 ID，后端用它来查询 WHERE reply_to = ?
           messageList.value.push({ 
             role: 'ai', 
             type: 'text', 
             content: '💬 已生成回复',
-            questionId: msg.id // 使用消息自己的 ID
+            questionId: msg.replyTo // 使用 replyTo 字段（即用户提问的 ID）
           })
         }
       }
@@ -674,7 +675,7 @@ const handleSend = async () => {
         role: 'ai',
         type: 'text',
         content: '💬 已生成回复',
-        questionId: response.sessionId // 使用 sessionId 作为标识
+        questionId: response.questionId // 使用后端返回的用户提问消息 ID
       })
       // 保存回复内容到右侧
       currentAnalysis.value = {
@@ -703,7 +704,7 @@ const handleSend = async () => {
         role: 'ai',
         type: 'text',
         content: '💬 已生成回复',
-        questionId: response.sessionId // 使用 sessionId 作为标识
+        questionId: response.questionId // 使用后端返回的用户提问消息 ID
       })
 
       // 保存分析结果和会话 ID
@@ -761,11 +762,12 @@ onMounted(async () => {
             messageList.value.push({ role: 'user', type: 'text', content: msg.content })
           } else if (msg.role === 'assistant') {
             // 所有类型统一显示"已生成回复"，点击查看详细内容
+            // msg.replyTo 是该 AI 回复所对应的用户提问 ID，后端用它来查询 WHERE reply_to = ?
             messageList.value.push({ 
               role: 'ai', 
               type: 'text', 
               content: '💬 已生成回复',
-              questionId: msg.id // 使用消息自己的 ID
+              questionId: msg.replyTo // 使用 replyTo 字段（即用户提问的 ID）
             })
           }
         }
