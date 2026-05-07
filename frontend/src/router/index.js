@@ -51,7 +51,7 @@ const routes = [
       {
         path: "settings",
         name: "Settings",
-        component: () => import("@/views/settings/index.vue"), // 上一步写的新页面
+        component: () => import("@/views/settings/Index.vue"), // 上一步写的新页面
         meta: { title: "账号设置" },
       },
       {
