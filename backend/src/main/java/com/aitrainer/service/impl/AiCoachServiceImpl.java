@@ -144,11 +144,13 @@ public class AiCoachServiceImpl implements AiCoachService {
         final String chatAnalysisType = "chat";
 
         // 只有在成功获取回复时才保存对话历史
+        Long savedQuestionId = null;
         if (isSuccess) {
             try {
                 // 保存用户提问，获取提问消息的 ID
                 final AiCoachChatHistory userMessage = chatHistoryService.saveMessage(
                         userId, sessionId, "user", question, chatAnalysisType, null);
+                savedQuestionId = userMessage.getId();
                 
                 // 保存 AI 回复，关联到用户提问
                 chatHistoryService.saveMessage(
@@ -164,6 +166,7 @@ public class AiCoachServiceImpl implements AiCoachService {
                 .analysisResult(response)
                 .profileDataSummary(profileDataSummary)
                 .sessionId(sessionId)
+                .questionId(savedQuestionId)
                 .build();
     }
 
@@ -260,11 +263,13 @@ public class AiCoachServiceImpl implements AiCoachService {
         }
 
         // 8. 只有在成功获取回复时才保存对话历史
+        Long savedQuestionId = null;
         if (isSuccess) {
             try {
                 // 保存用户提问，获取提问消息的 ID
                 final AiCoachChatHistory userMessage = chatHistoryService.saveMessage(
                         userId, sessionId, "user", dto.getQuestion(), actualAnalysisType, null);
+                savedQuestionId = userMessage.getId();
                 
                 // 保存 AI 回复，关联到用户提问
                 chatHistoryService.saveMessage(
@@ -283,6 +288,7 @@ public class AiCoachServiceImpl implements AiCoachService {
                 .dietDataSummary(dietDataSummary)
                 .profileDataSummary(profileDataSummary)
                 .sessionId(sessionId)
+                .questionId(savedQuestionId)
                 .build();
     }
 

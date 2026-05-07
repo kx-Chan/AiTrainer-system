@@ -36,4 +36,7 @@ public class AiCoachAnalyzeResponseVO {
 
     @Schema(description = "会话 ID，用于后续对话保持上下文")
     private String sessionId;
+
+    @Schema(description = "本次用户提问消息的 ID，用于后续查询对应的 AI 回复")
+    private Long questionId;
 }
