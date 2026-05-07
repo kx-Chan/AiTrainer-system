@@ -64,6 +64,8 @@ mybatis-plus:
       logic-not-delete-value: 0      # 逻辑未删除值
 
 jwt:
+  # JWT 签名密钥，从环境变量 JWT_SECRET 读取；必须 ≥64 字符（HS512 算法要求）
+  secret: ${JWT_SECRET:base64EncodedSecretKeyForAiTrainerApplicationThatMustBeLongEnough}
   expiration: 604800000 # 7 days
 
 aliyun:

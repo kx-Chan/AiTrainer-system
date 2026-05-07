@@ -89,6 +89,8 @@ services:
       AI_API_KEY: ${AI_API_KEY:-}
       AI_MODEL: ${AI_MODEL:-gpt-5.4}
       AI_BASE_URL: ${AI_BASE_URL:-https://ai.sandboxai.top/v1/}
+      # JWT 配置（必须 ≥64 字符，HS512 算法要求）
+      JWT_SECRET: ${JWT_SECRET:-please_change_this_to_a_random_string_at_least_64_characters_long_for_security}
     ports:
       - "${BACKEND_PORT:-3000}:3000"
     depends_on:
