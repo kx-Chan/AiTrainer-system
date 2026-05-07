@@ -47,8 +47,11 @@ public class CollectionFolderServiceImpl implements CollectionFolderService {
                 .name("默认收藏")
                 .isDefault(1)
                 .isPublic(0)
+                .isDeleted(0)
+                .createTime(LocalDateTime.now())
                 .build();
         folderMapper.insert(folder);
+        log.info("为用户 {} 创建了默认收藏夹，ID: {}", userId, folder.getId());
     }
 
     /**

@@ -2,6 +2,7 @@ package com.aitrainer.config;
 
 import com.aitrainer.entity.User;
 import com.aitrainer.mapper.UserMapper;
+import com.aitrainer.service.CollectionFolderService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +20,7 @@ public final class DataInitializer implements CommandLineRunner {
 
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
+    private final CollectionFolderService collectionFolderService;
 
     /**
      * 在应用程序启动时运行以播种用户。
@@ -36,25 +38,19 @@ public final class DataInitializer implements CommandLineRunner {
         }
 
         try {
-            // 播种 'admin' 用户（老用户）
-            User admin = User.builder()
-                    .username("admin")
-                    .email("admin@aitrainer.com")
-                    .passwordHash(passwordEncoder.encode("123456"))
-                    .isFirstLogin(false)
-                    .build();
-            userMapper.insert(admin);
-
-            // 播种 'newbie' 用户（新用户）
-            User newbie = User.builder()
-                    .username("newbie")
-                    .email("newbie@aitrainer.com")
+            // 播种 'root' 用户（首次登录）
+            User root = User.builder()
+                    .username("root")
+                    .email("root@aitrainer.com")
                     .passwordHash(passwordEncoder.encode("123456"))
                     .isFirstLogin(true)
                     .build();
-            userMapper.insert(newbie);
+            userMapper.insert(root);
 
-            log.info("测试数据初始化成功：已创建测试账号 admin 和 newbie (密码均为 123456)");
+            // 为 root 用户创建默认收藏夹
+            collectionFolderService.initDefaultFolder(root.getId());
+
+            log.info("测试数据初始化成功：已创建测试账号 root (密码均为 123456)");
         } catch (final Exception e) {
             log.error("测试数据初始化失败", e);
         }

@@ -1,6 +1,29 @@
 server:
   port: 3000
 
+# Actuator 健康检查端点
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+
+# SpringDoc OpenAPI (Swagger UI) 配置
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+    try-it-out-enabled: true
+
 spring:
   profiles:
     active: dev

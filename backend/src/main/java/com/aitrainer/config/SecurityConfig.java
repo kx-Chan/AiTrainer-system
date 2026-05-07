@@ -49,7 +49,15 @@ public class SecurityConfig {
                                 "/api/auth/check-username",
                                 "/api/auth/check-email"
                         ).permitAll()
-                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
+                        .requestMatchers(
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**",
+                                "/swagger-ui.html",
+                                "/swagger-ui/index.html",
+                                "/webjars/**",
+                                "/favicon.ico"
+                        ).permitAll()
+                        .requestMatchers("/actuator/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
@@ -79,7 +87,9 @@ public class SecurityConfig {
         configuration.setAllowedOriginPatterns(List.of(
                 "http://localhost:*",
                 "http://127.0.0.1:*",
-                "http://[::1]:*"
+                "http://[::1]:*",
+                "http://frontend:*",
+                "http://aitrainer-frontend:*"
         ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));

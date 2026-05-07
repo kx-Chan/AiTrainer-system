@@ -27,7 +27,7 @@ public interface WorkoutSessionMapper extends BaseMapper<WorkoutSession> {
             "AND YEAR(created_at) = #{year} " +
             "AND MONTH(created_at) = #{month} " +
             "AND is_deleted = 0 " +
-            "ORDER BY created_at")
+            "ORDER BY 1")
     List<LocalDate> getCheckInDates(@Param("userId") Long userId, 
                                     @Param("year") int year, 
                                     @Param("month") int month);

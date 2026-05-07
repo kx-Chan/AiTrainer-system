@@ -1,0 +1,143 @@
+# =============================================================================
+# AiTrainer 生产环境 Docker Compose 配置
+# 包含: MySQL + Redis + Backend + Frontend(Nginx)
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # MySQL 数据库
+  # ---------------------------------------------------------------------------
+  mysql:
+    image: mysql:8.0
+    container_name: aitrainer-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-AiTrainer@2024}
+      MYSQL_DATABASE: ${MYSQL_DB:-ai_trainer}
+      MYSQL_USER: ${MYSQL_USER:-aitrainer}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-AiTrainer@2024}
+      TZ: Asia/Shanghai
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d:ro
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=mysql_native_password
+      - --lower-case-table-names=1
+    networks:
+      - aitrainer-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  # ---------------------------------------------------------------------------
+  # Redis 缓存
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: aitrainer-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis123}
+    networks:
+      - aitrainer-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis123}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # 后端 Spring Boot 服务
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: ../backend
+      dockerfile: ../deploy/Dockerfile.backend
+    container_name: aitrainer-backend
+    restart: unless-stopped
+    environment:
+      # 数据库
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DB: ${MYSQL_DB:-ai_trainer}
+      MYSQL_USER: ${MYSQL_USER:-aitrainer}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-AiTrainer@2024}
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis123}
+      # 邮件服务
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      # 阿里云 OSS
+      ALIYUN_OSS_ENDPOINT: ${ALIYUN_OSS_ENDPOINT:-}
+      ALIYUN_OSS_BUCKET: ${ALIYUN_OSS_BUCKET:-}
+      ALIYUN_ACCESS_KEY_ID: ${ALIYUN_ACCESS_KEY_ID:-}
+      ALIYUN_ACCESS_KEY_SECRET: ${ALIYUN_ACCESS_KEY_SECRET:-}
+      ALIYUN_OSS_AVATAR_URL_EXPIRE_SECONDS: 90000
+      # AI 配置
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_MODEL: ${AI_MODEL:-gpt-5.4}
+      AI_BASE_URL: ${AI_BASE_URL:-https://ai.sandboxai.top/v1/}
+    ports:
+      - "${BACKEND_PORT:-3000}:3000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - aitrainer-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+
+  # ---------------------------------------------------------------------------
+  # 前端 Nginx 服务
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: ../deploy/Dockerfile.frontend
+    container_name: aitrainer-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    depends_on:
+      - backend
+    networks:
+      - aitrainer-net
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+# =============================================================================
+# 网络配置
+# =============================================================================
+networks:
+  aitrainer-net:
+    driver: bridge
+
+# =============================================================================
+# 数据卷配置
+# =============================================================================
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local

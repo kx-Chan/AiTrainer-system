@@ -3,7 +3,7 @@ import { ElMessage } from "element-plus";
 
 // 创建 axios 实例
 const request = axios.create({
-  baseURL: "http://localhost:3000/api", // 确保这里指向你的 Spring Boot 地址
+  baseURL: "/api", // Docker 环境下使用相对路径，通过 Nginx 代理转发到后端
   timeout: 60000,
 });
 
