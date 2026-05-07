@@ -66,6 +66,8 @@ services:
     container_name: aitrainer-backend
     restart: unless-stopped
     environment:
+      # Spring Profile（必须 prod，避免加载 application-dev.yml 里的开发账号）
+      SPRING_PROFILES_ACTIVE: prod
       # 数据库
       MYSQL_HOST: mysql
       MYSQL_PORT: 3306
