@@ -89,7 +89,8 @@
           </el-dropdown>
         </div>
 
-        <el-drawer v-model="mobileDrawerVisible" class="mobile-drawer" direction="btt" :with-header="false" size="62%">
+        <el-drawer v-model="mobileDrawerVisible" class="mobile-drawer" direction="ttb" :with-header="false"
+          size="360px" append-to-body :z-index="4000">
           <div class="mobile-nav-sheet">
             <div class="mobile-nav-sheet-title">功能导航</div>
             <div class="mobile-nav-grid">
@@ -383,6 +384,14 @@ const handleLogout = () => {
 
 .mobile-nav-sheet {
   padding: 14px 14px 18px;
+}
+
+.mobile-drawer :deep(.el-drawer__header) {
+  display: none;
+}
+
+.mobile-drawer :deep(.el-drawer__body) {
+  overflow: auto;
 }
 
 .mobile-nav-sheet-title {
