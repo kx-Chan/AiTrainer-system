@@ -1,7 +1,30 @@
 <template>
   <div class="community-container">
-    <el-row :gutter="24">
-      <el-col :span="16">
+    <el-row :gutter="isMobile ? 0 : 24">
+      <el-col :xs="24" :sm="16" :span="16">
+        <div class="mobile-search-wrapper">
+          <div class="mobile-search-bar">
+            <el-input v-model="searchQuery" placeholder="搜索动态、用户或话题..." size="large" clearable @keyup.enter="handleSearch"
+              @clear="clearSearch" class="community-search mobile-search-input">
+              <template #prefix>
+                <el-icon>
+                  <Search />
+                </el-icon>
+              </template>
+              <template #suffix>
+                <el-icon class="mobile-search-icon" @click="handleSearch">
+                  <Search />
+                </el-icon>
+              </template>
+            </el-input>
+            <el-button class="mobile-tools-btn" plain @click="toolsDrawerVisible = true">
+              <el-icon>
+                <MoreFilled />
+              </el-icon>
+            </el-button>
+          </div>
+        </div>
+
         <Publisher ref="publisherRef" :recommended-topics="recommendedTopicNames" @published="handlePublished"
           @go-to-space="goToSpace" />
 
@@ -42,7 +65,7 @@
         </div>
       </el-col>
 
-      <el-col :span="8">
+      <el-col v-if="!isMobile" :span="8">
         <div class="sticky-sidebar">
           <div class="search-wrapper">
             <el-input v-model="searchQuery" placeholder="搜索动态、用户或话题..." size="large" clearable
@@ -112,6 +135,53 @@
 
       </el-col>
     </el-row>
+    <el-drawer v-model="toolsDrawerVisible" v-if="isMobile" class="community-tools-drawer" direction="rtl"
+      :with-header="false" size="86%">
+      <div class="tools-drawer-content">
+        <el-card class="sidebar-card ai-coach-card" shadow="never">
+          <template #header>
+            <div class="sidebar-header">
+              <span>🧠 AI 私教每日碎碎念</span>
+              <el-button link type="primary" size="small" @click="loadAiCoachFeedback" :loading="loadingAiCoach">
+                刷新
+              </el-button>
+            </div>
+          </template>
+          <div class="ai-coach-content">
+            <div class="ai-coach-header">
+              <el-avatar :size="60" class="ai-avatar">
+                <img src="https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png" alt="AI私教">
+              </el-avatar>
+              <div class="ai-coach-title">你的专属 AI 健身教练</div>
+            </div>
+            <div class="feedback-item workout-feedback">
+              <div class="feedback-icon">💪</div>
+              <div class="feedback-bubble">
+                <div class="feedback-label">运动点评</div>
+                <div class="feedback-text">{{ aiCoachFeedback.workoutFeedback }}</div>
+              </div>
+            </div>
+            <div class="feedback-item nutrition-feedback">
+              <div class="feedback-icon">🥗</div>
+              <div class="feedback-bubble">
+                <div class="feedback-label">营养提醒</div>
+                <div class="feedback-text">{{ aiCoachFeedback.nutritionFeedback }}</div>
+              </div>
+            </div>
+          </div>
+        </el-card>
+        <el-card class="sidebar-card checkin-card" shadow="never">
+          <template #header>
+            <div class="sidebar-header">
+              <span><el-icon>
+                  <Calendar />
+                </el-icon> 打卡日历</span>
+            </div>
+          </template>
+          <CheckInCalendar :user-id="userId" />
+        </el-card>
+      </div>
+    </el-drawer>
     <transition name="el-fade-in-linear">
       <div v-show="showFloatButton" class="float-post-btn" @click="scrollToPublisher">
         <el-tooltip content="返回发布动态" placement="left">
@@ -131,7 +201,7 @@
 import { ref, reactive, computed, watch, onMounted, onUnmounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter, useRoute } from 'vue-router'
-import { EditPen, Histogram, Discount, Search, Back, Calendar } from '@element-plus/icons-vue'
+import { EditPen, Histogram, Discount, Search, Back, Calendar, MoreFilled } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import request from '@/utils/request'
 import { useUserStore } from '@/store/userStore'
@@ -143,6 +213,14 @@ import { getAiCoachFeedback } from '@/api/dashboard'
 
 const router = useRouter()
 const route = useRoute()
+
+const isMobile = ref(typeof window !== 'undefined' ? window.matchMedia('(max-width: 768px)').matches : false)
+const toolsDrawerVisible = ref(false)
+
+const updateIsMobile = () => {
+  isMobile.value = window.matchMedia('(max-width: 768px)').matches
+  if (!isMobile.value) toolsDrawerVisible.value = false
+}
 
 const userStore = useUserStore()
 const { avatar, nickname } = storeToRefs(userStore)
@@ -513,11 +591,14 @@ const scrollToPublisher = () => {
 }
 
 onMounted(() => {
+  updateIsMobile()
+  window.addEventListener('resize', updateIsMobile)
   window.addEventListener('scroll', handleScroll)
 })
 
 // 在组件卸载时移除监听，防止内存泄漏
 onUnmounted(() => {
+  window.removeEventListener('resize', updateIsMobile)
   window.removeEventListener('scroll', handleScroll)
 })
 
@@ -870,6 +951,58 @@ watch(() => route.query?.postId, async (n, o) => {
   font-size: 13px;
   color: #303133;
   line-height: 1.5;
+}
+
+.mobile-search-wrapper {
+  display: none;
+  margin-bottom: 16px;
+}
+
+.mobile-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mobile-search-input {
+  flex: 1;
+}
+
+.mobile-search-icon {
+  cursor: pointer;
+  color: #409EFF;
+}
+
+.mobile-tools-btn {
+  width: 44px;
+  height: 40px;
+  padding: 0;
+}
+
+.community-tools-drawer :deep(.el-drawer__body) {
+  padding: 12px 12px;
+}
+
+@media (max-width: 768px) {
+  .community-container {
+    max-width: none;
+  }
+
+  .mobile-search-wrapper {
+    display: block;
+  }
+
+  .feed-tabs-wrapper {
+    margin-bottom: 12px;
+    padding: 0;
+  }
+
+  .float-post-btn {
+    right: 16px;
+    bottom: 88px;
+    width: 52px;
+    height: 52px;
+  }
 }
 </style>
 

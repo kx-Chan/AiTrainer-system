@@ -85,7 +85,7 @@
           </el-dropdown>
         </div>
 
-        <el-drawer v-model="mobileDrawerVisible" direction="ltr" :with-header="false" size="72%">
+        <el-drawer v-model="mobileDrawerVisible" class="mobile-drawer" direction="ltr" :with-header="false" size="86%">
           <el-menu :default-active="route.path" class="mobile-drawer-menu" @select="handleMobileSelect">
             <el-menu-item index="/workout">项目大厅</el-menu-item>
             <el-menu-item index="/community">健身社区</el-menu-item>
@@ -93,6 +93,9 @@
             <el-menu-item index="/dashboard">数据看板</el-menu-item>
             <el-menu-item index="/coach">AI 私教</el-menu-item>
             <el-menu-item index="/profile">个人主页</el-menu-item>
+            <el-menu-item index="/settings">账号设置</el-menu-item>
+            <el-menu-item index="__my_space">我的空间</el-menu-item>
+            <el-menu-item index="__logout">退出登录</el-menu-item>
           </el-menu>
         </el-drawer>
       </div>
@@ -129,8 +132,16 @@ const updateIsMobile = () => {
   isMobile.value = window.matchMedia('(max-width: 768px)').matches
 }
 
-const handleMobileSelect = (index) => {
+const handleMobileSelect = async (index) => {
   mobileDrawerVisible.value = false
+  if (index === '__logout') {
+    handleLogout()
+    return
+  }
+  if (index === '__my_space') {
+    await goToMySpace()
+    return
+  }
   router.push(index)
 }
 
@@ -319,6 +330,15 @@ const handleLogout = () => {
 
 .mobile-drawer-menu {
   border-right: none;
+}
+
+.mobile-drawer :deep(.el-drawer__body) {
+  padding: 8px 0;
+}
+
+.mobile-drawer-menu :deep(.el-menu-item) {
+  height: 48px;
+  line-height: 48px;
 }
 
 @media (max-width: 768px) {
