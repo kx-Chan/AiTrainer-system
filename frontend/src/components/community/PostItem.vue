@@ -620,6 +620,45 @@ watch([postId, userId], () => {
   font-style: italic;
 }
 
+@media (max-width: 768px) {
+  .ai-report-embed {
+    padding: 14px 14px 12px;
+  }
+
+  .report-body {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .report-score {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+
+  .score-num {
+    font-size: 42px;
+  }
+
+  .report-details {
+    font-size: 14px;
+    line-height: 1.7;
+  }
+
+  .report-comment {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed rgba(230, 162, 60, 0.35);
+    color: #606266;
+    font-style: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 5;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
 .post-footer {
   display: flex;
   padding-left: 52px;
