@@ -394,6 +394,10 @@ const handleLogout = () => {
   gap: 8px;
 }
 
+.mobile-nav-grid :deep(.el-button + .el-button) {
+  margin-left: 0;
+}
+
 .mobile-nav-item {
   height: 40px;
   width: 100%;
