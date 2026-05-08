@@ -168,14 +168,14 @@ onMounted(() => {
 }
 
 .calendar-grid {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
   gap: 2px;
 }
 
 .calendar-day {
   position: relative;
-  width: calc((100% - 12px) / 7);
+  width: 100%;
   height: 24px;
   display: flex;
   align-items: center;
