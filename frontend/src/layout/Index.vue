@@ -51,9 +51,13 @@
 
       <div v-else class="mobile-topbar">
         <div class="mobile-left">
-          <el-button class="mobile-menu-btn" text @click="mobileDrawerVisible = true">
-            <el-icon>
+          <el-button class="mobile-nav-btn" text @click="mobileDrawerVisible = true">
+            <el-icon class="mobile-nav-icon">
               <Menu />
+            </el-icon>
+            <span class="mobile-nav-label">{{ currentNavLabel }}</span>
+            <el-icon class="mobile-nav-arrow">
+              <ArrowDown />
             </el-icon>
           </el-button>
           <div class="brand-logo mobile-brand">
@@ -85,26 +89,21 @@
           </el-dropdown>
         </div>
 
-        <el-drawer v-model="mobileDrawerVisible" class="mobile-drawer" direction="ttb" :with-header="false" size="100%">
-          <div class="mobile-drawer-header">
-            <div class="mobile-drawer-title">全部功能</div>
-            <el-button text class="mobile-drawer-close" @click="mobileDrawerVisible = false">
-              <el-icon>
-                <Close />
-              </el-icon>
-            </el-button>
+        <el-drawer v-model="mobileDrawerVisible" class="mobile-drawer" direction="btt" :with-header="false" size="62%">
+          <div class="mobile-nav-sheet">
+            <div class="mobile-nav-sheet-title">功能导航</div>
+            <div class="mobile-nav-grid">
+              <el-button v-for="item in NAV_ITEMS" :key="item.key" class="mobile-nav-item"
+                :type="route.path === item.key ? 'primary' : 'default'" plain @click="handleMobileSelect(item.key)">
+                {{ item.label }}
+              </el-button>
+            </div>
+            <div class="mobile-nav-actions">
+              <el-button class="mobile-nav-action" plain @click="handleMobileSelect('/settings')">账号设置</el-button>
+              <el-button class="mobile-nav-action" plain @click="handleMobileSelect('__my_space')">我的空间</el-button>
+              <el-button class="mobile-nav-action" type="danger" plain @click="handleMobileSelect('__logout')">退出登录</el-button>
+            </div>
           </div>
-          <el-menu :default-active="route.path" class="mobile-drawer-menu" @select="handleMobileSelect">
-            <el-menu-item index="/workout">项目大厅</el-menu-item>
-            <el-menu-item index="/community">健身社区</el-menu-item>
-            <el-menu-item index="/diet">营养膳食</el-menu-item>
-            <el-menu-item index="/dashboard">数据看板</el-menu-item>
-            <el-menu-item index="/coach">AI 私教</el-menu-item>
-            <el-menu-item index="/profile">个人主页</el-menu-item>
-            <el-menu-item index="/settings">账号设置</el-menu-item>
-            <el-menu-item index="__my_space">我的空间</el-menu-item>
-            <el-menu-item index="__logout">退出登录</el-menu-item>
-          </el-menu>
         </el-drawer>
       </div>
     </template>
@@ -121,9 +120,9 @@
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Microphone, ArrowDown, UserFilled, Menu, Close } from '@element-plus/icons-vue'
+import { Microphone, ArrowDown, UserFilled, Menu } from '@element-plus/icons-vue'
 import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/store/userStore'
 
@@ -135,6 +134,21 @@ const { avatar, nickname } = storeToRefs(userStore)
 
 const isMobile = ref(false)
 const mobileDrawerVisible = ref(false)
+
+const NAV_ITEMS = [
+  { key: '/workout', label: '项目大厅' },
+  { key: '/community', label: '健身社区' },
+  { key: '/diet', label: '营养膳食' },
+  { key: '/dashboard', label: '数据看板' },
+  { key: '/coach', label: 'AI 私教' },
+  { key: '/profile', label: '个人主页' }
+]
+
+const currentNavLabel = computed(() => {
+  const path = String(route.path || '')
+  const matched = NAV_ITEMS.find(x => x.key === path)
+  return matched?.label || '导航'
+})
 
 const updateIsMobile = () => {
   isMobile.value = window.matchMedia('(max-width: 768px)').matches
@@ -312,8 +326,31 @@ const handleLogout = () => {
   min-width: 0;
 }
 
-.mobile-menu-btn {
-  padding: 6px;
+.mobile-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 10px;
+}
+
+.mobile-nav-icon {
+  font-size: 18px;
+}
+
+.mobile-nav-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+  max-width: 88px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-nav-arrow {
+  font-size: 14px;
+  color: #909399;
 }
 
 .mobile-brand {
@@ -342,38 +379,40 @@ const handleLogout = () => {
 
 .mobile-drawer :deep(.el-drawer__body) {
   padding: 0;
-  display: flex;
-  flex-direction: column;
 }
 
-.mobile-drawer-header {
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 12px;
-  box-sizing: border-box;
-  border-bottom: 1px solid #ebeef5;
+.mobile-nav-sheet {
+  padding: 14px 14px 18px;
 }
 
-.mobile-drawer-title {
+.mobile-nav-sheet-title {
   font-size: 16px;
   font-weight: 700;
   color: #303133;
+  margin-bottom: 12px;
 }
 
-.mobile-drawer-close {
-  padding: 6px;
+.mobile-nav-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
 }
 
-.mobile-drawer-menu {
-  flex: 1;
-  overflow: auto;
+.mobile-nav-item {
+  height: 44px;
+  justify-content: center;
 }
 
-.mobile-drawer-menu :deep(.el-menu-item) {
-  height: 48px;
-  line-height: 48px;
+.mobile-nav-actions {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.mobile-nav-action {
+  height: 44px;
+  justify-content: center;
 }
 
 @media (max-width: 768px) {
