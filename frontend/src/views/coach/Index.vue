@@ -47,6 +47,7 @@
 
       <el-col :xs="24" :sm="24" :md="10" :span="10" class="col-panel chat-panel">
         <el-card shadow="never" class="chat-card glass-panel">
+          <div ref="chatAnchorRef" class="chat-anchor"></div>
           <template #header>
             <div class="chat-header">
               <div class="agent-title">
@@ -255,6 +256,7 @@ marked.setOptions({
 
 const chatWindowRef = ref(null)
 const resultAnchorRef = ref(null)
+const chatAnchorRef = ref(null)
 
 const isMobile = ref(false)
 const updateIsMobile = () => {
@@ -456,7 +458,13 @@ const loadSessions = async () => {
 
 // 恢复会话
 const restoreSession = async (session) => {
-  if (currentSessionId.value === session.sessionId) return
+  if (currentSessionId.value === session.sessionId) {
+    if (isMobile.value) {
+      await nextTick()
+      chatAnchorRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+    return
+  }
   
   // 先清空右侧分析结果，确保不会显示旧内容
   currentAnalysis.value = null
@@ -500,6 +508,10 @@ const restoreSession = async (session) => {
     
     // 滚动到最新消息
     scrollToBottom()
+    if (isMobile.value) {
+      await nextTick()
+      chatAnchorRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
     
     ElMessage.success('已恢复对话')
   } catch (error) {
@@ -1211,6 +1223,10 @@ onUnmounted(() => {
   height: 0;
 }
 
+.chat-anchor {
+  height: 0;
+}
+
 @media (max-width: 768px) {
   .agent-container {
     max-width: none;
@@ -1229,11 +1245,13 @@ onUnmounted(() => {
     height: auto;
     padding-left: 0;
     padding-right: 0;
+    margin-bottom: 12px;
   }
 
   .sidebar-panel {
     max-width: none;
-    flex: 0 0 auto;
+    width: 100%;
+    flex: 0 0 100%;
     order: 3;
   }
 
@@ -1243,6 +1261,12 @@ onUnmounted(() => {
 
   .result-panel {
     order: 2;
+  }
+
+  .history-card,
+  .chat-card,
+  .result-card {
+    border-radius: 14px;
   }
 
   .history-list {
@@ -1288,7 +1312,11 @@ onUnmounted(() => {
   }
 
   .analysis-options {
-    padding: 12px 14px;
+    padding: 0;
+    margin: 10px 12px 0;
+    border-radius: 12px;
+    border: 1px solid #ebeef5;
+    background: #ffffff;
   }
 
   .analysis-type-group :deep(.el-radio-group) {
@@ -1314,6 +1342,10 @@ onUnmounted(() => {
   .chat-window {
     padding: 14px;
     min-height: 40vh;
+    margin: 12px 12px 0;
+    border-radius: 12px;
+    border: 1px solid #ebeef5;
+    background: #fafbfc;
   }
 
   .message-item {
@@ -1336,6 +1368,10 @@ onUnmounted(() => {
 
   .chat-input-area {
     padding: 14px;
+    margin: 12px 12px 0;
+    border-radius: 12px;
+    border: 1px solid #ebeef5;
+    background: #ffffff;
   }
 
   .input-actions {

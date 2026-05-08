@@ -654,4 +654,85 @@ onBeforeUnmount(() => {
     opacity: 1;
   }
 }
+
+@media (max-width: 768px) {
+  .report-container {
+    padding: 0 12px 20px;
+  }
+
+  .report-header {
+    height: auto;
+    padding: 12px 0;
+    margin-bottom: 14px;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .report-title {
+    font-size: 16px;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .report-content {
+    flex-direction: column;
+    gap: 14px;
+    max-width: none;
+  }
+
+  .left-panel,
+  .right-panel {
+    gap: 14px;
+  }
+
+  .dark-tech-card {
+    border-radius: 14px;
+    padding: 16px 0;
+  }
+
+  .score-grade {
+    font-size: 44px;
+  }
+
+  .score-number {
+    font-size: 34px;
+  }
+
+  .score-comment {
+    font-size: 14px;
+    padding: 0 12px;
+  }
+
+  .radar-echarts {
+    height: 260px;
+  }
+
+  .data-item {
+    margin-bottom: 10px;
+  }
+
+  .snapshot-list {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .snapshot-img-wrapper {
+    height: 180px;
+  }
+
+  .loading-text {
+    font-size: 18px;
+    text-align: center;
+  }
+
+  .loading-sub-text {
+    text-align: center;
+    padding: 0 14px;
+  }
+}
 </style>

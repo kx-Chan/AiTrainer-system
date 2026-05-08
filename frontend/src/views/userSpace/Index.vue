@@ -943,4 +943,124 @@ watch(activeTab, (tab) => {
   display: flex;
   justify-content: center;
 }
+
+@media (max-width: 768px) {
+  .user-space-container {
+    max-width: none;
+    padding: 0 12px;
+  }
+
+  .user-header-banner {
+    height: 140px;
+    border-radius: 12px;
+  }
+
+  .banner-title {
+    font-size: 18px;
+    padding: 0 12px;
+  }
+
+  .user-info-card {
+    margin-top: -36px;
+    padding: 14px;
+  }
+
+  .info-layout {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+
+  .user-main-avatar {
+    align-self: center;
+    width: 78px !important;
+    height: 78px !important;
+    line-height: 78px !important;
+  }
+
+  .name-row {
+    gap: 10px;
+  }
+
+  .action-btns {
+    margin-left: 0;
+    width: 100%;
+    gap: 10px;
+  }
+
+  .action-btns :deep(.el-button) {
+    flex: 1;
+  }
+
+  .stats-row {
+    justify-content: space-between;
+    gap: 0;
+  }
+
+  .stat-item {
+    flex: 1;
+    text-align: center;
+  }
+
+  .user-tabs {
+    margin-top: 10px;
+  }
+
+  .dynamics-toolbar :deep(.el-radio-group) {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .dynamics-toolbar :deep(.el-radio-button__inner) {
+    border-radius: 10px !important;
+  }
+
+  .favorites-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 12px 0;
+  }
+
+  .fav-folder-card {
+    padding: 14px 10px;
+    border-radius: 12px;
+  }
+
+  .fav-folder-card .folder-name {
+    text-align: center;
+    font-size: 14px;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .message-input-area {
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+
+  .message-main {
+    gap: 12px;
+  }
+
+  .message-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .reply-input-inline {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .reply-input-inline :deep(.el-input),
+  .reply-input-inline :deep(.el-button) {
+    width: 100%;
+  }
+}
 </style>

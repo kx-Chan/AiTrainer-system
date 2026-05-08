@@ -1,7 +1,7 @@
 <template>
   <div class="settings-wrapper">
     <el-card shadow="never" class="settings-card">
-      <el-tabs tab-position="left" class="custom-tabs">
+      <el-tabs :tab-position="isMobile ? 'top' : 'left'" class="custom-tabs">
 
         <el-tab-pane>
           <template #label>
@@ -101,7 +101,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, onMounted } from 'vue'
+import { reactive, ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Lock, Key, CircleCheck, View, DArrowRight } from '@element-plus/icons-vue'
@@ -110,6 +110,11 @@ import { privacyApi } from '@/api/userSpace'
 import { authApi } from '@/api/auth'
 
 const router = useRouter()
+
+const isMobile = ref(false)
+const updateIsMobile = () => {
+  isMobile.value = window.matchMedia('(max-width: 768px)').matches
+}
 
 const passwordForm = reactive({
   oldPassword: '',
@@ -212,7 +217,13 @@ const savePrivacySettings = async () => {
 }
 
 onMounted(() => {
+  updateIsMobile()
+  window.addEventListener('resize', updateIsMobile)
   fetchPrivacySettings()
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateIsMobile)
 })
 
 // 注销账号处理
@@ -359,5 +370,52 @@ const handleDeactivateAccount = async () => {
   background-color: #fef0f0;
   border-radius: 8px;
   padding: 20px;
+}
+
+@media (max-width: 768px) {
+  .settings-wrapper {
+    margin: 16px auto;
+    padding: 0 12px;
+  }
+
+  .custom-tabs {
+    min-height: auto;
+  }
+
+  .tab-content {
+    padding: 14px 14px 18px;
+  }
+
+  .section-title {
+    font-size: 20px;
+  }
+
+  .section-desc {
+    margin-bottom: 18px;
+  }
+
+  .password-form {
+    max-width: none;
+  }
+
+  .privacy-item,
+  .danger-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .privacy-item .info,
+  .danger-item .info {
+    width: 100%;
+  }
+
+  .danger-zone {
+    padding: 14px;
+  }
+
+  .full-width-btn {
+    height: 44px;
+  }
 }
 </style>

@@ -21,7 +21,7 @@
 
     <div class="training-content">
       <el-row :gutter="16">
-        <el-col :span="18">
+        <el-col :xs="24" :sm="24" :md="18" :span="18">
           <el-card shadow="never" class="video-card">
             <div class="video-wrapper" v-loading="isStartingCamera">
               <video ref="videoRef" class="camera-video" autoplay playsinline muted></video>
@@ -43,7 +43,7 @@
           </el-card>
         </el-col>
 
-        <el-col :span="6">
+        <el-col :xs="24" :sm="24" :md="6" :span="6">
           <el-card shadow="never" class="status-card">
             <template #header>
               <div class="card-title">
@@ -105,7 +105,8 @@
       </div>
     </div>
 
-    <el-dialog v-model="endPageVisible" title="训练结束" width="720px" :close-on-click-modal="false" :show-close="false">
+    <el-dialog v-model="endPageVisible" title="训练结束" width="720px" :close-on-click-modal="false" :show-close="false"
+      class="training-end-dialog">
       <div class="end-summary">
         <div class="end-metrics">
           <div class="metric-item">
@@ -523,6 +524,76 @@ onBeforeUnmount(() => {
 
 :deep(.el-card__header) {
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+@media (max-width: 768px) {
+  .training-container {
+    padding: 0 12px 12px;
+  }
+
+  .training-header {
+    height: 56px;
+    margin-bottom: 12px;
+  }
+
+  .back-btn {
+    font-size: 14px;
+  }
+
+  .training-title {
+    font-size: 16px;
+  }
+
+  .training-content {
+    max-width: none;
+  }
+
+  .video-wrapper {
+    height: min(58vh, 520px);
+    min-height: 260px;
+  }
+
+  .hud {
+    left: 10px;
+    bottom: 10px;
+    gap: 8px;
+    padding: 8px 10px;
+    flex-wrap: wrap;
+  }
+
+  .status-card {
+    margin-top: 12px;
+  }
+
+  .actions :deep(.el-button) {
+    width: 100%;
+  }
+
+  :deep(.training-end-dialog) {
+    width: calc(100vw - 24px) !important;
+    max-width: calc(100vw - 24px) !important;
+    margin: 0 auto !important;
+  }
+
+  :deep(.training-end-dialog .el-dialog__body) {
+    padding: 12px 12px 8px !important;
+    max-height: 72vh;
+    overflow: auto;
+  }
+
+  :deep(.training-end-dialog .el-dialog__footer) {
+    padding: 8px 12px 12px !important;
+  }
+
+  .end-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .end-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 
 /* ===== AI 战报生成加载遮罩 ===== */
