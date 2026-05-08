@@ -17,7 +17,7 @@
       <el-card v-for="post in posts" :key="post.id" class="minimal-post-card clickable" shadow="hover"
         @click="openPostInCommunity(post)">
         <div class="card-header">
-          <el-avatar :size="40" :src="post.avatar" />
+          <el-avatar :size="40" :src="normalizeAvatarSrc(post.avatar) || DEFAULT_AVATAR_URL" />
           <div class="meta-info">
             <div class="author-name">{{ post.author }}</div>
             <div class="time-device">
@@ -49,6 +49,7 @@ import { useUserStore } from '@/store/userStore.js'
 import { ElMessage } from 'element-plus'
 // ❌ 删掉旧的 import：import PostItem from '@/components/community/PostItem.vue'
 import { folderApi, itemApi } from '@/api/collection'
+import { DEFAULT_AVATAR_URL } from '@/store/userStore'
 
 const route = useRoute()
 const router = useRouter()
@@ -72,6 +73,14 @@ const page = ref({ current: 1, size: 10 })
 const formatTime = (timeStr) => {
   if (!timeStr) return ''
   return String(timeStr).length > 10 ? String(timeStr).substring(0, 10) : String(timeStr)
+}
+
+const normalizeAvatarSrc = (raw) => {
+  const s = String(raw ?? '').trim()
+  if (!s) return ''
+  const lowered = s.toLowerCase()
+  if (lowered === 'null' || lowered === 'undefined') return ''
+  return s
 }
 
 /**
@@ -124,6 +133,9 @@ const openPostInCommunity = (post) => {
     likes: post.likes ?? 0,
     favorites: post.favorites ?? 0,
     comments: post.comments ?? 0,
+    avatar: normalizeAvatarSrc(post.avatar) || DEFAULT_AVATAR_URL,
+    author: post.author || '用户',
+    device: post.device || 'AiTrainer',
     ...post
   }
   try {

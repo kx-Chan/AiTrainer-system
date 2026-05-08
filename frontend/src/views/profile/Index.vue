@@ -115,7 +115,7 @@
             <el-card v-for="post in footprintPosts" :key="post.id" class="post-item clickable-post" shadow="hover"
               style="margin-bottom: 12px;" @click="openFootprintPostInCommunity(post)">
               <div style="display:flex;gap:12px;align-items:center;">
-                <el-avatar :size="32" :src="post.avatar" />
+                <el-avatar :size="32" :src="normalizeAvatarSrc(post.avatar) || DEFAULT_AVATAR_URL" />
                 <div style="flex:1;">
                   <div style="font-weight:600;">{{ post.author }} <el-tag v-if="post.isPro" type="warning" size="small"
                       effect="dark" round class="pro-tag">PRO</el-tag></div>
@@ -311,6 +311,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 import { useRouter, useRoute } from 'vue-router'
 import { folderApi } from '@/api/collection'
+import { DEFAULT_AVATAR_URL } from '@/store/userStore'
 
 const isMobile = ref(false)
 const updateIsMobile = () => {
@@ -372,6 +373,14 @@ const formatDate = (timeStr) => {
   return timeStr.length > 10 ? timeStr.substring(0, 10) : timeStr
 }
 
+const normalizeAvatarSrc = (raw) => {
+  const s = String(raw ?? '').trim()
+  if (!s) return ''
+  const lowered = s.toLowerCase()
+  if (lowered === 'null' || lowered === 'undefined') return ''
+  return s
+}
+
 const openPostInCommunity = (post, tab) => {
   if (!post?.id) return
   const normalized = {
@@ -399,7 +408,14 @@ const openMyPostInCommunity = (post) => {
 }
 
 const openFootprintPostInCommunity = (post) => {
-  openPostInCommunity(post, 'footprints')
+  if (!post?.id) return
+  const patched = {
+    ...post,
+    avatar: normalizeAvatarSrc(post.avatar) || DEFAULT_AVATAR_URL,
+    device: post.device || 'AiTrainer',
+    author: post.author || '用户'
+  }
+  openPostInCommunity(patched, 'footprints')
 }
 
 const handleUserClick = (userId) => {
