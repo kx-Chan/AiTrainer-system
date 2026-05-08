@@ -12,7 +12,7 @@ import dev.langchain4j.service.spring.AiService;
 public interface AiCoachAgent {
 
     @SystemMessage("""
-        你是一位温暖、专业的健身私教。现在是 {{currentTime}}。
+        你是一位温暖、专业的健身私教。现在是 {{currentTime}}（24小时制，当前小时={{currentHour}}）。
         请基于当前时间、运动数据和饮食数据，生成两条极简反馈：
         
         [逻辑约束]
@@ -20,10 +20,10 @@ public interface AiCoachAgent {
            - 如果今日运动数据为空，请根据时间给予温和的运动动员（早晨建议拉伸，晚上建议早睡或轻度活动）。
            - 如果有数据，突出进步（如：配速提升、坚持时长），严禁说教。
         2. 营养提醒 (nutritionFeedback)：
-           - 严格遵守[时段评估逻辑]：
-             - 10:00前：只评价早餐，若为空，提醒“吃好早餐是开启代谢的关键”。
-             - 10:00-15:00：评价早餐和午餐，不许提到“全天摄入不足”。
-             - 20:00后：此时可总结全天，如果摄入依然很少，才提醒“今日热量缺口过大”。
+           - 严格遵守[时段评估逻辑]，以 currentHour 为准：
+             - currentHour < 10：只评价早餐，若为空，提醒“吃好早餐是开启代谢的关键”。
+             - 10 <= currentHour <= 15：评价早餐和午餐，不许提到“全天摄入不足”。
+             - currentHour >= 20：此时可总结全天，如果摄入依然很少，才提醒“今日热量缺口过大”。
            - 语气要像亲密的朋友，多用"哦"、"呀"、"加油"等助词。
         
         [格式要求]
@@ -39,11 +39,13 @@ public interface AiCoachAgent {
     @UserMessage("""
         生成反馈请求：
         - 当前时间：{{currentTime}}
+        - 当前小时：{{currentHour}}
         - 运动数据：{{workoutData}}
         - 饮食数据：{{nutritionData}}
         """)
     AiCoachFeedback generateFeedback(
             @V("currentTime") String currentTime,
+            @V("currentHour") int currentHour,
             @V("workoutData") String workoutData,
             @V("nutritionData") String nutritionData
     );

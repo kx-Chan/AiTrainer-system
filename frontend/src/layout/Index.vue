@@ -26,7 +26,11 @@
       <div class="nav-user-profile">
         <el-dropdown placement="bottom-end">
           <span class="user-dropdown-link">
-            <el-avatar :size="32" :src="avatar" />
+            <el-avatar :size="32" :src="avatar">
+              <el-icon>
+                <UserFilled />
+              </el-icon>
+            </el-avatar>
             <span class="username">{{ nickname }}</span>
             <el-icon>
               <ArrowDown />
@@ -58,7 +62,7 @@
 <script setup>
 import { onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Microphone, ArrowDown } from '@element-plus/icons-vue'
+import { Microphone, ArrowDown, UserFilled } from '@element-plus/icons-vue'
 import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/store/userStore'
 
@@ -82,10 +86,7 @@ const handleProfileUpdated = async (event) => {
 
   // 方案 A：如果事件传了具体数据，直接同步到 Store
   if (event.detail && (event.detail.nickname || event.detail.avatar)) {
-    userStore.$patch({
-      nickname: event.detail.nickname || userStore.nickname,
-      avatar: event.detail.avatar || userStore.avatar
-    })
+    userStore.applyProfileUpdated(event.detail)
   } else {
     // 方案 B：如果没有明细数据，直接重新请求后端接口（最稳妥）
     await userStore.fetchNavUser()

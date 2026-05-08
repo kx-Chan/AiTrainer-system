@@ -26,6 +26,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -48,6 +50,8 @@ public class DashboardServiceImpl implements DashboardService {
     private final AiCoachAgent aiCoachAgent;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+    private static final ZoneId DEFAULT_ZONE_ID = ZoneId.of("Asia/Shanghai");
     
     // 营养素热量系数 (kcal/g)
     private static final double CARBS_CALORIES_PER_GRAM = 4.0;
@@ -470,12 +474,14 @@ public class DashboardServiceImpl implements DashboardService {
 
     @Override
     public AiCoachFeedbackVO getAiCoachFeedback(final Long userId, final String dateStr) {
-        final String date = StringUtils.hasText(dateStr) ? dateStr : LocalDate.now().format(DATE_FORMATTER);
+        final String date = StringUtils.hasText(dateStr) ? dateStr : LocalDate.now(DEFAULT_ZONE_ID).format(DATE_FORMATTER);
         final LocalDate localDate = LocalDate.parse(date);
         final LocalDateTime dayStart = localDate.atStartOfDay();
         final LocalDateTime dayEnd = localDate.atTime(LocalTime.MAX);
 
-        String now = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+        final ZonedDateTime now = ZonedDateTime.now(DEFAULT_ZONE_ID);
+        final String nowStr = now.format(DATE_TIME_FORMATTER);
+        final int currentHour = now.getHour();
 
         // 1. 收集当日运动数据
         final List<WorkoutSession> workoutSessions = workoutSessionMapper.selectList(
@@ -551,7 +557,8 @@ public class DashboardServiceImpl implements DashboardService {
         // 3. 调用 AI Agent 生成反馈
         try {
             final AiCoachAgent.AiCoachFeedback aiFeedback = aiCoachAgent.generateFeedback(
-                    now,
+                    nowStr,
+                    currentHour,
                     workoutData.toString(),
                     nutritionData.toString()
             );
@@ -561,7 +568,7 @@ public class DashboardServiceImpl implements DashboardService {
                     .nutritionFeedback(aiFeedback.getNutritionFeedback())
                     .build();
         } catch (final Exception e) {
-            log.error("AI Coach feedback generation failed", e);
+            log.error("AI 私教反馈生成失败", e);
             // 返回默认反馈
             return AiCoachFeedbackVO.builder()
                     .workoutFeedback("坚持就是胜利，继续加油！")

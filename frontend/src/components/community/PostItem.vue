@@ -184,6 +184,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { ArrowDown, ChatDotRound, Folder, Plus, Trophy, CircleCheckFilled, UserFilled } from '@element-plus/icons-vue'
 import CommentSection from './CommentSection.vue'
+import { DEFAULT_AVATAR_URL } from '@/store/userStore'
 
 // ✅ 1. 导入封装好的 API
 import { folderApi, itemApi } from '@/api/collection'
@@ -210,7 +211,7 @@ const normalizeAvatarSrc = (raw) => {
   return s
 }
 
-const authorAvatarSrc = computed(() => normalizeAvatarSrc(props.post?.avatar))
+const authorAvatarSrc = computed(() => normalizeAvatarSrc(props.post?.avatar) || DEFAULT_AVATAR_URL)
 
 const aiReportId = computed(() => {
   const p = props.post || {}

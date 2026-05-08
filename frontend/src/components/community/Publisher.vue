@@ -107,6 +107,7 @@ import { useRoute } from 'vue-router'
 import { CollectionTag, Picture, Trophy, UserFilled } from '@element-plus/icons-vue'
 import request from '@/utils/request'
 import { useUserStore } from '@/store/userStore'
+import { DEFAULT_AVATAR_URL } from '@/store/userStore'
 import { workoutApi } from '@/api/workout'
 
 const props = defineProps({
@@ -130,7 +131,7 @@ const normalizeAvatarSrc = (raw) => {
   return s
 }
 
-const viewerAvatarSrc = computed(() => normalizeAvatarSrc(viewerAvatar.value))
+const viewerAvatarSrc = computed(() => normalizeAvatarSrc(viewerAvatar.value) || DEFAULT_AVATAR_URL)
 
 const rootCardRef = ref(null)
 const rootEl = computed(() => rootCardRef.value?.$el || null)
