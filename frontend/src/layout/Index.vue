@@ -99,11 +99,6 @@
                 {{ item.label }}
               </el-button>
             </div>
-            <div class="mobile-nav-actions">
-              <el-button class="mobile-nav-action" plain @click="handleMobileSelect('/settings')">账号设置</el-button>
-              <el-button class="mobile-nav-action" plain @click="handleMobileSelect('__my_space')">我的空间</el-button>
-              <el-button class="mobile-nav-action" type="danger" plain @click="handleMobileSelect('__logout')">退出登录</el-button>
-            </div>
           </div>
         </el-drawer>
       </div>
@@ -157,14 +152,6 @@ const updateIsMobile = () => {
 
 const handleMobileSelect = async (index) => {
   mobileDrawerVisible.value = false
-  if (index === '__logout') {
-    handleLogout()
-    return
-  }
-  if (index === '__my_space') {
-    await goToMySpace()
-    return
-  }
   router.push(index)
 }
 
@@ -404,24 +391,17 @@ const handleLogout = () => {
 .mobile-nav-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 8px;
 }
 
 .mobile-nav-item {
-  height: 44px;
+  height: 40px;
+  width: 100%;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
-}
-
-.mobile-nav-actions {
-  margin-top: 14px;
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
-}
-
-.mobile-nav-action {
-  height: 44px;
-  justify-content: center;
+  font-size: 14px;
 }
 
 @media (max-width: 768px) {
