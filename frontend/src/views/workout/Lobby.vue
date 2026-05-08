@@ -31,7 +31,7 @@
       </div>
 
       <el-row :gutter="24" class="workout-grid" v-loading="isLoadingWorkouts">
-        <el-col :span="8" v-for="workout in filteredWorkouts" :key="workout.id">
+        <el-col :xs="24" :sm="12" :md="8" :lg="8" v-for="workout in filteredWorkouts" :key="workout.id">
           <el-card class="workout-card" shadow="hover" :style="{ '--theme-color': workout.color }">
 
             <div class="card-visual" :class="workout.id"
@@ -368,5 +368,28 @@ onMounted(() => {
   margin-top: auto;
   font-weight: bold;
   letter-spacing: 1px;
+}
+
+@media (max-width: 768px) {
+  .lobby-container {
+    max-width: none;
+  }
+
+  .hero-banner {
+    padding: 16px 14px;
+    margin-bottom: 18px;
+    border-radius: 12px;
+  }
+
+  .hero-stats {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
 }
 </style>

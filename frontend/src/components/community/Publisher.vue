@@ -483,4 +483,22 @@ const goToMine = () => {
 :deep(.post-uploader .el-upload--picture-card) {
   line-height: 90px;
 }
+
+@media (max-width: 768px) {
+  .publisher-avatar {
+    width: 48px;
+    height: 48px;
+    flex: 0 0 48px;
+  }
+
+  .publisher-avatar :deep(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .publisher-avatar :deep(.el-avatar) {
+    overflow: hidden;
+  }
+}
 </style>

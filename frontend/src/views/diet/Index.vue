@@ -193,7 +193,7 @@
     </div>
 
     <!-- 添加多菜品弹窗 -->
-    <el-dialog v-model="addDialogVisible" title="🍽️ 添加饮食记录" width="600px" destroy-on-close>
+    <el-dialog v-model="addDialogVisible" title="🍽️ 添加饮食记录" width="600px" destroy-on-close class="diet-dialog">
       <div class="add-meal-form">
         <div class="meal-type-row">
           <span class="form-label">餐次</span>
@@ -297,8 +297,9 @@
     </el-dialog>
 
     <!-- 编辑饮食记录弹窗 -->
-    <el-dialog v-model="editDialogVisible" title="编辑饮食记录" width="520px" destroy-on-close>
-      <el-form :model="editForm" label-width="80px" class="edit-meal-form">
+    <el-dialog v-model="editDialogVisible" title="编辑饮食记录" width="520px" destroy-on-close class="diet-dialog">
+      <el-form :model="editForm" :label-position="isMobile ? 'top' : 'right'" :label-width="isMobile ? 'auto' : '80px'"
+        class="edit-meal-form">
         <el-form-item label="食物名称">
           <el-input v-model="editForm.foodName" placeholder="如：全麦面包, 煮鸡蛋" />
         </el-form-item>
@@ -343,7 +344,7 @@
     </el-dialog>
 
     <!-- 额外运动弹窗 -->
-    <el-dialog v-model="exerciseDialogVisible" title="🏃 添加额外运动消耗" width="500px" destroy-on-close>
+    <el-dialog v-model="exerciseDialogVisible" title="🏃 添加额外运动消耗" width="500px" destroy-on-close class="diet-dialog">
       <div class="add-exercise-form">
         <div class="exercise-field-row">
           <span class="form-label">运动名称</span>
@@ -410,12 +411,14 @@
     </el-dialog>
 
     <!-- 编辑额外运动弹窗 -->
-    <el-dialog v-model="editExerciseDialogVisible" title="编辑额外运动消耗" width="480px">
-      <el-form :model="editExerciseForm" label-width="80px">
+    <el-dialog v-model="editExerciseDialogVisible" title="编辑额外运动消耗" width="480px" class="diet-dialog">
+      <el-form :model="editExerciseForm" :label-position="isMobile ? 'top' : 'right'"
+        :label-width="isMobile ? 'auto' : '80px'">
         <el-form-item label="运动名称"><el-input v-model="editExerciseForm.exerciseName"
             placeholder="如：跑步、游泳" /></el-form-item>
         <el-form-item label="运动描述">
-          <el-input v-model="editExerciseForm.description" type="textarea" :rows="2" placeholder="如：配速5'30&quot;/km，跑了5公里" />
+          <el-input v-model="editExerciseForm.description" type="textarea" :rows="2"
+            placeholder="如：配速5'30&quot;/km，跑了5公里" />
           <div class="edit-desc-tip">
             <el-icon :size="12" color="#E6A23C"><QuestionFilled /></el-icon>
             <span>描述越精准，AI 估算消耗和强度越准确</span>
@@ -435,12 +438,17 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, nextTick } from "vue";
+import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { UploadFilled, Plus, Edit, Delete, Timer, Calendar, QuestionFilled, Loading, Select } from "@element-plus/icons-vue";
 import { debounce } from "lodash-es";
 import * as echarts from "echarts";
 import { dietApi } from "@/api/diet";
+
+const isMobile = ref(false);
+const updateIsMobile = () => {
+  isMobile.value = window.matchMedia("(max-width: 768px)").matches;
+};
 
 const selectedDate = ref(new Date().toISOString().slice(0, 10));
 const summary = reactive({ meals: [], totalIntakeCalories: 0, bmrCalories: 0, workoutBurnedCalories: 0, extraBurnedCalories: 0, targetCalories: 0, remainingCalories: 0, goal: "maintain", usedMealTypes: [] });
@@ -852,7 +860,16 @@ function renderChart() {
   chartInstance.setOption(option, true);
 }
 
-onMounted(() => { loadSummary(); window.addEventListener("resize", () => chartInstance?.resize()); });
+onMounted(() => {
+  updateIsMobile();
+  window.addEventListener("resize", updateIsMobile);
+  loadSummary();
+  window.addEventListener("resize", () => chartInstance?.resize());
+});
+
+onUnmounted(() => {
+  window.removeEventListener("resize", updateIsMobile);
+});
 </script>
 
 <style scoped>
@@ -1694,6 +1711,65 @@ onMounted(() => { loadSummary(); window.addEventListener("resize", () => chartIn
 
   .diet-right {
     width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  :deep(.diet-dialog) {
+    width: calc(100vw - 24px) !important;
+    max-width: calc(100vw - 24px) !important;
+    margin: 0 auto !important;
+  }
+
+  :deep(.diet-dialog .el-dialog__body) {
+    padding: 12px 12px 8px !important;
+    max-height: 70vh;
+    overflow: auto;
+  }
+
+  :deep(.diet-dialog .el-dialog__footer) {
+    padding: 8px 12px 12px !important;
+  }
+
+  .meal-type-row,
+  .time-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .form-label {
+    min-width: 0;
+  }
+
+  .dish-item {
+    padding: 10px;
+  }
+
+  .dish-numbers {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .unit-label {
+    min-width: 0;
+  }
+
+  .calorie-summary {
+    flex-wrap: wrap;
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .ai-disclaimer {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .exercise-field-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
   }
 }
 </style>
