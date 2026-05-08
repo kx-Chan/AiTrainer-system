@@ -1,52 +1,102 @@
 <template>
   <div class="app-wrapper">
 
-    <el-menu v-if="route.path !== '/onboarding'" mode="horizontal" :default-active="route.path" router
-      class="custom-top-nav" :ellipsis="false">
-      <div class="brand-logo">
-        <img src="/爱健身.png" alt="AiTrainer Logo" class="logo-img" />
-        <span class="logo-text">AiTrainer</span>
-      </div>
+    <template v-if="route.path !== '/onboarding'">
+      <el-menu v-if="!isMobile" mode="horizontal" :default-active="route.path" router class="custom-top-nav"
+        :ellipsis="false">
+        <div class="brand-logo">
+          <img src="/爱健身.png" alt="AiTrainer Logo" class="logo-img" />
+          <span class="logo-text">AiTrainer</span>
+        </div>
 
-      <div class="flex-grow"></div>
+        <div class="flex-grow"></div>
 
-      <el-menu-item index="/workout">项目大厅</el-menu-item>
-      <el-menu-item index="/community">健身社区</el-menu-item>
-      <el-menu-item index="/diet">营养膳食</el-menu-item>
-      <el-menu-item index="/dashboard">数据看板</el-menu-item>
-      <el-menu-item index="/coach" class="ai-nav-item">
-        <el-icon>
-          <Microphone />
-        </el-icon> AI 私教
-      </el-menu-item>
-      <el-menu-item index="/profile">个人主页</el-menu-item>
+        <el-menu-item index="/workout">项目大厅</el-menu-item>
+        <el-menu-item index="/community">健身社区</el-menu-item>
+        <el-menu-item index="/diet">营养膳食</el-menu-item>
+        <el-menu-item index="/dashboard">数据看板</el-menu-item>
+        <el-menu-item index="/coach" class="ai-nav-item">
+          <el-icon>
+            <Microphone />
+          </el-icon> AI 私教
+        </el-menu-item>
+        <el-menu-item index="/profile">个人主页</el-menu-item>
 
-      <div class="flex-grow"></div>
+        <div class="flex-grow"></div>
 
-      <div class="nav-user-profile">
-        <el-dropdown placement="bottom-end">
-          <span class="user-dropdown-link">
-            <el-avatar :size="32" :src="avatar">
+        <div class="nav-user-profile">
+          <el-dropdown placement="bottom-end">
+            <span class="user-dropdown-link">
+              <el-avatar :size="32" :src="avatar">
+                <el-icon>
+                  <UserFilled />
+                </el-icon>
+              </el-avatar>
+              <span class="username">{{ nickname }}</span>
               <el-icon>
-                <UserFilled />
+                <ArrowDown />
               </el-icon>
-            </el-avatar>
-            <span class="username">{{ nickname }}</span>
+            </span>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item @click="router.push('/profile')">进入主页</el-dropdown-item>
+                <el-dropdown-item @click="goToMySpace">我的空间</el-dropdown-item>
+                <el-dropdown-item @click="router.push('/settings')">账号设置</el-dropdown-item>
+                <el-dropdown-item divided @click="handleLogout">退出登录</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </div>
+      </el-menu>
+
+      <div v-else class="mobile-topbar">
+        <div class="mobile-left">
+          <el-button class="mobile-menu-btn" text @click="mobileDrawerVisible = true">
             <el-icon>
-              <ArrowDown />
+              <Menu />
             </el-icon>
-          </span>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item @click="router.push('/profile')">进入主页</el-dropdown-item>
-              <el-dropdown-item @click="goToMySpace">我的空间</el-dropdown-item>
-              <el-dropdown-item @click="router.push('/settings')">账号设置</el-dropdown-item>
-              <el-dropdown-item divided @click="handleLogout">退出登录</el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
+          </el-button>
+          <div class="brand-logo mobile-brand">
+            <img src="/爱健身.png" alt="AiTrainer Logo" class="logo-img mobile-logo" />
+            <span class="logo-text mobile-logo-text">AiTrainer</span>
+          </div>
+        </div>
+
+        <div class="nav-user-profile mobile-user">
+          <el-dropdown placement="bottom-end">
+            <span class="user-dropdown-link">
+              <el-avatar :size="28" :src="avatar">
+                <el-icon>
+                  <UserFilled />
+                </el-icon>
+              </el-avatar>
+              <el-icon>
+                <ArrowDown />
+              </el-icon>
+            </span>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item @click="router.push('/profile')">进入主页</el-dropdown-item>
+                <el-dropdown-item @click="goToMySpace">我的空间</el-dropdown-item>
+                <el-dropdown-item @click="router.push('/settings')">账号设置</el-dropdown-item>
+                <el-dropdown-item divided @click="handleLogout">退出登录</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </div>
+
+        <el-drawer v-model="mobileDrawerVisible" direction="ltr" :with-header="false" size="72%">
+          <el-menu :default-active="route.path" class="mobile-drawer-menu" @select="handleMobileSelect">
+            <el-menu-item index="/workout">项目大厅</el-menu-item>
+            <el-menu-item index="/community">健身社区</el-menu-item>
+            <el-menu-item index="/diet">营养膳食</el-menu-item>
+            <el-menu-item index="/dashboard">数据看板</el-menu-item>
+            <el-menu-item index="/coach">AI 私教</el-menu-item>
+            <el-menu-item index="/profile">个人主页</el-menu-item>
+          </el-menu>
+        </el-drawer>
       </div>
-    </el-menu>
+    </template>
 
     <div class="main-content">
       <router-view v-slot="{ Component }">
@@ -60,9 +110,9 @@
 </template>
 
 <script setup>
-import { onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Microphone, ArrowDown, UserFilled } from '@element-plus/icons-vue'
+import { Microphone, ArrowDown, UserFilled, Menu } from '@element-plus/icons-vue'
 import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/store/userStore'
 
@@ -71,6 +121,18 @@ const router = useRouter()
 
 const userStore = useUserStore()
 const { avatar, nickname } = storeToRefs(userStore)
+
+const isMobile = ref(false)
+const mobileDrawerVisible = ref(false)
+
+const updateIsMobile = () => {
+  isMobile.value = window.matchMedia('(max-width: 768px)').matches
+}
+
+const handleMobileSelect = (index) => {
+  mobileDrawerVisible.value = false
+  router.push(index)
+}
 
 const goToMySpace = async () => {
   if (!userStore.userId) {
@@ -94,11 +156,14 @@ const handleProfileUpdated = async (event) => {
 }
 
 onMounted(() => {
+  updateIsMobile()
+  window.addEventListener('resize', updateIsMobile)
   userStore.fetchNavUser()
   window.addEventListener('profile:updated', handleProfileUpdated)
 })
 
 onUnmounted(() => {
+  window.removeEventListener('resize', updateIsMobile)
   window.removeEventListener('profile:updated', handleProfileUpdated)
 })
 
@@ -205,6 +270,61 @@ const handleLogout = () => {
 .main-content {
   padding: 24px 40px;
   box-sizing: border-box;
+}
+
+.mobile-topbar {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+.mobile-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.mobile-menu-btn {
+  padding: 6px;
+}
+
+.mobile-brand {
+  padding-left: 0;
+}
+
+.mobile-logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  margin-right: 8px;
+}
+
+.mobile-logo-text {
+  font-size: 18px;
+}
+
+.mobile-user {
+  margin-left: 0;
+  padding-right: 0;
+}
+
+.mobile-drawer-menu {
+  border-right: none;
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    padding: 12px 12px;
+  }
 }
 
 .fade-enter-active,
