@@ -1,7 +1,11 @@
 <template>
   <el-card class="post-card" shadow="hover">
     <div class="post-header">
-      <el-avatar :size="40" :src="post.avatar" style="cursor: pointer;" @click="$emit('go-to-space', post.authorId)" />
+      <el-avatar :size="40" :src="authorAvatarSrc" style="cursor: pointer;" @click="$emit('go-to-space', post.authorId)">
+        <el-icon>
+          <UserFilled />
+        </el-icon>
+      </el-avatar>
 
       <div class="post-user-info">
         <div class="user-name" style="cursor: pointer;" @click="$emit('go-to-space', post.authorId)">
@@ -178,7 +182,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { ArrowDown, ChatDotRound, Folder, Plus, Trophy, CircleCheckFilled } from '@element-plus/icons-vue'
+import { ArrowDown, ChatDotRound, Folder, Plus, Trophy, CircleCheckFilled, UserFilled } from '@element-plus/icons-vue'
 import CommentSection from './CommentSection.vue'
 
 // ✅ 1. 导入封装好的 API
@@ -197,6 +201,16 @@ const emit = defineEmits(['go-to-space', 'follow', 'unfollow', 'toggle-like', 't
 const showComments = ref(false)
 
 const isReportOnly = computed(() => String(props.post?.sourceType || '') === 'workout_report')
+
+const normalizeAvatarSrc = (raw) => {
+  const s = String(raw ?? '').trim()
+  if (!s) return ''
+  const lowered = s.toLowerCase()
+  if (lowered === 'null' || lowered === 'undefined') return ''
+  return s
+}
+
+const authorAvatarSrc = computed(() => normalizeAvatarSrc(props.post?.avatar))
 
 const aiReportId = computed(() => {
   const p = props.post || {}

@@ -1,7 +1,11 @@
 <template>
   <el-card ref="rootCardRef" class="publisher-card" shadow="never">
     <div class="publisher-layout">
-      <el-avatar :size="48" :src="viewerAvatar" class="publisher-avatar" style="cursor: pointer;" @click="goToMine" />
+      <el-avatar :size="48" :src="viewerAvatarSrc" class="publisher-avatar" style="cursor: pointer;" @click="goToMine">
+        <el-icon>
+          <UserFilled />
+        </el-icon>
+      </el-avatar>
       <div class="publisher-input-area">
         <div v-if="selectedTopic" class="publisher-topic-bar">
           <el-tag size="small" effect="plain" round closable @close="clearTopic">#{{ selectedTopic }}</el-tag>
@@ -100,7 +104,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { ElMessage } from 'element-plus'
 import { useRoute } from 'vue-router'
-import { CollectionTag, Picture, Trophy } from '@element-plus/icons-vue'
+import { CollectionTag, Picture, Trophy, UserFilled } from '@element-plus/icons-vue'
 import request from '@/utils/request'
 import { useUserStore } from '@/store/userStore'
 import { workoutApi } from '@/api/workout'
@@ -117,6 +121,16 @@ const { avatar, nickname } = storeToRefs(userStore)
 const viewerId = computed(() => userStore.userId)
 const viewerAvatar = computed(() => avatar.value)
 const route = useRoute()
+
+const normalizeAvatarSrc = (raw) => {
+  const s = String(raw ?? '').trim()
+  if (!s) return ''
+  const lowered = s.toLowerCase()
+  if (lowered === 'null' || lowered === 'undefined') return ''
+  return s
+}
+
+const viewerAvatarSrc = computed(() => normalizeAvatarSrc(viewerAvatar.value))
 
 const rootCardRef = ref(null)
 const rootEl = computed(() => rootCardRef.value?.$el || null)
@@ -257,7 +271,7 @@ const publishPost = async () => {
       id: created?.id ?? Date.now(),
       author: created?.author || nickname.value || '用户',
       authorId: viewerId.value,
-      avatar: created?.avatar || viewerAvatar.value,
+      avatar: normalizeAvatarSrc(created?.avatar) || viewerAvatarSrc.value,
       time: created?.time || '刚刚',
       device: created?.device || props.device,
       isPro: !!created?.isPro,
