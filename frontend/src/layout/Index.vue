@@ -85,7 +85,15 @@
           </el-dropdown>
         </div>
 
-        <el-drawer v-model="mobileDrawerVisible" class="mobile-drawer" direction="ltr" :with-header="false" size="86%">
+        <el-drawer v-model="mobileDrawerVisible" class="mobile-drawer" direction="ttb" :with-header="false" size="100%">
+          <div class="mobile-drawer-header">
+            <div class="mobile-drawer-title">全部功能</div>
+            <el-button text class="mobile-drawer-close" @click="mobileDrawerVisible = false">
+              <el-icon>
+                <Close />
+              </el-icon>
+            </el-button>
+          </div>
           <el-menu :default-active="route.path" class="mobile-drawer-menu" @select="handleMobileSelect">
             <el-menu-item index="/workout">项目大厅</el-menu-item>
             <el-menu-item index="/community">健身社区</el-menu-item>
@@ -115,7 +123,7 @@
 <script setup>
 import { onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Microphone, ArrowDown, UserFilled, Menu } from '@element-plus/icons-vue'
+import { Microphone, ArrowDown, UserFilled, Menu, Close } from '@element-plus/icons-vue'
 import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/store/userStore'
 
@@ -333,7 +341,34 @@ const handleLogout = () => {
 }
 
 .mobile-drawer :deep(.el-drawer__body) {
-  padding: 8px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-drawer-header {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  box-sizing: border-box;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.mobile-drawer-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #303133;
+}
+
+.mobile-drawer-close {
+  padding: 6px;
+}
+
+.mobile-drawer-menu {
+  flex: 1;
+  overflow: auto;
 }
 
 .mobile-drawer-menu :deep(.el-menu-item) {
