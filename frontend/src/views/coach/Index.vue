@@ -3,7 +3,7 @@
     <el-row :gutter="24" class="layout-row">
 
       <!-- 历史会话侧边栏 -->
-      <el-col :span="4" class="col-panel sidebar-panel">
+      <el-col :xs="24" :sm="24" :md="4" :span="4" class="col-panel sidebar-panel">
         <el-card shadow="never" class="history-card glass-panel">
           <template #header>
             <div class="history-header">
@@ -45,7 +45,7 @@
         </el-card>
       </el-col>
 
-      <el-col :span="10" class="col-panel">
+      <el-col :xs="24" :sm="24" :md="10" :span="10" class="col-panel chat-panel">
         <el-card shadow="never" class="chat-card glass-panel">
           <template #header>
             <div class="chat-header">
@@ -176,7 +176,7 @@
         </el-card>
       </el-col>
 
-      <el-col :span="10" class="col-panel">
+      <el-col :xs="24" :sm="24" :md="10" :span="10" class="col-panel result-panel">
         <el-card shadow="never" class="result-card glass-panel">
 
           <div v-if="!currentAnalysis && !isAiThinking" class="empty-state">
@@ -1189,6 +1189,112 @@ onMounted(async () => {
   align-items: center;
   margin-top: 12px;
 }
+
+@media (max-width: 768px) {
+  .agent-container {
+    max-width: none;
+    height: auto;
+    padding-bottom: 24px;
+  }
+
+  .layout-row {
+    height: auto;
+    flex-wrap: wrap;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .col-panel {
+    height: auto;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .sidebar-panel {
+    max-width: none;
+    flex: 0 0 auto;
+    order: 3;
+  }
+
+  .chat-panel {
+    order: 1;
+  }
+
+  .result-panel {
+    order: 2;
+  }
+
+  .history-list {
+    height: auto;
+    max-height: 240px;
+  }
+
+  .chat-header {
+    padding: 12px 14px;
+  }
+
+  .analysis-options {
+    padding: 12px 14px;
+  }
+
+  .analysis-type-group :deep(.el-radio-group) {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .analysis-type-group :deep(.el-radio-button) {
+    width: 100%;
+  }
+
+  .analysis-type-group :deep(.el-radio-button__inner) {
+    margin: 0;
+  }
+
+  .data-option-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .chat-window {
+    padding: 14px;
+    min-height: 40vh;
+  }
+
+  .message-item {
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+
+  .message-bubble-wrapper {
+    max-width: 100%;
+  }
+
+  .message-bubble {
+    padding: 12px 14px;
+    font-size: 14px;
+  }
+
+  .quick-prompts {
+    padding: 0 14px 14px;
+  }
+
+  .chat-input-area {
+    padding: 14px;
+  }
+
+  .input-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .send-btn {
+    width: 100%;
+  }
+}
+
 
 .tip-text {
   display: flex;

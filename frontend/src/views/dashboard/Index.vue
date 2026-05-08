@@ -5,25 +5,25 @@
     </div>
 
     <el-row :gutter="24" class="metric-row">
-      <el-col :span="6">
+      <el-col :xs="12" :sm="12" :md="6" :span="6">
         <el-card shadow="hover" class="metric-card">
           <div class="metric-title"><el-icon><Timer /></el-icon> 近7天总消耗</div>
           <div class="metric-value">{{ total7Days }} <span class="unit">kcal</span></div>
         </el-card>
       </el-col>
-      <el-col :span="6">
+      <el-col :xs="12" :sm="12" :md="6" :span="6">
         <el-card shadow="hover" class="metric-card workout-metric">
           <div class="metric-title"><el-icon><DataLine /></el-icon> 项目训练消耗</div>
           <div class="metric-value">{{ workoutCal }} <span class="unit">kcal</span></div>
         </el-card>
       </el-col>
-      <el-col :span="6">
+      <el-col :xs="12" :sm="12" :md="6" :span="6">
         <el-card shadow="hover" class="metric-card extra-metric">
           <div class="metric-title"><el-icon><Promotion /></el-icon> 额外运动消耗</div>
           <div class="metric-value">{{ extraCal }} <span class="unit">kcal</span></div>
         </el-card>
       </el-col>
-      <el-col :span="6">
+      <el-col :xs="12" :sm="12" :md="6" :span="6">
         <el-card shadow="hover" class="metric-card">
           <div class="metric-title"><el-icon><Odometer /></el-icon> 训练次数</div>
           <div class="metric-value">{{ workoutLogs.length + extraExerciseLogs.length }} <span class="unit">次</span></div>
@@ -32,7 +32,7 @@
     </el-row>
 
     <el-row :gutter="24" class="main-row">
-      <el-col :span="12">
+      <el-col :xs="24" :sm="24" :md="12" :span="12">
         <el-card shadow="never" class="split-card workout-card">
           <template #header>
             <div class="card-header">
@@ -49,7 +49,7 @@
         </el-card>
       </el-col>
 
-      <el-col :span="12">
+      <el-col :xs="24" :sm="24" :md="12" :span="12">
         <el-card shadow="never" class="split-card diet-card">
           <template #header>
             <div class="card-header">
@@ -134,7 +134,7 @@
     <!-- 日志区域 - 三列布局 -->
     <el-row :gutter="24" class="log-row">
       <!-- 项目训练日志 -->
-      <el-col :span="8">
+      <el-col :xs="24" :sm="24" :md="8" :span="8">
         <el-card shadow="never" class="log-card">
           <template #header>
             <div class="card-header">
@@ -174,7 +174,7 @@
       </el-col>
 
       <!-- 额外运动日志 -->
-      <el-col :span="8">
+      <el-col :xs="24" :sm="24" :md="8" :span="8">
         <el-card shadow="never" class="log-card extra-log-card">
           <template #header>
             <div class="card-header">
@@ -211,7 +211,7 @@
       </el-col>
 
       <!-- 饮食日志 -->
-      <el-col :span="8">
+      <el-col :xs="24" :sm="24" :md="8" :span="8">
         <el-card shadow="never" class="log-card diet-log-card">
           <template #header>
             <div class="card-header">
@@ -258,7 +258,7 @@
       </el-button>
     </el-tooltip>
 
-    <el-dialog v-model="isRecordVisible" title="📊 阶段性体征复盘" width="450px" destroy-on-close>
+    <el-dialog v-model="isRecordVisible" title="📊 阶段性体征复盘" width="450px" destroy-on-close class="dashboard-dialog">
       <el-alert title="💡 健身先健脑：体重受水分影响波动极大，切勿每天称重制造焦虑。" type="warning" :closable="false" style="margin-bottom: 20px;" />
       <el-form label-width="100px" :model="dailyRecord" label-position="left">
         <el-form-item label="当前体重(kg)">
@@ -640,4 +640,98 @@ onMounted(() => {
 .food-time { color: #c0c4cc; font-size: 11px; }
 .floating-record-btn { position: fixed; bottom: 60px; right: 60px; width: 64px; height: 64px; font-size: 28px; box-shadow: 0 8px 24px rgba(64, 158, 255, 0.4); z-index: 999; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 .floating-record-btn:hover { transform: scale(1.1); }
+
+@media (max-width: 768px) {
+  .dashboard-container {
+    max-width: none;
+    padding-bottom: 24px;
+  }
+
+  .page-header {
+    margin-bottom: 14px;
+  }
+
+  .page-title {
+    font-size: 20px;
+  }
+
+  .metric-row {
+    margin-bottom: 14px;
+  }
+
+  .metric-row :deep(.el-col) {
+    margin-bottom: 10px;
+  }
+
+  .metric-title {
+    font-size: 12px;
+    margin-bottom: 8px;
+    white-space: nowrap;
+  }
+
+  .metric-value {
+    font-size: 26px;
+  }
+
+  .split-card :deep(.el-card__body) {
+    padding: 14px;
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .header-title {
+    font-size: 16px;
+  }
+
+  .chart-container {
+    height: 220px;
+  }
+
+  .target-summary {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .target-values {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .log-row {
+    margin-top: 14px;
+  }
+
+  .log-row :deep(.el-col) {
+    margin-bottom: 12px;
+  }
+
+  .floating-record-btn {
+    right: 16px;
+    bottom: 88px;
+    width: 52px;
+    height: 52px;
+    font-size: 22px;
+  }
+
+  :deep(.dashboard-dialog) {
+    width: calc(100vw - 24px) !important;
+    max-width: calc(100vw - 24px) !important;
+    margin: 0 auto !important;
+  }
+
+  :deep(.dashboard-dialog .el-dialog__body) {
+    padding: 12px 12px 8px !important;
+    max-height: 70vh;
+    overflow: auto;
+  }
+
+  :deep(.dashboard-dialog .el-dialog__footer) {
+    padding: 8px 12px 12px !important;
+  }
+}
 </style>
