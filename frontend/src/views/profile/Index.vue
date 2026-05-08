@@ -166,7 +166,7 @@
           </div>
 
           <el-row :gutter="20" class="collection-grid">
-            <el-col :span="8" v-for="folder in collectionFolders" :key="folder.id">
+            <el-col :xs="12" :sm="12" :md="8" :span="8" v-for="folder in collectionFolders" :key="folder.id">
               <el-card class="folder-card" shadow="hover" @click="goToFolderDetail(folder)">
 
                 <div class="folder-tags">
@@ -210,7 +210,7 @@
 
     <el-dialog v-model="isEditVisible" title="编辑个人资料" width="450px" destroy-on-close class="edit-dialog"
       @close="cancelEdit">
-      <el-form label-width="80px" :model="editForm">
+      <el-form :label-position="isMobile ? 'top' : 'right'" :label-width="isMobile ? 'auto' : '80px'" :model="editForm">
         <el-form-item label="用户头像">
           <el-upload class="avatar-uploader" action="#" :show-file-list="false" :auto-upload="false"
             :on-change="handleAvatarChange">
@@ -311,6 +311,11 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 import { useRouter, useRoute } from 'vue-router'
 import { folderApi } from '@/api/collection'
+
+const isMobile = ref(false)
+const updateIsMobile = () => {
+  isMobile.value = window.matchMedia('(max-width: 768px)').matches
+}
 
 
 // Profile.vue
@@ -671,6 +676,8 @@ watch([footprintFilter, () => footprintPage.page], () => fetchFootprints())
 watch(() => myPostsPage.page, () => fetchMyPosts())
 
 onMounted(() => {
+  updateIsMobile()
+  window.addEventListener('resize', updateIsMobile)
   fetchProfile()
   fetchMyPosts()
   fetchFootprints()
@@ -706,6 +713,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  window.removeEventListener('resize', updateIsMobile)
   const handler = (window).__profile_popstate_handler__
   if (handler) window.removeEventListener('popstate', handler)
 })
@@ -1112,5 +1120,151 @@ watch(activeTab, (n) => {
   height: 80px;
   display: block;
   object-fit: cover;
+}
+
+@media (max-width: 768px) {
+  .profile-container {
+    max-width: none;
+    padding: 0 12px;
+  }
+
+  .profile-header-card {
+    margin-bottom: 16px;
+  }
+
+  .user-info-wrapper {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+    padding: 8px;
+  }
+
+  .avatar-section {
+    display: flex;
+    justify-content: center;
+  }
+
+  .avatar-section .el-avatar {
+    width: 76px !important;
+    height: 76px !important;
+    line-height: 76px !important;
+  }
+
+  .name-row {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .nickname {
+    font-size: 20px;
+  }
+
+  .edit-btn {
+    margin-left: 0;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .bio {
+    margin-bottom: 12px;
+  }
+
+  .stats-row {
+    justify-content: space-between;
+    gap: 0;
+  }
+
+  .stat-divider {
+    display: none;
+  }
+
+  .stat-item {
+    flex: 1;
+    padding: 6px 0;
+  }
+
+  .content-card {
+    border-radius: 14px;
+  }
+
+  .custom-tabs :deep(.el-tabs__item) {
+    font-size: 14px;
+  }
+
+  .collection-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin: 8px 0 16px;
+  }
+
+  .toolbar-left {
+    justify-content: center;
+  }
+
+  .toolbar-title {
+    font-size: 16px;
+  }
+
+  .toolbar-right {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .search-input-group {
+    width: 100%;
+  }
+
+  .create-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .collection-grid {
+    margin-left: -10px;
+    margin-right: -10px;
+  }
+
+  .folder-visual {
+    margin-top: 18px;
+  }
+
+  .folder-main-icon {
+    font-size: 44px;
+  }
+
+  .folder-footer {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px 12px;
+  }
+
+  .folder-footer :deep(.el-divider--vertical) {
+    display: none;
+  }
+
+  :deep(.edit-dialog) {
+    width: calc(100vw - 24px) !important;
+    max-width: calc(100vw - 24px) !important;
+    margin: 0 auto !important;
+  }
+
+  :deep(.edit-dialog .el-dialog__body) {
+    padding: 12px 12px 8px !important;
+    max-height: 70vh;
+    overflow: auto;
+  }
+
+  :deep(.edit-dialog .el-dialog__footer) {
+    padding: 8px 12px 12px !important;
+  }
+
+  .avatar-uploader-icon,
+  .uploaded-avatar {
+    width: 72px;
+    height: 72px;
+    line-height: 72px;
+  }
 }
 </style>

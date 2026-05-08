@@ -178,6 +178,7 @@
 
       <el-col :xs="24" :sm="24" :md="10" :span="10" class="col-panel result-panel">
         <el-card shadow="never" class="result-card glass-panel">
+          <div ref="resultAnchorRef" class="result-anchor"></div>
 
           <div v-if="!currentAnalysis && !isAiThinking" class="empty-state">
             <div class="artifact-icon">🏋️</div>
@@ -236,7 +237,7 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick, onMounted } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Position, Refresh, Loading, TrendCharts,
@@ -253,6 +254,12 @@ marked.setOptions({
 })
 
 const chatWindowRef = ref(null)
+const resultAnchorRef = ref(null)
+
+const isMobile = ref(false)
+const updateIsMobile = () => {
+  isMobile.value = window.matchMedia('(max-width: 768px)').matches
+}
 
 // 分析选项
 const analysisType = ref('comprehensive')
@@ -626,6 +633,10 @@ const handleQuestionClick = async (questionId) => {
         }
       }
       ElMessage.success('已加载历史分析结果')
+      if (isMobile.value) {
+        await nextTick()
+        resultAnchorRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
     } else {
       ElMessage.warning('未找到该提问对应的 AI 分析结果')
       currentAnalysis.value = null
@@ -741,6 +752,8 @@ const handleSend = async () => {
 
 // 组件挂载时加载会话列表并恢复状态
 onMounted(async () => {
+  updateIsMobile()
+  window.addEventListener('resize', updateIsMobile)
   await loadSessions()
   
   // 尝试恢复之前的会话状态
@@ -781,6 +794,10 @@ onMounted(async () => {
       currentAnalysis.value = null
     }
   }
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateIsMobile)
 })
 </script>
 
@@ -1190,6 +1207,10 @@ onMounted(async () => {
   margin-top: 12px;
 }
 
+.result-anchor {
+  height: 0;
+}
+
 @media (max-width: 768px) {
   .agent-container {
     max-width: none;
@@ -1226,7 +1247,40 @@ onMounted(async () => {
 
   .history-list {
     height: auto;
-    max-height: 240px;
+    max-height: 200px;
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 10px 12px;
+  }
+
+  .history-card :deep(.el-card__header) {
+    padding: 12px 14px;
+  }
+
+  .history-title {
+    font-size: 15px;
+  }
+
+  .session-item {
+    min-width: 200px;
+    margin-bottom: 0;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .session-info {
+    width: 100%;
+  }
+
+  .session-title {
+    font-size: 14px;
+  }
+
+  .session-action {
+    align-self: flex-end;
   }
 
   .chat-header {
