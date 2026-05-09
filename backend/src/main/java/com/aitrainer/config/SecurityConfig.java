@@ -89,7 +89,9 @@ public class SecurityConfig {
                 "http://127.0.0.1:*",
                 "http://[::1]:*",
                 "http://frontend:*",
-                "http://aitrainer-frontend:*"
+                "http://aitrainer-frontend:*",
+                "https://aitrainer.fun",
+                "https://www.aitrainer.fun"
         ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
