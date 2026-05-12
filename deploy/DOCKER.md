@@ -29,6 +29,7 @@ deploy/
 cd deploy
 cp .env.example .env
 # 编辑 .env 文件填入实际配置
+# 由于考虑到用户可能本地有mysql和redis占用对应的端口，此处选择mysql占用3307而不是3306，redis占用6380而不是6379，防止与本地发生冲突，用户可以根据自身选择，秩序修改.env文件即可
 ```
 
 ### 3. 一键部署
