@@ -12,6 +12,10 @@ AiTrainer 面向“想坚持健身但缺少方法与反馈”的人群：把分�
 
 本仓库是对旧版 AiTrainer 概念项目的“翻新落地”：补全前后端、数据库与部署链路，形成可本地运行、可 Docker 一键部署、可线上访问的完整网站。
 
+## 旧版演示视频
+
+- 演示视频链接：<【AiTrainer项目旧版演示视频】 https://www.bilibili.com/video/BV1kV5K6ZE6L/?share_source=copy_web&vd_source=8036b1f2d69a8402b96a903666f4ba4a>
+
 ## 核心功能
 
 - AI 私教：多会话聊天、意图识别（闲聊/分析）、训练分析/饮食分析/综合分析、历史记录与锚定回复
