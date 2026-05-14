@@ -5,6 +5,7 @@ import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
 import dev.langchain4j.service.spring.AiService;
+import dev.langchain4j.service.spring.AiServiceWiringMode;
 
 /**
  * AI 运动分析 Agent。
@@ -12,7 +13,7 @@ import dev.langchain4j.service.spring.AiService;
  *
  * 当前为 mock 实现，后续接入 LangChain4j AI 服务。
  */
-@AiService
+@AiService(wiringMode = AiServiceWiringMode.EXPLICIT, chatModel = "customOpenAiChatModel")
 public interface ExerciseAgent {
 
     @SystemMessage("""

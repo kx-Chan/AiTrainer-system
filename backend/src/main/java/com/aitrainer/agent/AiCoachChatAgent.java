@@ -4,12 +4,13 @@ import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
 import dev.langchain4j.service.spring.AiService;
+import dev.langchain4j.service.spring.AiServiceWiringMode;
 
 /**
  * AI 私教闲聊 Agent。
  * 用于处理用户的问候、闲聊等非分析类消息，扮演"引导员"角色。
  */
-@AiService
+@AiService(wiringMode = AiServiceWiringMode.EXPLICIT, chatModel = "customOpenAiChatModel")
 public interface AiCoachChatAgent {
 
     /**

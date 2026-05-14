@@ -4,11 +4,12 @@ import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
 import dev.langchain4j.service.spring.AiService;
+import dev.langchain4j.service.spring.AiServiceWiringMode;
 
 /**
  * AI 私教每日碎碎念生成 Agent。
  */
-@AiService
+@AiService(wiringMode = AiServiceWiringMode.EXPLICIT, chatModel = "customOpenAiChatModel")
 public interface AiCoachAgent {
 
     @SystemMessage("""

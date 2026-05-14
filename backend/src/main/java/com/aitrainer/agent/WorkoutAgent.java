@@ -6,6 +6,7 @@ import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
 import dev.langchain4j.service.spring.AiService;
+import dev.langchain4j.service.spring.AiServiceWiringMode;
 
 /**
  * AI 运动战报生成 Agent。
@@ -16,7 +17,7 @@ import dev.langchain4j.service.spring.AiService;
  * 2. comment 点评根据 grade 给出专业的教练式反馈
  * 3. 雷达图五维评分与运动类型和强度相匹配
  */
-@AiService
+@AiService(wiringMode = AiServiceWiringMode.EXPLICIT, chatModel = "customOpenAiChatModel")
 public interface WorkoutAgent {
 
     @SystemMessage("""

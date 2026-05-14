@@ -4,12 +4,13 @@ import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
 import dev.langchain4j.service.spring.AiService;
+import dev.langchain4j.service.spring.AiServiceWiringMode;
 
 /**
  * AI 意图分类 Agent。
  * 用于判断用户输入是闲聊还是需要数据分析。
  */
-@AiService
+@AiService(wiringMode = AiServiceWiringMode.EXPLICIT, chatModel = "customOpenAiChatModel")
 public interface IntentClassifierAgent {
 
     /**
