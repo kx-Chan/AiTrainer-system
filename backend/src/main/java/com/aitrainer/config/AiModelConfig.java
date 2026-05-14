@@ -61,7 +61,7 @@ public class AiModelConfig {
      */
     @Bean
     @Primary
-    public ChatLanguageModel chatLanguageModel() {
+    public ChatLanguageModel customOpenAiChatModel() {
         log.info("初始化自定义 OpenAiChatModel: baseUrl={}, model={}, maxTokens={}, timeout={}s",
                 baseUrl, modelName, maxTokens, timeout.getSeconds());
 
