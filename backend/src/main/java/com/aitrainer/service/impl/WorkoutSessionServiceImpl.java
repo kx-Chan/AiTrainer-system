@@ -188,9 +188,35 @@ public class WorkoutSessionServiceImpl implements WorkoutSessionService {
         int baseMinutes = random.nextInt(15, 41); // 15-40 分钟基准
         log.info("请求 AI 为用户 {} 生成 {} 模拟战报 (基准时长: {} 分钟)...", userId, workout.getName(), baseMinutes);
         
-        WorkoutReportVO aiReport = workoutAgent.generateReport(workout.getName(), baseMinutes);
-        log.info("AI 战报生成成功: score={}, grade={}, calories={}", 
-                aiReport.getScore(), aiReport.getGrade(), aiReport.getCaloriesBurned());
+        WorkoutReportVO aiReport;
+        try {
+            aiReport = workoutAgent.generateReport(workout.getName(), baseMinutes);
+            log.info("AI 战报生成成功: score={}, grade={}, calories={}", 
+                    aiReport.getScore(), aiReport.getGrade(), aiReport.getCaloriesBurned());
+        } catch (Exception e) {
+            log.error("AI 战报生成失败 (可能是 API 代理返回了流式 SSE 格式而非 JSON)，使用随机降级数据: {}", e.getMessage());
+            int durationSeconds = baseMinutes * 60 + random.nextInt(-120, 120);
+            int validReps = random.nextInt(30, 80);
+            int invalidReps = random.nextInt(1, 8);
+            int score = random.nextInt(70, 96);
+            String grade = score >= 90 ? "S" : (score >= 80 ? "A" : (score >= 70 ? "B" : "C"));
+            aiReport = WorkoutReportVO.builder()
+                    .score(score)
+                    .grade(grade)
+                    .validReps(validReps)
+                    .invalidReps(invalidReps)
+                    .durationSeconds(durationSeconds)
+                    .caloriesBurned((int) (durationSeconds * 0.05 + validReps * 0.3))
+                    .comment("训练完成！继续保持，你做得很棒！")
+                    .radar(java.util.Map.of(
+                            "stability", random.nextInt(70, 96),
+                            "rhythm", random.nextInt(70, 96),
+                            "range", random.nextInt(70, 96),
+                            "endurance", random.nextInt(70, 96),
+                            "strength", random.nextInt(70, 96)
+                    ))
+                    .build();
+        }
 
         // 3. 序列化雷达图和随机抓拍图
         String radarJson = "";

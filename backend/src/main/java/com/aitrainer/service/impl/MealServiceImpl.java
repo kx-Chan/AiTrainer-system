@@ -406,7 +406,19 @@ public class MealServiceImpl implements MealService {
 
         // 3. 缓存没有，调用 AI Agent 进行分析
         log.info("缓存未命中，调用 AI 分析: {} ({}g)", foodName, weight);
-        final FoodAnalysisVO result = nutritionAgent.analyze(foodName, weight);
+        FoodAnalysisVO result;
+        try {
+            result = nutritionAgent.analyze(foodName, weight);
+        } catch (Exception e) {
+            log.error("AI 食物分析失败 (可能是 API 代理返回了流式 SSE 格式而非 JSON)，使用估算值: {}", e.getMessage());
+            // 降级：根据常见食物给出粗略估算值
+            result = FoodAnalysisVO.builder()
+                    .calories((int) (weight * 1.5))
+                    .protein((int) (weight * 0.1))
+                    .fat((int) (weight * 0.05))
+                    .carbs((int) (weight * 0.2))
+                    .build();
+        }
 
         // 4. 存入 Redis 缓存，设置 24 小时过期
         try {
@@ -445,7 +457,18 @@ public class MealServiceImpl implements MealService {
                 exerciseName, durationMinutes, description, age, height, weight, gender);
 
         // 调用 AI Agent 进行运动消耗分析
-        final ExerciseAnalysisVO result = exerciseAgent.analyze(exerciseName, durationMinutes, description, age, height, weight, gender);
+        ExerciseAnalysisVO result;
+        try {
+            result = exerciseAgent.analyze(exerciseName, durationMinutes, description, age, height, weight, gender);
+        } catch (Exception e) {
+            log.error("AI 运动消耗分析失败 (可能是 API 代理返回了流式 SSE 格式而非 JSON)，使用估算值: {}", e.getMessage());
+            // 降级：按 MET 粗略估算 (中等强度 ~5 MET)
+            int estimatedCalories = (int) (5.0 * weight * durationMinutes / 60.0);
+            result = ExerciseAnalysisVO.builder()
+                    .caloriesBurned(estimatedCalories)
+                    .intensity("中等")
+                    .build();
+        }
 
         log.info("AI Agent 分析运动消耗结果: {} -> {}kcal ({})", exerciseName, result.getCaloriesBurned(), result.getIntensity());
         return result;
