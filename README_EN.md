@@ -52,20 +52,20 @@ SVG location: `docs/images/arch-*.svg`
 
 ### Overview
 
-![Architecture Overview (SVG)](./docs/images/arch-overview.svg)
+![Architecture Overview (SVG)](./docs/images/arch-overview_en.svg)
 
 Module diagrams:
 [AI Coach](./README_EN.md#ai-coach) ｜ [Workouts & Report](./README_EN.md#workouts--report) ｜ [Diet](./README_EN.md#diet-module) ｜ [Dashboard](./README_EN.md#dashboard) ｜ [Community](./README_EN.md#community)
 
 ### Deployment Architecture (Production)
 
-![Deployment Architecture (SVG)](./docs/images/arch-deploy.svg)
+![Deployment Architecture (SVG)](./docs/images/arch-deploy_en.svg)
 
 <a id="arch-ai"></a>
 
 ### AI Coach
 
-![AI Coach Architecture (SVG)](./docs/images/arch-ai.svg)
+![AI Coach Architecture (SVG)](./docs/images/arch-ai_en.svg)
 
 LangChain4j is used mainly for: intent detection, context construction (turning DB data into prompts), and multi-agent separation (chat vs. analysis) to keep iteration and evaluation easier.
 
@@ -73,25 +73,25 @@ LangChain4j is used mainly for: intent detection, context construction (turning 
 
 ### Workouts & Report
 
-![Workouts & Report Architecture (SVG)](./docs/images/arch-workout.svg)
+![Workouts & Report Architecture (SVG)](./docs/images/arch-workout_en.svg)
 
 <a id="arch-diet"></a>
 
 ### Diet Module
 
-<img src="./docs/images/arch-diet.svg" alt="Diet Module Architecture (SVG)" width="240" />
+<img src="./docs/images/arch-diet_en.svg" alt="Diet Module Architecture (SVG)" width="240" />
 
 <a id="arch-dashboard"></a>
 
 ### Dashboard
 
-![Dashboard Architecture (SVG)](./docs/images/arch-dashboard.svg)
+![Dashboard Architecture (SVG)](./docs/images/arch-dashboard_en.svg)
 
 <a id="arch-community"></a>
 
 ### Community
 
-![Community Architecture (SVG)](./docs/images/arch-community.svg)
+![Community Architecture (SVG)](./docs/images/arch-community_en.svg)
 
 ## UI Preview
 
