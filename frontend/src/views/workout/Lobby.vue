@@ -4,6 +4,10 @@
       <div class="hero-content">
         <h1 class="hero-title">AiTrainer <span class="highlight">视觉引擎</span> 已就绪</h1>
         <p class="hero-subtitle">无需穿戴设备，只需打开摄像头，即刻开启毫秒级骨骼点追踪与动作纠错。</p>
+        <p class="hero-notice">
+          注：视觉引擎模块当前使用ai生成数据，姿态识别算法接口已预留，待后续部署。
+          <a class="demo-link" href="https://www.bilibili.com/video/BV1kV5K6ZE6L/?share_source=copy_web&vd_source=8036b1f2d69a8402b96a903666f4ba4a" target="_blank" rel="noopener noreferrer">旧版演示视频</a>
+        </p>
         <div class="hero-stats">
           <div class="stat-badge">
             <el-icon>
@@ -148,7 +152,7 @@ const fetchWorkouts = async () => {
 
 const handleStartWorkout = (workout) => {
   ElMessageBox.confirm(
-    `即将开启【${workout.name}】模式。请确保您已穿着运动服，且全身处于摄像头画面内。`,
+    `即将开启【${workout.name}】模式。请确保您已穿着运动服，且全身处于摄像头画面内。注：视觉引擎模块当前使用演示数据，姿态识别算法接口已预留，待后续部署。（旧版演示视频见页面顶部链接）`,
     '初始化 AI 视觉引擎',
     {
       confirmButtonText: '我已准备好，开启摄像头',
@@ -196,6 +200,23 @@ onMounted(() => {
   font-size: 32px;
   margin: 0 0 16px 0;
   letter-spacing: 1px;
+}
+
+.hero-notice {
+  margin: 10px 0 18px 0;
+  font-size: 12px;
+  line-height: 18px;
+  opacity: 0.8;
+}
+
+.demo-link {
+  margin-left: 6px;
+  color: #cfe6ff;
+  text-decoration: underline;
+}
+
+.demo-link:hover {
+  color: #ffffff;
 }
 
 .highlight {
